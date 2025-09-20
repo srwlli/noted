@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stitch Design</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#137fec",
+              "background-light": "#f6f7f8",
+              "background-dark": "#101922",
+            },
+            fontFamily: {
+              "display": ["Inter"]
+            },
+            borderRadius: {
+              "DEFAULT": "0.25rem",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-gray-900 dark:text-white">
+<div class="flex flex-col h-screen justify-between">
+<main class="flex-1 overflow-y-auto">
+<header class="sticky top-0 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm z-10">
+<div class="flex items-center justify-between p-4 border-b border-white/10">
+<button class="p-2 rounded-full hover:bg-white/10 active:bg-white/20">
+<span class="material-symbols-outlined text-gray-600 dark:text-gray-400">arrow_back_ios_new</span>
+</button>
+<h1 class="text-lg font-bold">Noted</h1>
+<button class="p-2 rounded-full hover:bg-white/10 active:bg-white/20">
+<span class="material-symbols-outlined text-gray-600 dark:text-gray-400">more_vert</span>
+</button>
+</div>
+</header>
+<div class="p-4 space-y-4">
+<input class="form-input w-full bg-transparent border-none text-2xl font-bold p-2 text-gray-900 dark:text-white placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-0" placeholder="Note Title" value="Meeting Notes"/>
+<textarea class="form-textarea w-full h-full min-h-[50vh] bg-transparent border-none p-2 text-base text-gray-700 dark:text-gray-300 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-0 resize-none" placeholder="Start writing your note here...">The quick brown fox jumps over the lazy dog. This is a sample note to demonstrate the look and feel of the application. Users can write down their thoughts, ideas, and reminders. The interface is designed to be clean and distraction-free.</textarea>
+</div>
+</main>
+<footer class="bg-background-light dark:bg-background-dark border-t border-white/10 sticky bottom-0">
+<nav class="flex items-center justify-around p-2">
+<button class="p-3 rounded-full text-primary">
+<span class="material-symbols-outlined">description</span>
+</button>
+<button class="p-3 rounded-full text-gray-600 dark:text-gray-400 hover:text-primary">
+<span class="material-symbols-outlined">add_circle</span>
+</button>
+<button class="p-3 rounded-full text-gray-600 dark:text-gray-400 hover:text-primary">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+</footer>
+</div>
+
+</body></html>

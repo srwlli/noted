@@ -1,0 +1,183 @@
+<tasks project="tailwind-local" type="setup-populate-run">
+
+  <!-- Phase 1: Setup -->
+  <phase name="setup">
+    <checklist>
+      <item>Initialize project</item>
+      <item>Install dependencies</item>
+      <item>Create Tailwind & PostCSS configs</item>
+      <item>Create entry CSS</item>
+      <item>Create Express server</item>
+    </checklist>
+
+    <task order="1" name="initialize-project">
+      <command>mkdir tailwind-local && cd tailwind-local && npm init -y</command>
+    </task>
+
+    <task order="2" name="install-dependencies">
+      <command>npm install express</command>
+      <command>npm install -D tailwindcss postcss autoprefixer</command>
+    </task>
+
+    <task order="3" name="configure-tailwind">
+      <command>npx tailwindcss init -p</command>
+      <file name="tailwind.config.js"><![CDATA[
+module.exports = {
+  darkMode: 'class',
+  content: ["./public/*.html"],
+  theme: { extend: {} },
+  plugins: [],
+}
+      ]]></file>
+      <file name="postcss.config.js"><![CDATA[
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+      ]]></file>
+    </task>
+
+    <task order="4" name="create-input-css">
+      <file name="src/input.css"><![CDATA[
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+      ]]></file>
+    </task>
+
+    <task order="5" name="create-server">
+      <file name="server.js"><![CDATA[
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use("/dist", express.static(path.join(__dirname, "dist")));
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Local Web Server running at http://localhost:${PORT}`);
+});
+      ]]></file>
+    </task>
+  </phase>
+
+  <!-- Phase 2: Populate -->
+  <phase name="populate">
+    <checklist>
+      <item>Create HTML with sticky header</item>
+      <item>Populate cards with contextual statistics</item>
+      <item>Add dark mode toggle to 4th card</item>
+    </checklist>
+
+    <task order="6" name="create-html">
+      <file name="public/index.html"><![CDATA[
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tailwind Local Portal</title>
+  <link href="../dist/output.css" rel="stylesheet" />
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans dark:bg-gray-900 dark:text-gray-100">
+
+  <!-- Sticky Header -->
+  <header class="sticky top-0 bg-white dark:bg-gray-800 shadow z-50">
+    <div class="max-w-6xl mx-auto p-4 text-center">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">My Web App</h1>
+      <p class="text-gray-500 dark:text-gray-400">Clean & Minimal Template</p>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="max-w-6xl mx-auto p-8">
+    <main>
+      <section class="mb-12">
+        <h2 class="text-xl font-semibold mb-2">Welcome</h2>
+        <p class="text-gray-600 dark:text-gray-400 mb-4">This is a minimal, greyscale template.</p>
+
+        <!-- Button Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <button class="px-4 py-2 border border-gray-300 rounded bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">Default Button</button>
+          <button class="px-4 py-2 border border-gray-300 rounded bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">Default Button</button>
+          <button class="px-4 py-2 border border-gray-300 rounded bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">Default Button</button>
+          <button class="px-4 py-2 border border-gray-300 rounded bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700">Default Button</button>
+        </div>
+
+        <!-- Card Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="p-4 border border-gray-300 rounded bg-white dark:bg-gray-800 shadow-sm">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Users</h3>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">1,234</p>
+          </div>
+          <div class="p-4 border border-gray-300 rounded bg-white dark:bg-gray-800 shadow-sm">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Sessions</h3>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">567</p>
+          </div>
+          <div class="p-4 border border-gray-300 rounded bg-white dark:bg-gray-800 shadow-sm">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Revenue</h3>
+            <p class="text-2xl font-bold text-gray-900 dark:text-gray-100">$8,910</p>
+          </div>
+          <div class="p-4 border border-gray-300 rounded bg-white dark:bg-gray-800 shadow-sm flex flex-col items-center justify-center">
+            <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2">Dark Mode</h3>
+            <button 
+              onclick="document.body.classList.toggle('dark')" 
+              class="px-4 py-2 border border-gray-300 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">
+              Toggle Dark Mode
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-16 border-t border-gray-300 dark:border-gray-700 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+    <p>&copy; 2025 My Web App. All rights reserved.</p>
+    <nav class="mt-2 space-x-4">
+      <a href="#" class="hover:text-gray-700 dark:hover:text-gray-200">Documents</a>
+      <a href="#" class="hover:text-gray-700 dark:hover:text-gray-200">Terms...</a>
+      <a href="#" class="hover:text-gray-700 dark:hover:text-gray-200">Contact</a>
+    </nav>
+  </footer>
+
+</body>
+</html>
+      ]]></file>
+    </task>
+  </phase>
+
+  <!-- Phase 3: Execute -->
+  <phase name="execute">
+    <checklist>
+      <item>Build Tailwind output.css</item>
+      <item>Run Express server</item>
+      <item>Access http://localhost:3000</item>
+    </checklist>
+
+    <task order="7" name="build-tailwind-css">
+      <command>npm run build:css</command>
+    </task>
+
+    <task order="8" name="watch-tailwind-css">
+      <command>npm run dev:css</command>
+    </task>
+
+    <task order="9" name="start-server">
+      <command>npm start</command>
+    </task>
+  </phase>
+
+</tasks>
