@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.srwlli.mobiletailwindportal",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,11 +23,49 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.srwlli.mobiletailwindportal"
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Noted",
+      "shortName": "Noted",
+      "description": "Simple notes app with authentication",
+      "display": "standalone",
+      "startUrl": "/",
+      "orientation": "portrait",
+      "themeColor": "#000000",
+      "backgroundColor": "#ffffff",
+      "scope": "/",
+      "lang": "en",
+      "dir": "ltr",
+      "preferRelatedApplications": false,
+      "bundler": "metro",
+      "meta": {
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "default",
+        "apple-mobile-web-app-title": "Noted",
+        "mobile-web-app-capable": "yes",
+        "msapplication-TileColor": "#000000",
+        "msapplication-tap-highlight": "no"
+      },
+      "manifest": {
+        "icons": [
+          {
+            "src": "./assets/images/icon.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+          },
+          {
+            "src": "./assets/images/icon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+          }
+        ]
+      }
     },
     "plugins": [
       "expo-router",
@@ -43,6 +85,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b96989f2-32e0-41c8-8634-bdf692257aea"
+      }
     }
   }
 }

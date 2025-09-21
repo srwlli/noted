@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { router } from 'expo-router';
 
 interface CommonHeaderProps {
   onNewNote?: () => void;
@@ -10,6 +11,14 @@ interface CommonHeaderProps {
 export function CommonHeader({ onNewNote }: CommonHeaderProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
+
+  const handleNewNote = () => {
+    if (onNewNote) {
+      onNewNote();
+    } else {
+      router.push('/');
+    }
+  };
 
   return (
     <View style={[
@@ -21,14 +30,12 @@ export function CommonHeader({ onNewNote }: CommonHeaderProps) {
       }
     ]}>
       <Text style={[styles.branding, { color: colors.text }]}>noted</Text>
-      {onNewNote && (
-        <TouchableOpacity
-          style={[styles.newButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-          onPress={onNewNote}
-        >
-          <Text style={[styles.newButtonText, { color: colors.text }]}>+</Text>
-        </TouchableOpacity>
-      )}
+      <TouchableOpacity
+        style={[styles.newButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={handleNewNote}
+      >
+        <Text style={[styles.newButtonText, { color: colors.text }]}>+</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -47,15 +54,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   newButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   newButtonText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });
