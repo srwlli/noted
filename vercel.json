@@ -1,7 +1,7 @@
 {
   "outputDirectory": "dist",
   "framework": null,
-  "buildCommand": "false",
+  "buildCommand": "npm run build",
   "headers": [
     {
       "source": "/sw.js",
