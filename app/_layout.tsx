@@ -6,6 +6,7 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { ThemeControllerProvider, useThemeController } from '@/contexts/theme-controller';
+import { AuthProvider } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
 
 export const unstable_settings = {
@@ -48,6 +49,7 @@ function AppLayout() {
       <ThemeProvider value={resolvedScheme === 'dark' ? NotedDarkTheme : NotedLightTheme}>
         <Stack key={resolvedScheme}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="auth" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
@@ -59,7 +61,9 @@ function AppLayout() {
 export default function RootLayout() {
   return (
     <ThemeControllerProvider>
-      <AppLayout />
+      <AuthProvider>
+        <AppLayout />
+      </AuthProvider>
     </ThemeControllerProvider>
   );
 }

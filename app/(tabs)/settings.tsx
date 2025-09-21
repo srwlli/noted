@@ -1,15 +1,28 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
 import { useThemeController } from '@/contexts/theme-controller';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { useAuth } from '@/hooks/use-auth';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 
 export default function SettingsScreen() {
   const { colorScheme, resolvedScheme, setColorScheme, isLoading } = useThemeController();
   const { colors } = useThemeColors();
+  const { signOut, user } = useAuth();
 
   const handleThemeToggle = (value: boolean) => {
     setColorScheme(value ? 'dark' : 'light');
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: signOut },
+      ]
+    );
   };
 
   return (
@@ -51,6 +64,22 @@ export default function SettingsScreen() {
           <Text style={[styles.debugLabel, { color: colors.text }]}>Background:</Text>
           <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colors.background}</Text>
         </View>
+
+        <View style={styles.debugRow}>
+          <Text style={[styles.debugLabel, { color: colors.text }]}>User Email:</Text>
+          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{user?.email || 'None'}</Text>
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Account</Text>
+
+        <TouchableOpacity
+          style={[styles.signOutButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+          onPress={handleSignOut}
+        >
+          <Text style={[styles.signOutText, { color: colors.text }]}>Sign Out</Text>
+        </TouchableOpacity>
       </View>
     </SharedPageLayout>
   );
@@ -98,5 +127,15 @@ const styles = StyleSheet.create({
   debugValue: {
     fontSize: 14,
     fontFamily: 'monospace',
+  },
+  signOutButton: {
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  signOutText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
