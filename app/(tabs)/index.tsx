@@ -1,138 +1,106 @@
-import { Text, View, TouchableOpacity, ScrollView, StyleSheet } from "react-native";
+import { Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { SharedPageLayout } from '@/components/shared-page-layout';
 
-export default function HomeScreen() {
+export default function NotesScreen() {
   const { colors } = useThemeColors();
 
+  const handleNewNote = () => {
+    // TODO: Navigate to note creation form
+    console.log('Create new note');
+  };
+
+  const handleNotePress = (noteId: string) => {
+    // TODO: Navigate to note detail/edit
+    console.log('Open note:', noteId);
+  };
+
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Theme Demo App</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          Testing theme switching functionality
+    <SharedPageLayout onNewNote={handleNewNote}>
+      {/* New Note Card */}
+      <TouchableOpacity
+        style={[styles.newNoteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={handleNewNote}
+      >
+        <Text style={[styles.newNoteIcon, { color: colors.textSecondary }]}>+</Text>
+        <Text style={[styles.newNoteText, { color: colors.textSecondary }]}>Create new note</Text>
+      </TouchableOpacity>
+
+      {/* Note Cards */}
+      <TouchableOpacity
+        style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => handleNotePress('1')}
+      >
+        <Text style={[styles.noteTitle, { color: colors.text }]}>Meeting Notes</Text>
+        <Text style={[styles.notePreview, { color: colors.textSecondary }]}>
+          Discussed project timeline and key deliverables for the upcoming quarter...
         </Text>
-      </View>
+        <Text style={[styles.noteDate, { color: colors.textSecondary }]}>Today, 2:30 PM</Text>
+      </TouchableOpacity>
 
-      {/* Button Grid */}
-      <View style={styles.buttonGrid}>
-        <TouchableOpacity style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.buttonText, { color: colors.text }]}>Button 1</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.buttonText, { color: colors.text }]}>Button 2</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.buttonText, { color: colors.text }]}>Button 3</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.buttonText, { color: colors.text }]}>Button 4</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Card Grid */}
-      <View style={styles.cardGrid}>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Card One</Text>
-          <Text style={[styles.cardContent, { color: colors.textSecondary }]}>
-            Background color changes with theme.
-          </Text>
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Card Two</Text>
-          <Text style={[styles.cardContent, { color: colors.textSecondary }]}>
-            Text adapts to light/dark mode.
-          </Text>
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Card Three</Text>
-          <Text style={[styles.cardContent, { color: colors.textSecondary }]}>
-            Go to Settings to toggle theme.
-          </Text>
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Card Four</Text>
-          <Text style={[styles.cardContent, { color: colors.textSecondary }]}>
-            Theme preference persists.
-          </Text>
-        </View>
-      </View>
-
-      {/* Footer */}
-      <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        <Text style={[styles.footerText, { color: colors.textSecondary }]}>
-          Theme System Demo • 2025
+      <TouchableOpacity
+        style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => handleNotePress('2')}
+      >
+        <Text style={[styles.noteTitle, { color: colors.text }]}>Shopping List</Text>
+        <Text style={[styles.notePreview, { color: colors.textSecondary }]}>
+          Milk, bread, eggs, coffee beans, fresh vegetables for dinner...
         </Text>
-      </View>
-    </ScrollView>
+        <Text style={[styles.noteDate, { color: colors.textSecondary }]}>Yesterday, 10:15 AM</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.noteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => handleNotePress('3')}
+      >
+        <Text style={[styles.noteTitle, { color: colors.text }]}>Ideas for App</Text>
+        <Text style={[styles.notePreview, { color: colors.textSecondary }]}>
+          User authentication flow, dark mode implementation, offline sync capabilities...
+        </Text>
+        <Text style={[styles.noteDate, { color: colors.textSecondary }]}>Jan 18, 4:45 PM</Text>
+      </TouchableOpacity>
+    </SharedPageLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    padding: 32,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-  },
-  buttonGrid: {
+  newNoteCard: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 12,
     gap: 12,
   },
-  button: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: 12,
-    alignItems: 'center',
+  newNoteIcon: {
+    fontSize: 24,
+    fontWeight: 'bold',
   },
-  buttonText: {
+  newNoteText: {
     fontSize: 16,
     fontWeight: '500',
   },
-  cardGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  noteCard: {
     padding: 16,
-    gap: 12,
-  },
-  card: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
     borderRadius: 12,
   },
-  cardTitle: {
-    fontSize: 16,
+  noteTitle: {
+    fontSize: 18,
     fontWeight: '600',
     marginBottom: 8,
   },
-  cardContent: {
+  notePreview: {
     fontSize: 14,
     lineHeight: 20,
+    marginBottom: 8,
   },
-  footer: {
-    padding: 24,
-    borderTopWidth: 1,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    fontSize: 14,
+  noteDate: {
+    fontSize: 12,
+    fontWeight: '500',
   },
 });

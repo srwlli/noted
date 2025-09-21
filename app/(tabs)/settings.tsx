@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Switch } from 'react-native';
 import { useThemeController } from '@/contexts/theme-controller';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { SharedPageLayout } from '@/components/shared-page-layout';
 
 export default function SettingsScreen() {
   const { colorScheme, resolvedScheme, setColorScheme, isLoading } = useThemeController();
@@ -12,69 +13,51 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.scrollView}>
-        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+    <SharedPageLayout scrollable={false}>
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
-
-          <View style={styles.settingRow}>
-            <View style={styles.settingInfo}>
-              <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
-              <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-                Current: {resolvedScheme} {colorScheme === 'system' ? '(auto)' : ''}
-              </Text>
-            </View>
-            <Switch
-              value={resolvedScheme === 'dark'}
-              onValueChange={handleThemeToggle}
-              disabled={isLoading}
-              trackColor={{ false: colors.border, true: colors.tint }}
-              thumbColor={resolvedScheme === 'dark' ? colors.surface : colors.background}
-            />
+        <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
+            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+              Current: {resolvedScheme} {colorScheme === 'system' ? '(auto)' : ''}
+            </Text>
           </View>
+          <Switch
+            value={resolvedScheme === 'dark'}
+            onValueChange={handleThemeToggle}
+            disabled={isLoading}
+            trackColor={{ false: colors.border, true: colors.tint }}
+            thumbColor={resolvedScheme === 'dark' ? colors.surface : colors.background}
+          />
+        </View>
+      </View>
+
+      <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Debug</Text>
+
+        <View style={styles.debugRow}>
+          <Text style={[styles.debugLabel, { color: colors.text }]}>Color Scheme:</Text>
+          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colorScheme}</Text>
         </View>
 
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Debug</Text>
-
-          <View style={styles.debugRow}>
-            <Text style={[styles.debugLabel, { color: colors.text }]}>Color Scheme:</Text>
-            <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colorScheme}</Text>
-          </View>
-
-          <View style={styles.debugRow}>
-            <Text style={[styles.debugLabel, { color: colors.text }]}>Resolved:</Text>
-            <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{resolvedScheme}</Text>
-          </View>
-
-          <View style={styles.debugRow}>
-            <Text style={[styles.debugLabel, { color: colors.text }]}>Background:</Text>
-            <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colors.background}</Text>
-          </View>
+        <View style={styles.debugRow}>
+          <Text style={[styles.debugLabel, { color: colors.text }]}>Resolved:</Text>
+          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{resolvedScheme}</Text>
         </View>
-      </ScrollView>
-    </View>
+
+        <View style={styles.debugRow}>
+          <Text style={[styles.debugLabel, { color: colors.text }]}>Background:</Text>
+          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colors.background}</Text>
+        </View>
+      </View>
+    </SharedPageLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginHorizontal: 16,
-    marginTop: 60,
-    marginBottom: 32,
-  },
   section: {
-    marginHorizontal: 16,
     marginBottom: 24,
     borderRadius: 12,
     borderWidth: 1,
