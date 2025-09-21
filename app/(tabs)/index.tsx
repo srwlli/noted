@@ -118,15 +118,26 @@ export default function NotesScreen() {
           />
         )}
 
-        {/* Create New Note Card - Always visible when form is not shown */}
+        {/* Action Cards - Refresh and Create */}
         {!showForm && (
-          <TouchableOpacity
-            style={[styles.newNoteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={handleNewNote}
-          >
-            <Text style={[styles.newNoteIcon, { color: colors.textSecondary }]}>+</Text>
-            <Text style={[styles.newNoteText, { color: colors.textSecondary }]}>Create new note</Text>
-          </TouchableOpacity>
+          <View style={styles.actionContainer}>
+            <TouchableOpacity
+              style={[styles.refreshCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={handleRefresh}
+              disabled={refreshing}
+            >
+              <Text style={[styles.refreshText, { color: colors.textSecondary }]}>
+                {refreshing ? 'Refreshing...' : 'Refresh'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.newNoteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              onPress={handleNewNote}
+            >
+              <Text style={[styles.newNoteText, { color: colors.textSecondary }]}>Create new note</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         {/* Error Message */}
@@ -177,23 +188,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  actionContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  cardWithIcon: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  outsideIcon: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
   newNoteCard: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
-    marginBottom: 16,
+    padding: 16,
     borderWidth: 2,
     borderStyle: 'dashed',
     borderRadius: 12,
-    gap: 12,
+    gap: 8,
   },
   newNoteIcon: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
   },
   newNoteText: {
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  refreshCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderRadius: 12,
+    gap: 8,
+  },
+  refreshIcon: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  refreshText: {
+    fontSize: 14,
     fontWeight: '500',
   },
   errorContainer: {
