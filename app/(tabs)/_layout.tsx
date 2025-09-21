@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { MaterialIcons } from '@expo/vector-icons';
 import { AuthGuard } from '@/components/auth-guard';
 import { Colors } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -17,6 +17,7 @@ export default function TabLayout() {
           tabBarActiveTintColor: Colors[colorScheme].tint,
           headerShown: false,
           tabBarButton: HapticTab,
+          tabBarShowLabel: false,
           tabBarStyle: {
             backgroundColor: Colors[colorScheme].surface,
             borderTopColor: Colors[colorScheme].border,
@@ -26,21 +27,21 @@ export default function TabLayout() {
           name="docs"
           options={{
             title: 'About',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="info.circle" color={color} />,
+            tabBarIcon: ({ color }) => <MaterialIcons size={28} name="info" color={color} />,
           }}
         />
         <Tabs.Screen
           name="index"
           options={{
             title: 'Notes',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="note.text" color={color} />,
+            tabBarIcon: ({ color }) => <MaterialIcons size={28} name="description" color={color} />,
           }}
         />
         <Tabs.Screen
           name="settings"
           options={{
             title: 'Settings',
-            tabBarIcon: ({ color }) => <IconSymbol size={28} name="gear" color={color} />,
+            tabBarIcon: ({ color }) => <MaterialIcons size={28} name="settings" color={color} />,
           }}
         />
       </Tabs>

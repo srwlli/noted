@@ -5,6 +5,8 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { ConfirmationModal } from '@/components/confirmation-modal';
+import { PWAInstallCardDesktop } from '@/components/PWAInstallCardDesktop';
+import { PWAInstallCardMobile } from '@/components/PWAInstallCardMobile';
 import { router } from 'expo-router';
 
 export default function SettingsScreen() {
@@ -37,6 +39,9 @@ export default function SettingsScreen() {
 
   return (
     <SharedPageLayout scrollable={false}>
+      <PWAInstallCardDesktop />
+      <PWAInstallCardMobile />
+
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
 

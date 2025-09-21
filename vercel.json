@@ -1,8 +1,7 @@
 {
-  "buildCommand": "npm run web",
   "outputDirectory": "dist",
-  "installCommand": "npm install",
   "framework": null,
+  "buildCommand": "false",
   "headers": [
     {
       "source": "/sw.js",
