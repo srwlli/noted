@@ -1,29 +1,35 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Greyscale theme colors for the Noted app.
+ * Uses light grey (#fafafa) and dark grey (#121212) backgrounds instead of pure white/black.
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
 export const Colors = {
+  primary: '#4a4a4a', // Primary grey for buttons, links, etc.
+
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    background: '#fafafa',    // Light grey background (not white)
+    surface: '#ffffff',       // Card/surface color
+    text: '#1a1a1a',         // Primary text
+    textSecondary: '#6a6a6a', // Secondary text
+    border: '#e0e0e0',       // Borders and dividers
+    tint: '#4a4a4a',         // Active elements
+    icon: '#6a6a6a',         // Default icons
+    tabIconDefault: '#6a6a6a',
+    tabIconSelected: '#4a4a4a',
   },
+
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    background: '#121212',    // Dark grey background (not black)
+    surface: '#1e1e1e',       // Card/surface color
+    text: '#f5f5f5',         // Primary text
+    textSecondary: '#b0b0b0', // Secondary text
+    border: '#333333',       // Borders and dividers
+    tint: '#d0d0d0',         // Active elements
+    icon: '#b0b0b0',         // Default icons
+    tabIconDefault: '#b0b0b0',
+    tabIconSelected: '#d0d0d0',
   },
 };
 

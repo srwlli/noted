@@ -1,0 +1,119 @@
+import React from 'react';
+import { View, Text, StyleSheet, Switch, ScrollView } from 'react-native';
+import { useThemeController } from '@/contexts/theme-controller';
+import { useThemeColors } from '@/hooks/use-theme-colors';
+
+export default function SettingsScreen() {
+  const { colorScheme, resolvedScheme, setColorScheme, isLoading } = useThemeController();
+  const { colors } = useThemeColors();
+
+  const handleThemeToggle = (value: boolean) => {
+    setColorScheme(value ? 'dark' : 'light');
+  };
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView style={styles.scrollView}>
+        <Text style={[styles.title, { color: colors.text }]}>Settings</Text>
+
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
+              <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+                Current: {resolvedScheme} {colorScheme === 'system' ? '(auto)' : ''}
+              </Text>
+            </View>
+            <Switch
+              value={resolvedScheme === 'dark'}
+              onValueChange={handleThemeToggle}
+              disabled={isLoading}
+              trackColor={{ false: colors.border, true: colors.tint }}
+              thumbColor={resolvedScheme === 'dark' ? colors.surface : colors.background}
+            />
+          </View>
+        </View>
+
+        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Debug</Text>
+
+          <View style={styles.debugRow}>
+            <Text style={[styles.debugLabel, { color: colors.text }]}>Color Scheme:</Text>
+            <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colorScheme}</Text>
+          </View>
+
+          <View style={styles.debugRow}>
+            <Text style={[styles.debugLabel, { color: colors.text }]}>Resolved:</Text>
+            <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{resolvedScheme}</Text>
+          </View>
+
+          <View style={styles.debugRow}>
+            <Text style={[styles.debugLabel, { color: colors.text }]}>Background:</Text>
+            <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colors.background}</Text>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 60,
+    marginBottom: 32,
+  },
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  settingInfo: {
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 18,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  settingDescription: {
+    fontSize: 14,
+  },
+  debugRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  debugLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  debugValue: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+  },
+});
