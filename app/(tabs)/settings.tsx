@@ -1,28 +1,38 @@
-import React from 'react';
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Switch, TouchableOpacity } from 'react-native';
 import { useThemeController } from '@/contexts/theme-controller';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { SharedPageLayout } from '@/components/shared-page-layout';
+import { ConfirmationModal } from '@/components/confirmation-modal';
+import { router } from 'expo-router';
 
 export default function SettingsScreen() {
   const { colorScheme, resolvedScheme, setColorScheme, isLoading } = useThemeController();
   const { colors } = useThemeColors();
   const { signOut, user } = useAuth();
+  const [showSignOutModal, setShowSignOutModal] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleThemeToggle = (value: boolean) => {
     setColorScheme(value ? 'dark' : 'light');
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: signOut },
-      ]
-    );
+    setShowSignOutModal(true);
+  };
+
+  const confirmSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      router.replace('/auth');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    } finally {
+      setIsSigningOut(false);
+      setShowSignOutModal(false);
+    }
   };
 
   return (
@@ -77,10 +87,24 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={[styles.signOutButton, { backgroundColor: colors.background, borderColor: colors.border }]}
           onPress={handleSignOut}
+          disabled={isSigningOut}
         >
-          <Text style={[styles.signOutText, { color: colors.text }]}>Sign Out</Text>
+          <Text style={[styles.signOutText, { color: colors.text }]}>
+            {isSigningOut ? 'Signing Out...' : 'Sign Out'}
+          </Text>
         </TouchableOpacity>
       </View>
+
+      <ConfirmationModal
+        visible={showSignOutModal}
+        title="Sign Out"
+        message="Are you sure you want to sign out?"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        confirmStyle="destructive"
+        onConfirm={confirmSignOut}
+        onCancel={() => setShowSignOutModal(false)}
+      />
     </SharedPageLayout>
   );
 }

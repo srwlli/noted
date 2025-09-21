@@ -1,6 +1,6 @@
 # Noted API Documentation
 
-**Date**: 2025-09-20
+**Date**: September 21, 2025
 **Version**: 1.0.0
 
 ## Table of Contents
@@ -19,12 +19,15 @@
 
 ## Overview
 
-The Noted API provides a RESTful interface for managing personal notes and user authentication. This API is designed to support the Noted mobile application, which allows users to create, read, update, and delete personal notes with a clean, minimal interface.
+The Noted API provides a Supabase-powered interface for managing personal notes and user authentication. This API is designed to support the Noted React Native mobile application built with Expo Router, enabling users to create, read, update, and delete personal notes with a clean, minimal interface.
 
-**Base Architecture**: RESTful API following OpenAPI 3.0 specification
+**Base Architecture**: Supabase REST API with Row Level Security (RLS)
 **Data Format**: JSON
-**Authentication**: Bearer Token (JWT)
+**Authentication**: Supabase Auth with JWT tokens
 **Content-Type**: application/json
+**Backend**: Supabase (PostgreSQL + Auth + Real-time)
+
+*References: README.md provides setup and quickstart information for the client application.*
 
 ## Authentication
 
@@ -36,54 +39,15 @@ Authorization: Bearer <your_jwt_token>
 
 ## Base URLs
 
-- **Development**: `https://api-dev.noted.app/v1`
-- **Production**: `https://api.noted.app/v1`
+- **Supabase API**: `https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1`
+- **Supabase Auth**: `https://ikovzegiuzjkubymwvjz.supabase.co/auth/v1`
+- **Client Application**: React Native app with Expo Router
 
 ## Authentication Endpoints
 
-### POST /auth/register
+### POST /auth/v1/signup
 
-Register a new user account.
-
-**Request Body:**
-```json
-{
-  "email": "user@example.com",
-  "password": "securePassword123",
-  "name": "John Doe"
-}
-```
-
-**Response (201):**
-```json
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user_123abc",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "createdAt": "2025-09-20T12:00:00Z"
-    },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-**cURL Example:**
-```bash
-curl -X POST "https://api.noted.app/v1/auth/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "user@example.com",
-    "password": "securePassword123",
-    "name": "John Doe"
-  }'
-```
-
-### POST /auth/login
-
-Authenticate an existing user.
+Register a new user account via Supabase Auth.
 
 **Request Body:**
 ```json
@@ -96,15 +60,60 @@ Authenticate an existing user.
 **Response (200):**
 ```json
 {
-  "success": true,
-  "data": {
-    "user": {
-      "id": "user_123abc",
-      "email": "user@example.com",
-      "name": "John Doe",
-      "lastLoginAt": "2025-09-20T12:00:00Z"
-    },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "user": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "email": "user@example.com",
+    "created_at": "2025-09-21T12:00:00.000000+00:00",
+    "email_confirmed_at": null,
+    "app_metadata": {},
+    "user_metadata": {}
+  },
+  "session": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "refresh_token": "refresh_token_here"
+  }
+}
+```
+
+**cURL Example:**
+```bash
+curl -X POST "https://ikovzegiuzjkubymwvjz.supabase.co/auth/v1/signup" \
+  -H "Content-Type: application/json" \
+  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "email": "user@example.com",
+    "password": "securePassword123"
+  }'
+```
+
+### POST /auth/v1/token?grant_type=password
+
+Authenticate an existing user with email and password.
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securePassword123"
+}
+```
+
+**Response (200):**
+```json
+{
+  "user": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "email": "user@example.com",
+    "created_at": "2025-09-21T12:00:00.000000+00:00",
+    "last_sign_in_at": "2025-09-21T12:00:00.000000+00:00"
+  },
+  "session": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "refresh_token": "refresh_token_here"
   }
 }
 ```
@@ -150,54 +159,52 @@ Reset password using reset token.
 
 ## Notes Endpoints
 
-### GET /notes
+### GET /rest/v1/notes
 
-Retrieve all notes for the authenticated user.
+Retrieve all notes for the authenticated user via Supabase REST API with RLS.
 
 **Query Parameters:**
-- `page` (integer, optional): Page number (default: 1)
-- `limit` (integer, optional): Items per page (default: 20, max: 100)
-- `search` (string, optional): Search query for note titles and content
-- `sortBy` (string, optional): Sort field (title, createdAt, updatedAt)
-- `sortOrder` (string, optional): Sort order (asc, desc)
+- `offset` (integer): Number of items to skip (pagination)
+- `limit` (integer): Items per page (default: 20, max: 1000)
+- `title` (string): Filter by title using pattern matching
+- `content` (string): Filter by content using pattern matching
+- `order` (string): Sort order (e.g., `created_at.desc`, `title.asc`)
+- `select` (string): Columns to select (default: `*`)
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+Content-Type: application/json
+```
 
 **Response (200):**
 ```json
-{
-  "success": true,
-  "data": {
-    "notes": [
-      {
-        "id": "note_456def",
-        "title": "Meeting Notes",
-        "content": "Discussion points from team meeting...",
-        "createdAt": "2025-01-20T10:30:00Z",
-        "updatedAt": "2025-01-20T14:45:00Z"
-      },
-      {
-        "id": "note_789ghi",
-        "title": "Grocery List",
-        "content": "Milk, Bread, Eggs...",
-        "createdAt": "2025-01-18T09:15:00Z",
-        "updatedAt": "2025-01-18T09:15:00Z"
-      }
-    ],
-    "pagination": {
-      "page": 1,
-      "limit": 20,
-      "totalItems": 42,
-      "totalPages": 3,
-      "hasNext": true,
-      "hasPrev": false
-    }
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Meeting Notes",
+    "content": "Discussion points from team meeting...",
+    "user_id": "user-uuid-here",
+    "created_at": "2025-01-20T10:30:00.000000+00:00",
+    "updated_at": "2025-01-20T14:45:00.000000+00:00"
+  },
+  {
+    "id": "b2c3d4e5-f6g7-8901-bcde-f23456789012",
+    "title": "Grocery List",
+    "content": "Milk, Bread, Eggs...",
+    "user_id": "user-uuid-here",
+    "created_at": "2025-01-18T09:15:00.000000+00:00",
+    "updated_at": "2025-01-18T09:15:00.000000+00:00"
   }
-}
+]
 ```
 
 **cURL Example:**
 ```bash
-curl -X GET "https://api.noted.app/v1/notes?page=1&limit=10&search=meeting" \
-  -H "Authorization: Bearer your_jwt_token"
+curl -X GET "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/notes?order=created_at.desc&limit=10" \
+  -H "Authorization: Bearer your_supabase_jwt" \
+  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ### GET /notes/:id
@@ -223,9 +230,9 @@ Retrieve a specific note by ID.
 }
 ```
 
-### POST /notes
+### POST /rest/v1/notes
 
-Create a new note.
+Create a new note. The user_id is automatically set from the authenticated user via RLS.
 
 **Request Body:**
 ```json
@@ -235,20 +242,26 @@ Create a new note.
 }
 ```
 
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+Content-Type: application/json
+Prefer: return=representation
+```
+
 **Response (201):**
 ```json
-{
-  "success": true,
-  "data": {
-    "note": {
-      "id": "note_abc123",
-      "title": "Project Ideas",
-      "content": "List of potential project ideas to explore...",
-      "createdAt": "2025-09-20T12:00:00Z",
-      "updatedAt": "2025-09-20T12:00:00Z"
-    }
+[
+  {
+    "id": "c3d4e5f6-g7h8-9012-cdef-g34567890123",
+    "title": "Project Ideas",
+    "content": "List of potential project ideas to explore...",
+    "user_id": "user-uuid-here",
+    "created_at": "2025-09-21T12:00:00.000000+00:00",
+    "updated_at": "2025-09-21T12:00:00.000000+00:00"
   }
-}
+]
 ```
 
 ### PUT /notes/:id
@@ -423,15 +436,27 @@ Update user settings.
 }
 ```
 
-### Note Schema
+### Note Schema (PostgreSQL via Supabase)
+```sql
+CREATE TABLE notes (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  content TEXT,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**JSON Response Schema:**
 ```json
 {
-  "id": "string",
+  "id": "uuid",
   "title": "string",
   "content": "string",
-  "userId": "string",
-  "createdAt": "string (ISO 8601)",
-  "updatedAt": "string (ISO 8601)"
+  "user_id": "uuid",
+  "created_at": "string (ISO 8601 with timezone)",
+  "updated_at": "string (ISO 8601 with timezone)"
 }
 ```
 
@@ -554,17 +579,18 @@ All errors follow a consistent format:
 
 ## Rate Limiting
 
-The API implements rate limiting to ensure fair usage and prevent abuse.
+Supabase implements rate limiting to ensure fair usage and prevent abuse.
 
 ### Limits
 
-- **Authentication endpoints**: 5 requests per minute per IP
-- **General API endpoints**: 100 requests per minute per user
-- **Note creation**: 10 requests per minute per user
+- **Authentication endpoints**: 30 requests per hour per IP (Supabase Auth)
+- **REST API endpoints**: 100 requests per second (configurable per project)
+- **Real-time connections**: Up to 200 concurrent connections per project
+- **Storage uploads**: 100 MB per hour per project
 
-### Headers
+### Supabase Headers
 
-Rate limit information is provided in response headers:
+Rate limit information may be provided in response headers:
 
 ```
 X-RateLimit-Limit: 100
@@ -572,38 +598,105 @@ X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1642677600
 ```
 
+*Note: Rate limiting configuration varies by Supabase plan (Free, Pro, Team, Enterprise).*
+
 ## Pagination
 
-List endpoints support pagination using query parameters:
+Supabase REST API supports offset-based pagination using query parameters:
 
-- `page`: Page number (default: 1)
-- `limit`: Items per page (default: 20, max: 100)
+- `offset`: Number of items to skip (default: 0)
+- `limit`: Items per page (default: unlimited, max: 1000)
 
-### Pagination Response
-```json
-{
-  "pagination": {
-    "page": 1,
-    "limit": 20,
-    "totalItems": 42,
-    "totalPages": 3,
-    "hasNext": true,
-    "hasPrev": false
-  }
-}
+### Pagination with Range Headers
+
+Supabase also supports range-based pagination:
+
+```bash
+# Get items 0-19 (first 20 items)
+curl -X GET "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/notes" \
+  -H "Range: 0-19" \
+  -H "Authorization: Bearer your_jwt"
+
+# Get items 20-39 (next 20 items)
+curl -X GET "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/notes" \
+  -H "Range: 20-39" \
+  -H "Authorization: Bearer your_jwt"
 ```
 
-### Navigation Links
-```bash
-# Get next page
-curl -X GET "https://api.noted.app/v1/notes?page=2&limit=20"
+### Response Headers
 
-# Get previous page
-curl -X GET "https://api.noted.app/v1/notes?page=1&limit=20"
+Pagination info is provided in response headers:
+
+```
+Content-Range: 0-19/42
+Accept-Ranges: items
+```
+
+### Query Parameter Pagination
+```bash
+# Using offset and limit
+curl -X GET "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/notes?offset=20&limit=20" \
+  -H "Authorization: Bearer your_jwt"
+```
+
+## Row Level Security (RLS)
+
+The notes table implements Row Level Security to ensure users can only access their own notes:
+
+```sql
+-- Enable RLS
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+
+-- Policy: Users can only see their own notes
+CREATE POLICY "Users can view own notes" ON notes
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- Policy: Users can insert their own notes
+CREATE POLICY "Users can insert own notes" ON notes
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Users can update their own notes
+CREATE POLICY "Users can update own notes" ON notes
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Policy: Users can delete their own notes
+CREATE POLICY "Users can delete own notes" ON notes
+  FOR DELETE USING (auth.uid() = user_id);
+```
+
+## TypeScript Client Integration
+
+The Noted app uses the Supabase JavaScript client:
+
+```typescript
+// lib/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.EXPO_PUBLIC_SUPABASE_URL,
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+);
+
+// Example: Create note
+const { data, error } = await supabase
+  .from('notes')
+  .insert({
+    title: 'My Note',
+    content: 'Note content here'
+  })
+  .select();
+
+// Example: Get user's notes
+const { data, error } = await supabase
+  .from('notes')
+  .select('*')
+  .order('created_at', { ascending: false });
 ```
 
 ---
 
 **🤖 Generated with [Claude Code](https://claude.ai/code)**
 
-This API documentation provides the technical interface reference for the Noted application, designed to support a clean and minimal note-taking experience with modern authentication and data management capabilities.
+*This API documentation provides the technical interface reference for the Noted application's Supabase backend, designed to support a clean and minimal note-taking experience with modern authentication, real-time capabilities, and automatic data management through Row Level Security.*
+
+*References: README.md for client setup instructions and ARCHITECTURE.md for system design overview.*

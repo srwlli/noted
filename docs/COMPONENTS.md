@@ -1,214 +1,96 @@
-# [POWER] Component Library Reference
+# [React Native] Component Library Reference
 
-## Overview
+**Framework:** React Native + Expo
+**Version:** 1.0.0
+**Description:** Reusable UI components for the Noted mobile application
 
-This document provides a comprehensive reference for all reusable components in the Mobile Tailwind Portal application. The app is built with React Native, Expo, TypeScript, and uses Tailwind CSS with NativeWind for styling. All components support both light and dark themes with automatic system preference detection.
+## Core Theme Components
 
-## Project Context
+### ThemedText
+A text component that automatically adapts to light/dark themes.
 
-**README Summary**: Modern React Native mobile application with cross-platform support (iOS, Android, Web), featuring clean minimal design, file-based routing, tab navigation, and TypeScript support. Built with Expo SDK 54, React 19.1.0, and uses Tailwind CSS for styling.
-
-**Architecture Summary**: No dedicated architecture documentation found - components follow standard React Native patterns with hooks for state management and themed components for consistent styling.
-
-**API Summary**: No dedicated API documentation found - app appears to be primarily UI-focused with potential for future API integration.
-
-## Component Categories
-
-### 1. Core UI Components
-
-#### ThemedText
-**File**: `components/themed-text.tsx:11`
-
-A text component that automatically adapts to light/dark themes with predefined typography styles.
-
-**Props**:
+**Props:**
 ```typescript
-type ThemedTextProps = TextProps & {
+export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
   type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
 };
 ```
 
-**Usage**:
-```jsx
+**Usage:**
+```tsx
 import { ThemedText } from '@/components/themed-text';
 
 // Basic usage
-<ThemedText>Default text</ThemedText>
+<ThemedText>Regular text</ThemedText>
 
 // With type styling
 <ThemedText type="title">Page Title</ThemedText>
 <ThemedText type="subtitle">Section Header</ThemedText>
-<ThemedText type="link">Link Text</ThemedText>
+<ThemedText type="link">Clickable Link</ThemedText>
 
 // Custom colors
-<ThemedText lightColor="#333" darkColor="#fff">
-  Custom colored text
+<ThemedText lightColor="#000" darkColor="#fff">
+  Custom themed text
 </ThemedText>
 ```
 
-**Typography Styles**:
-- `default`: 16px, line-height 24px
-- `title`: 32px, bold, line-height 32px
-- `subtitle`: 20px, bold
-- `defaultSemiBold`: 16px, font-weight 600
-- `link`: 16px, blue color (#0a7ea4)
+### ThemedView
+A view container that automatically adapts background color to themes.
 
-#### ThemedView
-**File**: `components/themed-view.tsx:10`
-
-A view component that automatically adapts background colors to light/dark themes.
-
-**Props**:
+**Props:**
 ```typescript
-type ThemedViewProps = ViewProps & {
+export type ThemedViewProps = ViewProps & {
   lightColor?: string;
   darkColor?: string;
 };
 ```
 
-**Usage**:
-```jsx
+**Usage:**
+```tsx
 import { ThemedView } from '@/components/themed-view';
 
-// Basic themed container
-<ThemedView>
-  <ThemedText>Content here</ThemedText>
-</ThemedView>
-
-// Custom background colors
-<ThemedView lightColor="#f5f5f5" darkColor="#2a2a2a">
-  <ThemedText>Custom background</ThemedText>
+<ThemedView style={{ padding: 16 }}>
+  <ThemedText>Content inside themed container</ThemedText>
 </ThemedView>
 ```
 
-### 2. Navigation Components
+## Layout Components
 
-#### HapticTab
-**File**: `components/haptic-tab.tsx:5`
+### SharedPageLayout
+A common layout wrapper used across all main app screens.
 
-A tab bar button component that provides haptic feedback on iOS when pressed.
-
-**Props**: Extends `BottomTabBarButtonProps`
-
-**Usage**:
-```jsx
-import { HapticTab } from '@/components/haptic-tab';
-
-// Used in tab navigator configuration
-<Tab.Screen
-  name="home"
-  component={HomeScreen}
-  options={{
-    tabBarButton: HapticTab,
-  }}
-/>
-```
-
-**Features**:
-- iOS haptic feedback (Light impact)
-- Platform-aware (only on iOS)
-- Maintains original tab button functionality
-
-#### ExternalLink
-**File**: `components/external-link.tsx:7`
-
-A link component that opens external URLs in an in-app browser on native platforms and new tab on web.
-
-**Props**:
+**Props:**
 ```typescript
-type Props = Omit<ComponentProps<typeof Link>, 'href'> & {
-  href: Href & string
-};
+interface SharedPageLayoutProps {
+  children: React.ReactNode;
+  onNewNote?: () => void;
+  scrollable?: boolean; // default: true
+}
 ```
 
-**Usage**:
-```jsx
-import { ExternalLink } from '@/components/external-link';
+**Usage:**
+```tsx
+import { SharedPageLayout } from '@/components/shared-page-layout';
 
-<ExternalLink href="https://example.com">
-  <ThemedText type="link">Visit Website</ThemedText>
-</ExternalLink>
+export default function MyScreen() {
+  const handleNewNote = () => {
+    // Handle new note creation
+  };
+
+  return (
+    <SharedPageLayout onNewNote={handleNewNote}>
+      <ThemedText>Page content</ThemedText>
+    </SharedPageLayout>
+  );
+}
 ```
 
-**Features**:
-- Cross-platform URL handling
-- In-app browser on native (automatic presentation style)
-- New tab on web
-- Prevents default navigation on native
+### ParallaxScrollView
+A scroll view with parallax header animation effects.
 
-### 3. UI Components
-
-#### Collapsible
-**File**: `components/ui/collapsible.tsx:10`
-
-An expandable content container with animated chevron indicator.
-
-**Props**:
-```typescript
-type Props = PropsWithChildren & {
-  title: string
-};
-```
-
-**Usage**:
-```jsx
-import { Collapsible } from '@/components/ui/collapsible';
-
-<Collapsible title="Section Title">
-  <ThemedText>Collapsible content here</ThemedText>
-  <ThemedText>More content...</ThemedText>
-</Collapsible>
-```
-
-**Features**:
-- Toggle state management
-- Animated chevron rotation (0° → 90°)
-- Theme-aware icon colors
-- Touch feedback (activeOpacity: 0.8)
-
-#### IconSymbol
-**File**: `components/ui/icon-symbol.tsx:28`
-
-A cross-platform icon component using SF Symbols on iOS and Material Icons elsewhere.
-
-**Props**:
-```typescript
-type Props = {
-  name: IconSymbolName;
-  size?: number;
-  color: string | OpaqueColorValue;
-  style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
-};
-```
-
-**Available Icons**:
-- `house.fill` → `home`
-- `paperplane.fill` → `send`
-- `chevron.left.forwardslash.chevron.right` → `code`
-- `chevron.right` → `chevron-right`
-
-**Usage**:
-```jsx
-import { IconSymbol } from '@/components/ui/icon-symbol';
-
-<IconSymbol
-  name="house.fill"
-  size={24}
-  color="#333"
-/>
-```
-
-### 4. Layout Components
-
-#### ParallaxScrollView
-**File**: `components/parallax-scroll-view.tsx:21`
-
-An advanced scroll view with parallax header effects and animations.
-
-**Props**:
+**Props:**
 ```typescript
 type Props = PropsWithChildren<{
   headerImage: ReactElement;
@@ -216,260 +98,229 @@ type Props = PropsWithChildren<{
 }>;
 ```
 
-**Usage**:
-```jsx
+**Usage:**
+```tsx
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 
 <ParallaxScrollView
-  headerImage={<Image source={heroImage} />}
-  headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}>
-  <ThemedView>
-    <ThemedText type="title">Content Title</ThemedText>
-    <ThemedText>Scrollable content here...</ThemedText>
-  </ThemedView>
+  headerImage={<HelloWave />}
+  headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+>
+  <ThemedText>Scrollable content</ThemedText>
 </ParallaxScrollView>
 ```
 
-**Features**:
-- Fixed header height (250px)
-- Smooth parallax scrolling with interpolation
-- Scale and translate animations
-- Theme-aware background colors
-- Reanimated 3 integration
+### CommonHeader
+Header component with app branding and optional new note button.
 
-#### HelloWave
-**File**: `components/hello-wave.tsx:3`
+**Props:**
+```typescript
+interface CommonHeaderProps {
+  onNewNote?: () => void;
+}
+```
 
-An animated wave emoji component with CSS keyframe animation.
+**Usage:**
+```tsx
+import { CommonHeader } from '@/components/common-header';
 
-**Usage**:
-```jsx
+<CommonHeader onNewNote={() => createNewNote()} />
+```
+
+## Interactive Components
+
+### Collapsible
+An expandable/collapsible content section with animated chevron.
+
+**Props:**
+```typescript
+PropsWithChildren & { title: string }
+```
+
+**Usage:**
+```tsx
+import { Collapsible } from '@/components/ui/collapsible';
+
+<Collapsible title="Advanced Settings">
+  <ThemedText>Hidden content here</ThemedText>
+</Collapsible>
+```
+
+### ExternalLink
+A link component that opens URLs in the system browser (native) or new tab (web).
+
+**Props:**
+```typescript
+type Props = Omit<ComponentProps<typeof Link>, 'href'> & {
+  href: Href & string
+};
+```
+
+**Usage:**
+```tsx
+import { ExternalLink } from '@/components/external-link';
+
+<ExternalLink href="https://example.com">
+  <ThemedText type="link">Visit Website</ThemedText>
+</ExternalLink>
+```
+
+### HapticTab
+A tab button component with iOS haptic feedback on press.
+
+**Props:**
+```typescript
+BottomTabBarButtonProps
+```
+
+**Usage:**
+```tsx
+import { HapticTab } from '@/components/haptic-tab';
+
+// Used in tab navigator configuration
+tabBarButton: (props) => <HapticTab {...props} />
+```
+
+## Icon Components
+
+### IconSymbol
+Cross-platform icon component using SF Symbols (iOS) and Material Icons (Android/Web).
+
+**Props:**
+```typescript
+{
+  name: IconSymbolName; // 'house.fill' | 'paperplane.fill' | 'chevron.left.forwardslash.chevron.right' | 'chevron.right'
+  size?: number; // default: 24
+  color: string | OpaqueColorValue;
+  style?: StyleProp<TextStyle>;
+  weight?: SymbolWeight;
+}
+```
+
+**Usage:**
+```tsx
+import { IconSymbol } from '@/components/ui/icon-symbol';
+
+<IconSymbol
+  name="house.fill"
+  size={20}
+  color={colors.icon}
+/>
+```
+
+### HelloWave
+Animated wave emoji component with rotation animation.
+
+**Usage:**
+```tsx
 import { HelloWave } from '@/components/hello-wave';
 
 <HelloWave />
 ```
 
-**Features**:
-- 👋 emoji with rotation animation
-- 4 iteration cycles
-- 300ms duration per cycle
-- 25-degree rotation at 50% keyframe
+## Authentication Components
 
-### 5. Custom Hooks
+### AuthGuard
+Route protection component that redirects unauthenticated users to login.
 
-#### useThemeColor
-**File**: `hooks/use-theme-color.ts:9`
-
-Hook for retrieving theme-appropriate colors with fallback support.
-
-**Usage**:
-```jsx
-import { useThemeColor } from '@/hooks/use-theme-color';
-
-function MyComponent() {
-  const backgroundColor = useThemeColor(
-    { light: '#fff', dark: '#000' },
-    'background'
-  );
-
-  return <View style={{ backgroundColor }} />;
+**Props:**
+```typescript
+interface AuthGuardProps {
+  children: React.ReactNode;
 }
 ```
 
-**Parameters**:
-- `props`: Object with light/dark color overrides
-- `colorName`: Key from Colors theme object
+**Usage:**
+```tsx
+import { AuthGuard } from '@/components/auth-guard';
 
-#### useColorScheme
-**File**: `hooks/use-color-scheme.ts`
-
-Hook for detecting current color scheme (light/dark).
-
-**Usage**:
-```jsx
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-function MyComponent() {
-  const colorScheme = useColorScheme();
-  return <Text>Current theme: {colorScheme}</Text>;
+export default function ProtectedScreen() {
+  return (
+    <AuthGuard>
+      <ThemedText>Protected content</ThemedText>
+    </AuthGuard>
+  );
 }
 ```
 
 ## State Management Patterns
 
-### Theme Management
-Components use the `useThemeColor` and `useColorScheme` hooks for consistent theming:
+### Theme Integration
+All components use the theme system via hooks:
 
-```jsx
-// Pattern for themed components
-function ThemedComponent({ lightColor, darkColor, ...props }) {
-  const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
-  return <Text style={{ color }} {...props} />;
-}
+```tsx
+import { useThemeColors } from '@/hooks/use-theme-colors';
+
+const { colors, colorScheme, isDark } = useThemeColors();
 ```
 
-### Local State
-Components manage local state with standard React hooks:
+### Authentication State
+Components access auth state through context:
 
-```jsx
-// Toggle state pattern
-function ToggleComponent() {
-  const [isOpen, setIsOpen] = useState(false);
+```tsx
+import { useAuth } from '@/hooks/use-auth';
 
-  return (
-    <TouchableOpacity onPress={() => setIsOpen(!isOpen)}>
-      {/* Conditional rendering based on state */}
-    </TouchableOpacity>
-  );
-}
+const { user, session, loading, signIn, signOut } = useAuth();
 ```
 
-## Styling Conventions
+## Design System
 
-### Tailwind CSS Integration
-The main app component (`App.js`) uses Tailwind classes:
+### Color Tokens
+Components use standardized color tokens from `@/constants/theme`:
 
-```jsx
-// Grid layouts
-<View className="grid grid-cols-2 gap-4 p-4">
+- `colors.background` - Page backgrounds
+- `colors.surface` - Card/panel backgrounds
+- `colors.text` - Primary text
+- `colors.textSecondary` - Secondary text
+- `colors.border` - Borders and dividers
+- `colors.tint` - Interactive elements
 
-// Cards with shadows
-<View className="bg-white p-4 border border-gray-300 rounded shadow">
+### Typography Scale
+ThemedText supports these predefined styles:
 
-// Typography
-<Text className="text-3xl font-bold text-gray-900">
-```
+- `default` - 16px, regular weight
+- `defaultSemiBold` - 16px, 600 weight
+- `title` - 32px, bold
+- `subtitle` - 20px, bold
+- `link` - 16px, blue color (#0a7ea4)
 
-### StyleSheet Patterns
-Components use React Native StyleSheet for complex styling:
+## Framework Conventions
 
-```jsx
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-});
-```
-
-## Color System
-
-### Theme Colors
-Defined in `constants/theme.ts:11`:
-
-**Light Theme**:
-- text: `#11181C`
-- background: `#fff`
-- tint: `#0a7ea4`
-- icon: `#687076`
-
-**Dark Theme**:
-- text: `#ECEDEE`
-- background: `#151718`
-- tint: `#fff`
-- icon: `#9BA1A6`
-
-### Usage Pattern
-```jsx
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-function MyComponent() {
-  const theme = useColorScheme() ?? 'light';
-  const iconColor = Colors[theme].icon;
-
-  return <IconSymbol color={iconColor} name="house.fill" />;
-}
-```
-
-## Platform-Specific Features
-
-### iOS Specific
-- SF Symbols through `icon-symbol.ios.tsx`
-- Haptic feedback in navigation
-- System fonts and rounded typography
-
-### Android/Web Fallbacks
-- Material Icons for cross-platform consistency
-- Standard fonts for compatibility
-
-### Cross-Platform Components
-All components are designed to work across iOS, Android, and Web with appropriate fallbacks and platform-specific optimizations.
-
-## Best Practices
-
-1. **Theme Consistency**: Always use `ThemedText` and `ThemedView` for automatic theme support
-2. **Icon Usage**: Use `IconSymbol` with mapped SF Symbol names for consistent iconography
-3. **Navigation**: Implement `HapticTab` for enhanced user feedback
-4. **External Links**: Use `ExternalLink` for proper cross-platform URL handling
-5. **Animations**: Leverage Reanimated 3 for performant animations
-6. **State Management**: Use React hooks for local state, consider context for global state
-
-## Copy-Paste Examples
-
-### Basic Card Component
-```jsx
-import { ThemedView, ThemedText } from '@/components';
-
-function InfoCard({ title, content }) {
-  return (
-    <ThemedView className="bg-white p-4 border border-gray-300 rounded shadow">
-      <ThemedText type="defaultSemiBold">{title}</ThemedText>
-      <ThemedText>{content}</ThemedText>
-    </ThemedView>
-  );
-}
-```
-
-### Interactive Button with Haptics
-```jsx
-import { TouchableOpacity } from 'react-native';
-import * as Haptics from 'expo-haptics';
+### Import Paths
+All components use absolute imports with `@/` alias:
+```tsx
 import { ThemedText } from '@/components/themed-text';
-
-function HapticButton({ onPress, children }) {
-  const handlePress = () => {
-    if (process.env.EXPO_OS === 'ios') {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }
-    onPress?.();
-  };
-
-  return (
-    <TouchableOpacity onPress={handlePress} className="bg-blue-500 p-4 rounded">
-      <ThemedText lightColor="#fff" darkColor="#fff">{children}</ThemedText>
-    </TouchableOpacity>
-  );
-}
+import { useThemeColors } from '@/hooks/use-theme-colors';
 ```
 
-### Themed Icon with Color
-```jsx
-import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useThemeColor } from '@/hooks/use-theme-color';
+### Cross-Platform Support
+Components handle platform differences:
+- Icon mappings for iOS SF Symbols vs Material Icons
+- Haptic feedback iOS-only
+- Web browser handling for external links
 
-function ThemedIcon({ name, size = 24 }) {
-  const iconColor = useThemeColor({}, 'icon');
-
-  return (
-    <IconSymbol
-      name={name}
-      size={size}
-      color={iconColor}
-    />
-  );
-}
-```
+### Expo Integration
+Components leverage Expo modules:
+- `expo-haptics` for tactile feedback
+- `expo-web-browser` for in-app browsing
+- `expo-router` for navigation
+- `expo-symbols` for native icons
 
 ---
 
-## [Version: 1.0.0]
+## AI Assistant Integration Notes
 
-*This component library reference was generated for AI development assistance. All components support TypeScript, cross-platform compatibility, and automatic theme switching. For implementation details, refer to the individual component files and the project's README.md for setup instructions.*
+This component library is designed for React Native mobile development using Expo. When suggesting modifications or new components:
 
-*🤖 AI-Ready: This documentation is optimized for AI code generation and component understanding. Each component includes complete prop interfaces, usage examples, and integration patterns for seamless development assistance.*
+1. **Always use TypeScript** with proper prop interfaces
+2. **Follow the theming pattern** - use `useThemeColors()` for colors
+3. **Maintain cross-platform compatibility** - handle iOS/Android/Web differences
+4. **Use absolute imports** with the `@/` path alias
+5. **Follow the existing naming conventions** - PascalCase for components, kebab-case for files
+6. **Integrate with Expo ecosystem** - prefer Expo modules over React Native Community packages
+7. **Consider accessibility** - use proper semantic elements and contrast ratios
+8. **Optimize for mobile** - touch targets, gestures, performance
+
+**Generated with [Claude Code](https://claude.ai/code)**
+
+**Framework:** React Native + Expo | **Version:** 1.0.0

@@ -1,80 +1,192 @@
-[Date]: 2025-09-20
-[Version]: 1.0.0
+# ARCHITECTURE.md
 
-# Architecture Reference
+**Date:** September 21, 2025
+**Version:** 1.0.0
 
 ## Project Overview
-- Mobile Tailwind Portal is a modern Expo-based React Native template delivering a clean, minimal UI with Tailwind CSS, automatic dark/light theming, and cross-platform reach across iOS, Android, and web (source: README.md).
-- Core goals are rapid prototyping, reusable themed components, and Expo-managed workflows that hide native complexity while staying TypeScript-first.
+
+Noted is a React Native mobile application built with Expo Router and TailwindCSS, designed as a notes application with authentication, theming, and cross-platform support. The project leverages modern React Native development practices with a focus on maintainable, scalable architecture.
 
 ## System Topology
+
 ```
-+-----------------------+
-| Expo Router Entry     | (package.json main -> expo-router/entry)
-+-----------+-----------+
-            |
-     +------+------+-------------------------+
-     | Root Stack Navigator (app/_layout.tsx) |
-     +------+------+-------------------------+
-            |
-      +-----+-----+
-      | (tabs)    | Modal stack screen
-      +-----+-----+
-            |
-   +--------+--------+
-   | Home (tabs/index) | Explore (tabs/explore)
-   +--------+--------+
-            |
-     +------+------+-------------------+
-     | Shared UI Layer (components/**) |
-     +------+------+-------------------+
-            |
-   +--------+--------+-------------------+
-   | Hooks/theme  | Constants | Assets   |
-   +---------------+----------+----------+
+┌─────────────────────────────────────────────────────────────────┐
+│                        Mobile App (React Native)               │
+├─────────────────────────────────────────────────────────────────┤
+│                        App Layer (_layout.tsx)                 │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │ ThemeController │  │   AuthProvider   │  │  AppLayout      │  │
+│  │   Provider      │  │                  │  │                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                      Navigation Layer                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │   Tab Layout    │  │   Auth Layout   │  │   Modal Stack   │  │
+│  │  (Protected)    │  │  (Public)       │  │                 │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                       Screen Layer                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │     Notes       │  │      Docs       │  │    Settings     │  │
+│  │   (index.tsx)   │  │   (docs.tsx)    │  │ (settings.tsx)  │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                     Component Layer                            │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │   Auth Guard    │  │  Themed Views   │  │   UI Components │  │
+│  │   Components    │  │   & Text        │  │   (Icon, etc.)  │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                      Service Layer                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
+│  │   Supabase      │  │   AsyncStorage  │  │   Theme Utils   │  │
+│  │   Client        │  │   (Persistence) │  │   & Constants   │  │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+                    ┌─────────────────────────┐
+                    │   External Services     │
+                    │  ┌─────────────────────┐│
+                    │  │  Supabase Backend   ││
+                    │  │  - Authentication   ││
+                    │  │  - Database         ││
+                    │  │  - Real-time        ││
+                    │  └─────────────────────┘│
+                    └─────────────────────────┘
 ```
-- The entry point loads the root stack, which anchors tab navigation and optional modal screens.
-- Tabs orchestrate feature surfaces, while shared UI and theming utilities back both screens.
-- Static design artifacts in `noted-ui` inform future product expansion but stay out of the runtime bundle.
 
-## Module Boundaries
-- `app/`: Route-driven screen composition using Expo Router; `_layout.tsx` manages navigation shell, `(tabs)` encapsulates tabbed surface areas (`index`, `explore`, `modal`).
-- `components/`: Themed presentation primitives (e.g., `themed-text`, `themed-view`), interaction wrappers (`haptic-tab`), and animated containers (`parallax-scroll-view`) to keep screen code declarative.
-- `hooks/`: Lightweight adapters for platform color scheme (`use-color-scheme`) and merged palette resolution (`use-theme-color`).
-- `constants/`: Theme tokens (`Colors`, `Fonts`) bridging React Native and web typography/color affordances.
-- `assets/`: Shared imagery and icons referenced via Expo asset system.
-- `scripts/reset-project.js`: Operational tooling to wipe or archive feature scaffolding; intentionally separated from runtime.
-- `noted-ui/`: HTML/PNG design snapshots (authentication, dashboard, settings) acting as product design references without being compiled into the app.
+## Tech Stack Analysis
 
-## Technology Stack Decisions
-- **Expo SDK 54 + React Native 0.81**: Provides managed workflow with new architecture enabled, simplifying native builds while keeping performance parity.
-- **Expo Router + React Navigation**: File-based routing lowers mental overhead and scales to nested stacks/tabs; pairing with React Navigation ensures mature navigation semantics.
-- **NativeWind + Tailwind CSS**: Utility-first styling keeps parity with web Tailwind conventions, accelerating prototyping and enforcing consistent spacing/typography.
-- **TypeScript Strict Mode**: Enforces type safety across screens/components, reducing runtime regressions from mis-typed props or theme keys.
-- **React Native Reanimated & Gesture Handler**: Powers advanced motion (parallax effects, animated gestures) while staying performant on mobile.
-- **Expo Haptics & Symbol Icons**: Enhances UX polish with tactile feedback and platform-aware iconography.
+### Core Framework
+- **React Native 0.81.4**: Mobile application framework
+- **React 19.1.0**: Latest React for advanced features and optimizations
+- **Expo SDK 54**: Development platform with managed workflow
+- **Expo Router 6**: File-based routing system
 
-## Data Flow & State
-- Navigation state is owned by Expo Router and React Navigation; screens are pure functional components responding to route events.
-- Theming flow: `useColorScheme` (platform source) feeds `useThemeColor` (token mapping) which drives themed components.
-- UI events bubble through React props; specialized handlers like `HapticTab` intercept interactions to trigger side effects (haptic feedback) before delegating to navigation handlers.
-- Static content (images, copy) is bundled via the Expo asset loader and referenced declaratively in screens/components.
+### Styling & UI
+- **TailwindCSS 3.4.17**: Utility-first CSS framework
+- **NativeWind 4.2.1**: TailwindCSS for React Native
+- **React Native Reanimated 4.1**: Advanced animations
+- **React Native Gesture Handler 2.28**: Gesture recognition
 
-## Dependency Map
-- **Runtime Core**: `expo`, `react`, `react-native`, `react-native-web` underpin cross-platform execution; `expo-router` ties in navigation entry.
-- **Navigation Layer**: `@react-navigation/native`, `@react-navigation/bottom-tabs`, `@react-navigation/elements`, `react-native-screens` implement stack plus tab orchestration.
-- **Presentation/Theming**: `nativewind`, `tailwindcss`, themed components (`components/**`), and `constants/theme.ts` deliver styling cohesion across light/dark modes.
-- **Interaction & UX**: `expo-haptics`, `expo-image`, `react-native-gesture-handler`, `react-native-reanimated`, `expo-symbols`, `@expo/vector-icons` add sensory feedback, optimized media, and animation capabilities.
-- **Tooling & Quality**: TypeScript 5.9, ESLint 9, Expo lint config, plus `scripts/reset-project.js` for repo hygiene.
-- Dependencies intentionally avoid global state managers; local hooks suffice for current template scope and keep the bundle lean.
+### Backend & Data
+- **Supabase 2.57.4**: Backend-as-a-Service for authentication and database
+- **AsyncStorage 2.2.0**: Local storage for theme preferences and caching
 
-## Rationale & Future Notes
-- Separation between `app/` routes and `components/` primitives enforces clear boundaries, enabling future feature teams to swap screens without duplicating UI logic.
-- Tailwind plus NativeWind chosen over bespoke StyleSheet code to maximize designer-developer velocity and align with web design system conventions.
-- The `noted-ui` artifact directory keeps UX deliverables versioned alongside code, supporting AI or automation pipelines that may synthesize UI flows.
-- Maintaining the Expo-managed workflow ensures rapid iteration; ejecting is deferred until native extensions demand it.
+### Development & Quality
+- **TypeScript 5.9.2**: Type safety and developer experience
+- **ESLint 9.25.0**: Code linting with Expo configuration
+
+## Module Boundaries & Data Flow
+
+### 1. Context Providers (Global State)
+```
+ThemeControllerProvider
+├── Manages: ColorSchemeMode ('light' | 'dark' | 'system')
+├── Persistence: AsyncStorage (@noted_theme_preference)
+├── Dependencies: useColorScheme (React Native)
+└── Children: AuthProvider
+
+AuthProvider
+├── Manages: User session, authentication state
+├── Dependencies: Supabase client
+├── Methods: signUp, signIn, signOut
+└── Children: App navigation stack
+```
+
+### 2. Navigation Architecture
+```
+Root Stack (_layout.tsx)
+├── (tabs) - Protected by AuthGuard
+│   ├── index.tsx (Notes)
+│   ├── docs.tsx (Documentation)
+│   └── settings.tsx (Settings)
+├── auth - Public authentication flow
+│   └── index.tsx (Login/Signup)
+└── modal.tsx - Modal presentations
+```
+
+### 3. Component Hierarchy
+```
+Shared Components
+├── auth-guard.tsx - Route protection
+├── themed-view.tsx - Theme-aware containers
+├── themed-text.tsx - Theme-aware typography
+├── shared-page-layout.tsx - Common page structure
+└── ui/
+    ├── icon-symbol.tsx - Cross-platform icons
+    └── collapsible.tsx - Expandable content
+```
+
+### 4. Data Flow Patterns
+
+**Theme Management Flow:**
+```
+System Theme Change → useColorScheme → ThemeController →
+resolvedScheme → Navigation Themes → Component Colors
+```
+
+**Authentication Flow:**
+```
+Auth Action → Supabase Client → Auth Context →
+Session State → AuthGuard → Route Access
+```
+
+**Component Styling Flow:**
+```
+Theme Context → useThemeColors Hook →
+Component Props → NativeWind Classes
+```
+
+## Design Decisions & Rationale
+
+### 1. Expo Router vs React Navigation
+**Decision:** Expo Router
+**Rationale:** File-based routing provides better developer experience, automatic TypeScript generation, and simplified navigation patterns. The folder structure directly maps to app navigation.
+
+### 2. Context-based State Management
+**Decision:** React Context + Hooks instead of Redux/Zustand
+**Rationale:** For the current scope (auth + theme), React Context provides sufficient state management without additional complexity. Easy to upgrade to external state management later.
+
+### 3. Supabase Backend
+**Decision:** Supabase as Backend-as-a-Service
+**Rationale:** Provides authentication, real-time database, and API generation without backend development overhead. TypeScript support and React integration.
+
+### 4. Greyscale Theme System
+**Decision:** Custom greyscale color palette instead of platform defaults
+**Rationale:** Provides consistent branding across platforms while maintaining accessibility. Uses softer backgrounds (#fafafa, #121212) for better visual comfort.
+
+### 5. TailwindCSS + NativeWind
+**Decision:** TailwindCSS utility classes for React Native
+**Rationale:** Consistent styling system across web and mobile. Reduced StyleSheet boilerplate, better developer productivity, and maintainable design system.
+
+### 6. TypeScript Strict Mode
+**Decision:** Full TypeScript implementation
+**Rationale:** Type safety prevents runtime errors, improves developer experience, and provides better refactoring capabilities. Essential for team collaboration.
+
+## Security Considerations
+
+- **Environment Variables:** Supabase credentials stored in environment variables
+- **Client-side Keys:** Using Supabase anon key (appropriate for client-side usage)
+- **Route Protection:** AuthGuard component prevents unauthorized access to protected routes
+- **Session Management:** Automatic session refresh and cleanup handled by Supabase
+
+## Performance Optimizations
+
+- **React Compiler:** Enabled experimental React Compiler for automatic optimizations
+- **Memoization:** Strategic use of `useMemo` and `useCallback` in theme controller
+- **Code Splitting:** Natural code splitting through Expo Router's file-based routing
+- **Image Optimization:** Expo Image for optimized image loading
+
+## Scalability Patterns
+
+- **Modular Architecture:** Clear separation between contexts, components, and utilities
+- **Hook-based Logic:** Reusable business logic through custom hooks
+- **Component Composition:** Shared layout components for consistent UI patterns
+- **Theme System:** Extensible color and typography system
 
 ---
-[Date]: 2025-09-20
-[Version]: 1.0.0
-AI Support: Codex (GPT-5) generated this POWER-aligned architecture reference to accelerate future AI-assisted delivery.
+
+**🤖 Generated with Claude Code - AI-powered system architecture documentation**
+**Built for scalable React Native development with modern best practices**
