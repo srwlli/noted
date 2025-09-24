@@ -1,96 +1,60 @@
-# Working Plan: PWA Safe Area Issues Fix
+# Working Plan: Fix Mobile Safari PWA Behavior to Match PC
 
-## Current Issues Analysis
+## Root Cause Identified
 
-### Problems Identified from User Feedback:
-1. **Top Bar Issues:**
-   - Status bar (2:04, signal bars, WiFi, battery) overlapping with app header
-   - "noted" title and "+" button too close to device status bar
-   - No proper safe area handling for the top
+PC PWA works because it uses simple, consistent PWA detection. Mobile Safari fails because of **complex dual-detection logic** that conflicts with iOS Safari's unique behavior.
 
-2. **Bottom Navigation Issues:**
-   - Bottom navigation icons (info, document, settings) appear cut off
-   - Home indicator bar suggests missing safe area handling
-   - Navigation getting clipped by device UI elements
+## Key Differences
 
-## Root Cause Analysis
+- **PC (Working)**: Uses only `window.matchMedia('(display-mode: standalone)')`
+- **Mobile Safari (Failing)**: Uses dual detection with `navigator.standalone` + timing issues
 
-### What's Currently Implemented:
-1. ✅ `viewport-fit=cover` is present in `app/+html.tsx`
-2. ✅ CSS variables for safe areas are defined
-3. ✅ React Native `useSafeAreaInsets()` used in native components
-4. ❌ React Native safe area insets don't work on PWA/web
-5. ❌ No web-specific safe area handling
-6. ❌ Bottom navigation lacks safe area padding
+## Solution Strategy
+
+### 1. Simplify Mobile Detection (Match PC Behavior)
+- Change mobile Safari detection to match PC approach
+- Remove complex iOS-specific `navigator.standalone` checks that may be interfering
+- Use the same simple detection that works on PC
+
+### 2. Fix Detection Timing Issues
+- Add proper async/delay handling for Safari PWA recognition
+- Ensure detection runs after Safari initializes standalone mode
+- Add retry mechanism if initial detection fails
+
+### 3. Unify PWA Detection Logic
+- Create single, consistent PWA detection method across all platforms
+- Remove duplicate/conflicting detection in PWADetector and PWAInstallCard components
+- Use the proven PC detection method universally
+
+### 4. Fix Component Visibility Logic
+- Ensure PWA detection components don't disappear when installed
+- Keep detection active even in standalone mode (like PC)
+- Remove conditional rendering that might break Safari triggers
+
+### 5. iOS Safari Specific Adjustments
+- Add Safari-specific viewport handling
+- Ensure proper meta tag recognition
+- Fix any iOS-specific CSS conflicts
 
 ## Implementation Plan
 
-### 1. Update `app/+html.tsx` - Enhanced Safe Area CSS
-```html
-- Remove conflicting body padding
-- Add PWA-specific safe area classes
-- Ensure proper stacking context for fixed elements
-```
+1. Replace complex mobile detection with simple PC-style detection
+2. Add proper timing/retry mechanisms for Safari
+3. Unify all PWA detection to use single proven method
+4. Test specifically on iOS Safari installed PWA mode
 
-### 2. Create PWA-Specific Styles in `global.css`
-```css
-/* Add utility classes for PWA safe areas */
-.safe-area-top {
-  padding-top: env(safe-area-inset-top);
-}
-
-.safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* Platform-specific overrides */
-@supports (padding: env(safe-area-inset-top)) {
-  /* PWA-specific styles */
-}
-```
-
-### 3. Fix Bottom Navigation (`app/(tabs)/_layout.tsx`)
-- Add platform detection for web
-- Apply CSS-based safe area padding for PWA
-- Ensure tabs have proper bottom padding: `env(safe-area-inset-bottom)`
-- Add minimum padding fallback for devices without notches
-
-### 4. Fix Header Component (`components/common-header.tsx`)
-- Add web platform detection using `Platform.OS === 'web'`
-- For web: Use CSS `padding-top: env(safe-area-inset-top)`
-- For native: Keep existing `useSafeAreaInsets()`
-- Add additional padding above safe area (12px) for breathing room
-
-### 5. Update Layout Wrapper (`components/shared-page-layout.tsx`)
-- Add platform-specific wrapper styles
-- Ensure content area respects safe areas
-- Prevent content from extending under system UI
-
-### 6. Test on Multiple Devices
-- iPhone with notch (iPhone X and newer)
-- iPhone without notch (iPhone 8 and older)
-- Android devices with various screen configurations
-- iPad/tablets in different orientations
+This will align mobile Safari behavior with the working PC implementation.
 
 ## Technical Details
 
-### CSS Environment Variables to Use:
-- `env(safe-area-inset-top)` - Top safe area (status bar, notch)
-- `env(safe-area-inset-bottom)` - Bottom safe area (home indicator)
-- `env(safe-area-inset-left)` - Left safe area (landscape orientation)
-- `env(safe-area-inset-right)` - Right safe area (landscape orientation)
+### Current Issues
+- **PWAInstallCardMobile**: Uses both `matchMedia` and `navigator.standalone`
+- **PWADetector**: Copies same dual detection
+- **Timing conflicts**: Detection may run before Safari recognition
+- **Component disappearing**: PWA components return null when installed
 
-### Platform Detection Strategy:
-```javascript
-import { Platform } from 'react-native';
-
-const isWeb = Platform.OS === 'web';
-const style = isWeb ? webStyles : nativeStyles;
-```
-
-## Expected Outcome
-- Header will have proper spacing from status bar
-- Bottom navigation won't be cut off by home indicator
-- Content will be fully visible and accessible
-- PWA will feel native on all devices
-- Consistent experience across iOS and Android PWAs
+### Target Solution
+- **Single detection method**: Use only `window.matchMedia('(display-mode: standalone)')`
+- **Consistent behavior**: Same logic across PC and mobile
+- **Proper timing**: Async detection with retry mechanisms
+- **Persistent detection**: Keep components active for Safari triggers
