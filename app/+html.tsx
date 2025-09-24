@@ -43,16 +43,46 @@ export default function Root({ children }: { children: React.ReactNode }) {
               padding: 0;
               height: 100%;
               overflow-x: hidden;
+              overscroll-behavior: none;
+              -webkit-overflow-scrolling: touch;
             }
 
+            /* Remove body padding - let app handle safe areas */
             body {
-              padding-top: var(--safe-area-inset-top);
-              padding-bottom: var(--safe-area-inset-bottom);
-              padding-left: var(--safe-area-inset-left);
-              padding-right: var(--safe-area-inset-right);
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
             }
 
             #root {
+              height: 100%;
+              position: relative;
+              overflow: hidden;
+            }
+
+            /* PWA-specific safe area handling */
+            @supports (padding: env(safe-area-inset-top)) {
+              .pwa-safe-top {
+                padding-top: env(safe-area-inset-top);
+              }
+
+              .pwa-safe-bottom {
+                padding-bottom: env(safe-area-inset-bottom);
+              }
+
+              .pwa-safe-horizontal {
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+              }
+            }
+
+            /* Prevent elastic scrolling on iOS */
+            .no-bounce {
+              position: fixed;
+              overflow: hidden;
+              width: 100%;
               height: 100%;
             }
           `

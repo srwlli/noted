@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { router } from 'expo-router';
@@ -11,6 +11,7 @@ interface CommonHeaderProps {
 export function CommonHeader({ onNewNote }: CommonHeaderProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
+  const isWeb = Platform.OS === 'web';
 
   const handleNewNote = () => {
     if (onNewNote) {
@@ -26,8 +27,11 @@ export function CommonHeader({ onNewNote }: CommonHeaderProps) {
       {
         backgroundColor: colors.background,
         borderBottomColor: colors.border,
-        paddingTop: insets.top + 12
-      }
+        // Use CSS safe area on web, native insets on mobile
+        paddingTop: isWeb ? undefined : insets.top + 12
+      },
+      // Add CSS class for web safe area
+      isWeb && { className: 'safe-area-top' }
     ]}>
       <Text style={[styles.branding, { color: colors.text }]}>noted</Text>
       <TouchableOpacity

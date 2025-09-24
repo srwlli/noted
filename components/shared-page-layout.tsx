@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { View, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { CommonHeader } from '@/components/common-header';
 
@@ -11,19 +11,37 @@ interface SharedPageLayoutProps {
 
 export function SharedPageLayout({ children, onNewNote, scrollable = true }: SharedPageLayoutProps) {
   const { colors } = useThemeColors();
+  const isWeb = Platform.OS === 'web';
 
   const content = scrollable ? (
-    <ScrollView style={styles.scrollContainer}>
+    <ScrollView
+      style={[
+        styles.scrollContainer,
+        // Add horizontal safe area padding for web
+        isWeb && { className: 'safe-area-x' }
+      ]}
+    >
       {children}
     </ScrollView>
   ) : (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        // Add horizontal safe area padding for web
+        isWeb && { className: 'safe-area-x' }
+      ]}
+    >
       {children}
     </View>
   );
 
   return (
-    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+    <View style={[
+      styles.wrapper,
+      { backgroundColor: colors.background },
+      // Full height container with proper overflow handling for PWA
+      isWeb && styles.webWrapper
+    ]}>
       <CommonHeader onNewNote={onNewNote} />
       {content}
     </View>
@@ -33,6 +51,12 @@ export function SharedPageLayout({ children, onNewNote, scrollable = true }: Sha
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
+  },
+  webWrapper: {
+    height: '100vh',
+    overflow: 'hidden' as any,
+    display: 'flex' as any,
+    flexDirection: 'column' as any,
   },
   scrollContainer: {
     flex: 1,
