@@ -47,12 +47,22 @@ export function PWAInstallCardMobile({ style }: PWAInstallCardMobileProps) {
       }
     };
 
-    // Check if app is already installed (mobile web app)
+    // Check if app is already installed - simplified to match PC behavior
     const checkInstalled = () => {
       if (typeof window !== 'undefined') {
+        // Use same detection method as PC (working)
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-        const isInWebAppiOS = (window.navigator as any).standalone === true;
-        setIsInstalled(isStandalone || isInWebAppiOS);
+        setIsInstalled(isStandalone);
+
+        // Add retry mechanism for Safari timing issues
+        if (!isStandalone) {
+          setTimeout(() => {
+            const retryStandalone = window.matchMedia('(display-mode: standalone)').matches;
+            if (retryStandalone !== isStandalone) {
+              setIsInstalled(retryStandalone);
+            }
+          }, 100);
+        }
       }
     };
 
@@ -60,9 +70,15 @@ export function PWAInstallCardMobile({ style }: PWAInstallCardMobileProps) {
     checkInstalled();
   }, []);
 
-  // Don't show if not on web platform, not mobile, already installed, or not mobile device
-  if (Platform.OS !== 'web' || typeof window === 'undefined' || isInstalled || !deviceType) {
+  // Don't show if not on web platform or not mobile device
+  // IMPORTANT: Keep component active even when installed (like PC) to maintain PWA detection
+  if (Platform.OS !== 'web' || typeof window === 'undefined' || !deviceType) {
     return null;
+  }
+
+  // If already installed, show minimal/hidden component to maintain detection trigger
+  if (isInstalled) {
+    return <View style={{ height: 0, overflow: 'hidden' }} />;
   }
 
   const getInstallInstructions = () => {

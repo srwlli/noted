@@ -45,16 +45,43 @@ function AppLayout() {
   const { resolvedScheme } = useThemeController();
   const backgroundColor = resolvedScheme === 'dark' ? Colors.dark.background : Colors.light.background;
 
-  // Minimal PWA detection to ensure consistent behavior
+  // Enhanced PWA detection aligned with PC behavior
   React.useEffect(() => {
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      // Just check if we're in standalone mode - don't interfere with existing detection
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-      const isInWebAppiOS = (window.navigator as any).standalone === true;
+      // Use unified detection method (same as PC)
+      const checkAndApplyPWAMode = () => {
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
-      // Only add class for CSS styling - don't modify viewport
-      if (isStandalone || isInWebAppiOS) {
-        document.body.classList.add('pwa-standalone');
+        if (isStandalone) {
+          document.body.classList.add('pwa-standalone');
+
+          // Safari-specific PWA optimizations
+          const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+          if (isSafari) {
+            // Ensure proper viewport for Safari PWA
+            const viewport = document.querySelector('meta[name=viewport]');
+            if (viewport) {
+              const content = viewport.getAttribute('content') || '';
+              if (!content.includes('viewport-fit=cover')) {
+                viewport.setAttribute('content',
+                  content + ', viewport-fit=cover'
+                );
+              }
+            }
+          }
+        }
+
+        return isStandalone;
+      };
+
+      // Initial check
+      const initialResult = checkAndApplyPWAMode();
+
+      // Retry mechanism for Safari timing issues
+      if (!initialResult) {
+        setTimeout(() => {
+          checkAndApplyPWAMode();
+        }, 250);
       }
     }
   }, []);

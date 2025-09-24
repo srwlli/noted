@@ -12,22 +12,46 @@ export function PWADetector() {
       return;
     }
 
-    // Same detection logic as PWAInstallCardMobile
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isInWebAppiOS = (window.navigator as any).standalone === true;
+    // Unified detection logic matching PC behavior (working approach)
+    const checkPWAMode = () => {
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
-    // This detection seems to trigger Safari to properly handle PWA mode
-    // Even though we don't use the result, the act of checking appears to matter
-    const isPWAInstalled = isStandalone || isInWebAppiOS;
+      // Optional: log for debugging
+      if (process.env.NODE_ENV === 'development') {
+        console.log('PWA Detection (Unified):', {
+          isStandalone,
+          userAgent: window.navigator.userAgent,
+          timestamp: new Date().toISOString()
+        });
+      }
 
-    // Optional: log for debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.log('PWA Detection:', {
-        isStandalone,
-        isInWebAppiOS,
-        isPWAInstalled,
-        userAgent: window.navigator.userAgent
-      });
+      return isStandalone;
+    };
+
+    // Initial check
+    const initialCheck = checkPWAMode();
+
+    // Add retry mechanism for Safari timing issues
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const retryCheck = () => {
+      if (retryCount < maxRetries) {
+        setTimeout(() => {
+          const retryResult = checkPWAMode();
+          if (retryResult !== initialCheck) {
+            console.log('PWA Detection changed on retry:', retryResult);
+          }
+          retryCount++;
+          if (retryCount < maxRetries) {
+            retryCheck();
+          }
+        }, 100 * (retryCount + 1)); // Increasing delay
+      }
+    };
+
+    if (!initialCheck) {
+      retryCheck();
     }
   }, []);
 
