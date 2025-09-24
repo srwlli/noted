@@ -22,6 +22,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
         {/* Theme Color */}
         <meta name="theme-color" content="#000000" />
 
+        {/* PWA Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+
         {/* Preconnect for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

@@ -33,6 +33,7 @@ export default function TabLayout() {
         }}>
         <Tabs.Screen
           name="docs"
+          key="docs-tab"
           options={{
             title: 'About',
             tabBarIcon: ({ color }) => <MaterialIcons size={28} name="info" color={color} />,
@@ -40,6 +41,7 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="index"
+          key="index-tab"
           options={{
             title: 'Notes',
             tabBarIcon: ({ color }) => <MaterialIcons size={28} name="description" color={color} />,
@@ -47,6 +49,7 @@ export default function TabLayout() {
         />
         <Tabs.Screen
           name="settings"
+          key="settings-tab"
           options={{
             title: 'Settings',
             tabBarIcon: ({ color }) => <MaterialIcons size={28} name="settings" color={color} />,

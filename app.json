@@ -8,6 +8,7 @@
     "scheme": "mobiletailwindportal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.srwlli.mobiletailwindportal",
@@ -36,7 +37,7 @@
       "startUrl": "/",
       "orientation": "portrait",
       "themeColor": "#000000",
-      "backgroundColor": "#000000",
+      "backgroundColor": "#ffffff",
       "scope": "/",
       "lang": "en",
       "dir": "ltr",

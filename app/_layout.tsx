@@ -54,8 +54,19 @@ function AppLayout() {
       const checkAndApplyPWAMode = () => {
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
+        if (process.env.NODE_ENV === 'development') {
+          console.log('PWA Detection:', {
+            isStandalone,
+            userAgent: navigator.userAgent,
+            displayMode: window.matchMedia('(display-mode: standalone)').media,
+            bodyClasses: document.body.className
+          });
+        }
+
         if (isStandalone) {
           document.body.classList.add('pwa-standalone');
+          // Force hide address bar styles
+          document.documentElement.style.setProperty('--pwa-standalone', '1');
 
           // Safari-specific PWA optimizations
           const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -71,6 +82,8 @@ function AppLayout() {
               }
             }
           }
+        } else {
+          document.body.classList.remove('pwa-standalone');
         }
 
         return isStandalone;
@@ -85,6 +98,21 @@ function AppLayout() {
           checkAndApplyPWAMode();
         }, 250);
       }
+
+      // Monitor for display mode changes (addresses reappearing navigation bars)
+      const mediaQuery = window.matchMedia('(display-mode: standalone)');
+      const handleDisplayModeChange = () => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Display mode changed, re-checking PWA mode');
+        }
+        checkAndApplyPWAMode();
+      };
+
+      mediaQuery.addEventListener('change', handleDisplayModeChange);
+
+      return () => {
+        mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      };
     }
   }, []);
 
