@@ -9,7 +9,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "build": "expo export",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "validate-pwa": "node ./scripts/validate-pwa.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
