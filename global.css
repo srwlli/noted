@@ -71,6 +71,22 @@ html.web-platform {
   }
 }
 
+/* PWA Standalone body class styling */
+body.pwa-standalone {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  -webkit-overflow-scrolling: touch !important;
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body.pwa-standalone #root {
+  height: 100vh !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
 /* Force proper safe area handling in React Native Web */
 @supports (padding: env(safe-area-inset-top)) {
   /* These styles will apply to React Native Web elements */

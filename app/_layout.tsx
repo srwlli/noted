@@ -1,3 +1,4 @@
+import React from 'react';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -43,6 +44,28 @@ const NotedDarkTheme = {
 function AppLayout() {
   const { resolvedScheme } = useThemeController();
   const backgroundColor = resolvedScheme === 'dark' ? Colors.dark.background : Colors.light.background;
+
+  // Add PWA standalone mode detection globally
+  React.useEffect(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      // Force Safari to recognize PWA standalone mode consistently
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+      const isInWebAppiOS = (window.navigator as any).standalone === true;
+
+      if (isStandalone || isInWebAppiOS) {
+        // Add a class to body for PWA-specific styling
+        document.body.classList.add('pwa-standalone');
+
+        // Ensure viewport is properly set for PWA
+        const viewport = document.querySelector('meta[name=viewport]');
+        if (viewport && !viewport.getAttribute('content')?.includes('viewport-fit=cover')) {
+          viewport.setAttribute('content',
+            'width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover'
+          );
+        }
+      }
+    }
+  }, []);
 
   return (
     <View style={{
