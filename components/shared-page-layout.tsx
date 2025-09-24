@@ -17,12 +17,15 @@ export function SharedPageLayout({ children, onNewNote, scrollable = true }: Sha
     <ScrollView
       style={[
         styles.scrollContainer,
-        // Add horizontal safe area padding for web
+        // Add safe area padding for web
         isWeb && {
           paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
           paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+          // Add bottom padding to account for tab bar + safe area
+          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)',
         }
       ]}
+      showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>
@@ -30,10 +33,12 @@ export function SharedPageLayout({ children, onNewNote, scrollable = true }: Sha
     <View
       style={[
         styles.container,
-        // Add horizontal safe area padding for web
+        // Add safe area padding for web
         isWeb && {
           paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
           paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+          // Add bottom padding to account for tab bar + safe area
+          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)',
         }
       ]}
     >
@@ -59,8 +64,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   webWrapper: {
-    height: '100vh',
-    overflow: 'hidden' as any,
+    minHeight: '100vh',
     display: 'flex' as any,
     flexDirection: 'column' as any,
   },

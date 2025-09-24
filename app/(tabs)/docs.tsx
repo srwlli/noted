@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { PWADetector } from '@/components/PWADetector';
 import { supabase } from '@/lib/supabase';
 
 export default function DocsScreen() {
@@ -37,6 +38,7 @@ export default function DocsScreen() {
 
   return (
     <SharedPageLayout>
+      <PWADetector />
       <TouchableOpacity
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => handleCardPress('git')}

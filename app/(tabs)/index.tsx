@@ -5,6 +5,7 @@ import { SharedPageLayout } from '@/components/shared-page-layout';
 import { NoteForm } from '@/components/note-form';
 import { NoteItem } from '@/components/note-item';
 import { ConfirmationModal } from '@/components/confirmation-modal';
+import { PWADetector } from '@/components/PWADetector';
 import { notesService, Note } from '@/services/notes';
 
 export default function NotesScreen() {
@@ -94,6 +95,7 @@ export default function NotesScreen() {
 
   return (
     <SharedPageLayout onNewNote={handleNewNote}>
+      <PWADetector />
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={

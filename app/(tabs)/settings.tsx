@@ -38,7 +38,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SharedPageLayout scrollable={false}>
+    <SharedPageLayout scrollable={true}>
       <PWAInstallCardDesktop />
       <PWAInstallCardMobile />
 
