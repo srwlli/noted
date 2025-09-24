@@ -28,10 +28,13 @@ export function CommonHeader({ onNewNote }: CommonHeaderProps) {
         backgroundColor: colors.background,
         borderBottomColor: colors.border,
         // Use CSS safe area on web, native insets on mobile
-        paddingTop: isWeb ? undefined : insets.top + 12
-      },
-      // Add CSS class for web safe area
-      isWeb && { className: 'safe-area-top' }
+        paddingTop: isWeb ? 'calc(env(safe-area-inset-top, 0px) + 12px)' : insets.top + 12,
+        // Add horizontal safe areas for web
+        ...(isWeb && {
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+        })
+      }
     ]}>
       <Text style={[styles.branding, { color: colors.text }]}>noted</Text>
       <TouchableOpacity

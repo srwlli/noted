@@ -55,3 +55,30 @@ html.web-platform {
   overscroll-behavior: none;
   -webkit-overflow-scrolling: touch;
 }
+
+/* React Native Web overrides for safe areas */
+@media (display-mode: standalone) {
+  /* PWA standalone mode styles */
+  body {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  /* Target React Native Web generated content */
+  #root {
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+}
+
+/* Force proper safe area handling in React Native Web */
+@supports (padding: env(safe-area-inset-top)) {
+  /* These styles will apply to React Native Web elements */
+  [data-reactroot] {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    box-sizing: border-box;
+  }
+}

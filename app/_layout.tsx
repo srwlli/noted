@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View } from 'react-native';
+import { View, Platform } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -45,7 +45,15 @@ function AppLayout() {
   const backgroundColor = resolvedScheme === 'dark' ? Colors.dark.background : Colors.light.background;
 
   return (
-    <View style={{ flex: 1, backgroundColor }}>
+    <View style={{
+      flex: 1,
+      backgroundColor,
+      // Ensure proper height on web
+      ...(Platform.OS === 'web' && {
+        height: '100vh',
+        overflow: 'hidden'
+      })
+    }}>
       <ThemeProvider value={resolvedScheme === 'dark' ? NotedDarkTheme : NotedLightTheme}>
         <Stack key={resolvedScheme}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

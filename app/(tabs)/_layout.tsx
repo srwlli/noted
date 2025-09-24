@@ -24,6 +24,8 @@ export default function TabLayout() {
             // Add safe area padding for web PWA
             ...(isWeb && {
               paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+              paddingLeft: 'env(safe-area-inset-left, 0px)',
+              paddingRight: 'env(safe-area-inset-right, 0px)',
               height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
               position: 'relative' as const,
             }),

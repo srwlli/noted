@@ -18,7 +18,10 @@ export function SharedPageLayout({ children, onNewNote, scrollable = true }: Sha
       style={[
         styles.scrollContainer,
         // Add horizontal safe area padding for web
-        isWeb && { className: 'safe-area-x' }
+        isWeb && {
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+        }
       ]}
     >
       {children}
@@ -28,7 +31,10 @@ export function SharedPageLayout({ children, onNewNote, scrollable = true }: Sha
       style={[
         styles.container,
         // Add horizontal safe area padding for web
-        isWeb && { className: 'safe-area-x' }
+        isWeb && {
+          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
+          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+        }
       ]}
     >
       {children}
