@@ -10,9 +10,11 @@ import { ThemeControllerProvider, useThemeController } from '@/contexts/theme-co
 import { AuthProvider } from '@/contexts/auth-context';
 import { Colors } from '@/constants/theme';
 
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// Removed anchor setting to prevent tab state conflicts
+// This allows tabs to unmount/remount normally, clearing modal states
+// export const unstable_settings = {
+//   anchor: '(tabs)',
+// };
 
 // Custom themes that use our greyscale colors
 const NotedLightTheme = {
