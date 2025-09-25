@@ -53,23 +53,23 @@ export function NoteModal({ visible, onClose, onSuccess, initialNote }: NoteModa
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
   },
   backdropTouchable: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'flex-start',
   },
   modalContainer: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingTop: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingTop: 34, // Extra padding for safe area
     paddingHorizontal: 16,
-    paddingBottom: 34, // Extra padding for safe area
+    paddingBottom: 20,
     maxHeight: '90%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: -2,
+      height: 2,
     },
     shadowOpacity: 0.25,
     shadowRadius: 8,

@@ -69,7 +69,6 @@
       "status": "COMPLETED",
       "ios_meta_tags": [
         "apple-mobile-web-app-capable=\"yes\"",
-        "apple-mobile-web-app-status-bar-style=\"black-translucent\"",
         "apple-mobile-web-app-title=\"Noted\""
       ],
       "display_mode": "standalone",
@@ -82,6 +81,21 @@
         "code_pattern": "<Tabs.Screen name=\"settings\" key=\"settings-tab\" />",
         "purpose": "Prevent React component state leakage between tabs"
       }
+    },
+    "security_hardening": {
+      "status": "COMPLETED",
+      "changes": [
+        "Removed hardcoded Supabase URL and anon key fallbacks from lib/supabase.ts",
+        "Added strict environment variable validation for EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY",
+        "Introduced clear error messages when required env vars are missing",
+        "Enforces proper .env configuration and prevents credential exposure"
+      ],
+      "security_impact": [
+        "No credentials present in version control",
+        "Safe to make repository public/share code",
+        "Protects user data from unauthorized access",
+        "Aligns with security best practices"
+      ]
     }
   },
 
@@ -116,6 +130,11 @@
         "file": "global.css",
         "changes": "CSS enforcement for standalone mode",
         "impact": "Ensures consistent fullscreen PWA appearance"
+      },
+      {
+        "file": "lib/supabase.ts",
+        "changes": "Removed hardcoded Supabase credentials and added environment variable validation",
+        "impact": "Prevents secret leakage, enforces proper configuration, and fails fast when env vars are missing"
       }
     ],
     "key_code_patterns": {
@@ -123,27 +142,6 @@
       "ios_pwa_meta_tags": "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />",
       "tab_state_isolation": "<Tabs.Screen name=\"settings\" key=\"settings-tab\" />",
       "pwa_detection": "const isStandalone = window.matchMedia('(display-mode: standalone)').matches;"
-    }
-  },
-
-  "build_process_validation": {
-    "pre_build_checklist": {
-      "completed": true,
-      "items": [
-        {"task": "Verify app.json has platforms: [\"ios\", \"android\", \"web\"]", "status": "DONE"},
-        {"task": "Ensure public/manifest.json exists with correct config", "status": "DONE"},
-        {"task": "Check HTML template has manifest link", "status": "DONE"},
-        {"task": "Confirm tab screens have unique keys", "status": "DONE"}
-      ]
-    },
-    "post_build_validation": {
-      "completed": true,
-      "items": [
-        {"task": "dist/manifest.json exists and accessible", "status": "VALIDATED"},
-        {"task": "dist/index.html contains manifest link", "status": "VALIDATED"},
-        {"task": "iOS meta tags present in HTML", "status": "VALIDATED"},
-        {"task": "All web static files generated correctly", "status": "VALIDATED"}
-      ]
     }
   },
 
