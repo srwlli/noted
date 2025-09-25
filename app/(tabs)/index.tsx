@@ -94,7 +94,7 @@ export default function NotesScreen() {
   }
 
   return (
-    <SharedPageLayout onNewNote={handleNewNote}>
+    <SharedPageLayout onNewNote={handleNewNote} onRefresh={handleRefresh} refreshing={refreshing}>
       <PWADetector />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -107,25 +107,6 @@ export default function NotesScreen() {
           />
         }
       >
-        {/* Action Cards - Refresh and Create */}
-        <View style={styles.actionContainer}>
-          <TouchableOpacity
-            style={[styles.refreshCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={handleRefresh}
-            disabled={refreshing}
-          >
-            <Text style={[styles.refreshText, { color: colors.textSecondary }]}>
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.newNoteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-            onPress={handleNewNote}
-          >
-            <Text style={[styles.newNoteText, { color: colors.textSecondary }]}>Create new note</Text>
-          </TouchableOpacity>
-        </View>
 
         {/* Error Message */}
         {error && (
@@ -186,58 +167,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  actionContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
-  cardWithIcon: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  outsideIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  newNoteCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    gap: 8,
-  },
-  newNoteIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  newNoteText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  refreshCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderRadius: 12,
-    gap: 8,
-  },
-  refreshIcon: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  refreshText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
   errorContainer: {
     padding: 16,

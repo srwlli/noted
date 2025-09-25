@@ -6,9 +6,11 @@ import { router } from 'expo-router';
 
 interface CommonHeaderProps {
   onNewNote?: () => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
 }
 
-export function CommonHeader({ onNewNote }: CommonHeaderProps) {
+export function CommonHeader({ onNewNote, onRefresh, refreshing }: CommonHeaderProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
@@ -37,12 +39,30 @@ export function CommonHeader({ onNewNote }: CommonHeaderProps) {
       }
     ]}>
       <Text style={[styles.branding, { color: colors.text }]}>noted</Text>
-      <TouchableOpacity
-        style={[styles.newButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={handleNewNote}
-      >
-        <Text style={[styles.newButtonText, { color: colors.text }]}>+</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        {onRefresh && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: refreshing ? 0.6 : 1
+              }
+            ]}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <Text style={[styles.buttonText, { color: colors.text }]}>⟳</Text>
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={handleNewNote}
+        >
+          <Text style={[styles.buttonText, { color: colors.text }]}>+</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -60,7 +80,11 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
   },
-  newButton: {
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -68,7 +92,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  newButtonText: {
+  buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
   },

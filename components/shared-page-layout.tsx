@@ -6,10 +6,12 @@ import { CommonHeader } from '@/components/common-header';
 interface SharedPageLayoutProps {
   children: React.ReactNode;
   onNewNote?: () => void;
+  onRefresh?: () => void;
+  refreshing?: boolean;
   scrollable?: boolean;
 }
 
-export function SharedPageLayout({ children, onNewNote, scrollable = true }: SharedPageLayoutProps) {
+export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true }: SharedPageLayoutProps) {
   const { colors } = useThemeColors();
   const isWeb = Platform.OS === 'web';
 
@@ -53,7 +55,7 @@ export function SharedPageLayout({ children, onNewNote, scrollable = true }: Sha
       // Full height container with proper overflow handling for PWA
       isWeb && styles.webWrapper
     ]}>
-      <CommonHeader onNewNote={onNewNote} />
+      <CommonHeader onNewNote={onNewNote} onRefresh={onRefresh} refreshing={refreshing} />
       {content}
     </View>
   );
