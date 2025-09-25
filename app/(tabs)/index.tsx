@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
-import { NoteForm } from '@/components/note-form';
+import { NoteModal } from '@/components/note-modal';
 import { NoteItem } from '@/components/note-item';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 import { PWADetector } from '@/components/PWADetector';
@@ -13,7 +13,7 @@ export default function NotesScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [deleteNote, setDeleteNote] = useState<Note | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,22 +44,22 @@ export default function NotesScreen() {
 
   const handleNewNote = () => {
     setEditingNote(null);
-    setShowForm(true);
+    setShowModal(true);
   };
 
   const handleEditNote = (note: Note) => {
     setEditingNote(note);
-    setShowForm(true);
+    setShowModal(true);
   };
 
-  const handleFormSuccess = () => {
-    setShowForm(false);
+  const handleModalSuccess = () => {
+    setShowModal(false);
     setEditingNote(null);
     loadNotes();
   };
 
-  const handleFormCancel = () => {
-    setShowForm(false);
+  const handleModalClose = () => {
+    setShowModal(false);
     setEditingNote(null);
   };
 
@@ -69,9 +69,9 @@ export default function NotesScreen() {
     try {
       await notesService.deleteNote(deleteNote.id);
 
-      // If we're deleting the note that's currently being edited, close the form
+      // If we're deleting the note that's currently being edited, close the modal
       if (editingNote && deleteNote.id === editingNote.id) {
-        setShowForm(false);
+        setShowModal(false);
         setEditingNote(null);
       }
 
@@ -107,40 +107,25 @@ export default function NotesScreen() {
           />
         }
       >
-        {/* Note Form */}
-        {showForm && (
-          <NoteForm
-            initialNote={editingNote ? {
-              id: editingNote.id,
-              title: editingNote.title,
-              content: editingNote.content
-            } : undefined}
-            onSuccess={handleFormSuccess}
-            onCancel={handleFormCancel}
-          />
-        )}
-
         {/* Action Cards - Refresh and Create */}
-        {!showForm && (
-          <View style={styles.actionContainer}>
-            <TouchableOpacity
-              style={[styles.refreshCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={handleRefresh}
-              disabled={refreshing}
-            >
-              <Text style={[styles.refreshText, { color: colors.textSecondary }]}>
-                {refreshing ? 'Refreshing...' : 'Refresh'}
-              </Text>
-            </TouchableOpacity>
+        <View style={styles.actionContainer}>
+          <TouchableOpacity
+            style={[styles.refreshCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={handleRefresh}
+            disabled={refreshing}
+          >
+            <Text style={[styles.refreshText, { color: colors.textSecondary }]}>
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.newNoteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
-              onPress={handleNewNote}
-            >
-              <Text style={[styles.newNoteText, { color: colors.textSecondary }]}>Create new note</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+          <TouchableOpacity
+            style={[styles.newNoteCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            onPress={handleNewNote}
+          >
+            <Text style={[styles.newNoteText, { color: colors.textSecondary }]}>Create new note</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Error Message */}
         {error && (
@@ -150,7 +135,7 @@ export default function NotesScreen() {
         )}
 
         {/* Notes List */}
-        {notes.length === 0 && !showForm ? (
+        {notes.length === 0 ? (
           <View style={[styles.emptyContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>No notes yet</Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
@@ -168,6 +153,18 @@ export default function NotesScreen() {
           ))
         )}
       </ScrollView>
+
+      {/* Note Modal */}
+      <NoteModal
+        visible={showModal}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        initialNote={editingNote ? {
+          id: editingNote.id,
+          title: editingNote.title,
+          content: editingNote.content
+        } : undefined}
+      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
