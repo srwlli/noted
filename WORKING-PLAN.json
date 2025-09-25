@@ -191,9 +191,34 @@
     "confidence_level": "HIGH"
   },
 
+  "current_issues": {
+    "ios_background_problem": {
+      "status": "SOLUTION_CONFIRMED",
+      "description": "iOS shows white background below tab navigation instead of theme background",
+      "root_cause": "Expo Router Tabs component lacks sceneContainerStyle support, iOS safe areas default to white",
+      "attempted_solutions": [
+        "Added sceneContainerStyle to Tabs (failed - not supported in Expo Router)",
+        "Enhanced SharedPageLayout with explicit background colors (insufficient)",
+        "Added ScrollView contentContainerStyle backgrounds (insufficient)"
+      ],
+      "confirmed_solution": {
+        "approach": "SafeAreaView wrapper with theme background colors",
+        "implementation": [
+          "Add SafeAreaProvider to app/_layout.tsx root level",
+          "Wrap each tab screen content with SafeAreaView using colors.background",
+          "Ensure proper theme color inheritance throughout component tree"
+        ],
+        "reference_pattern": "Next.js app uses <div className=\"h-safe-area-inset-bottom\" /> - React Native equivalent needed",
+        "expected_outcome": "iOS safe areas use theme colors (#fafafa light / #121212 dark) instead of white"
+      },
+      "research_source": "Analyzed working sidebar-app TabNavigation.tsx with proper iOS safe area handling"
+    }
+  },
+
   "next_steps": {
     "immediate": [
-      "Test installation on actual iPhone via Safari",
+      "Implement confirmed SafeAreaView solution for iOS background fix",
+      "Test background fix on actual iPhone via Safari",
       "Test installation on actual Android via Chrome",
       "Validate all navigation functionality works correctly"
     ],
