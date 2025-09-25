@@ -119,9 +119,9 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     paddingTop: 34, // Extra padding for safe area
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingBottom: 20,
-    maxHeight: '90%',
+    maxHeight: '95%',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,

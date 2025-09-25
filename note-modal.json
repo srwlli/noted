@@ -1,8 +1,8 @@
 {
   "title": "Note Modal Implementation Plan",
   "date": "2025-09-24",
-  "status": "IMPLEMENTED_WITH_SLIDE_DOWN_ENHANCEMENT",
-  "version": "2.0.0",
+  "status": "IMPLEMENTED_WITH_SLIDE_DOWN_ENHANCEMENT_PLUS_SIZE_OPTIMIZATION",
+  "version": "2.1.0",
 
   "overview": {
     "goal": "Replace inline note form with modal popup for better UX",
@@ -316,6 +316,40 @@
     ]
   },
 
+  "size_optimization_plan": {
+    "motivation": "Current modal feels cramped, especially for longer notes and mobile usage",
+    "current_constraints": {
+      "modal_height": "maxHeight: '90%' limits available space",
+      "content_area": "minHeight: 120, numberOfLines: 6 feels too small",
+      "modal_padding": "paddingHorizontal: 16 reduces content width",
+      "form_padding": "16px padding in form container adds to space constraints"
+    },
+    "proposed_improvements": {
+      "expand_modal_height": {
+        "change": "maxHeight: '90%' → '95%'",
+        "benefit": "5% more vertical space for content"
+      },
+      "increase_content_area": {
+        "change": "minHeight: 120 → 200, numberOfLines: 6 → 10",
+        "benefit": "67% larger text input area for better note writing experience"
+      },
+      "optimize_padding": {
+        "change": "paddingHorizontal: 16 → 12",
+        "benefit": "8px more width (4px each side) for content"
+      },
+      "maintain_usability": {
+        "preserve": ["Safe area padding (34px top)", "Border radius", "Shadow styling"],
+        "rationale": "Keep professional appearance and proper spacing"
+      }
+    },
+    "expected_user_experience": [
+      "More comfortable typing experience for longer notes",
+      "Better space utilization on mobile devices",
+      "Reduced scrolling within content area",
+      "Still maintains professional modal appearance"
+    ]
+  },
+
   "final_implementation_notes": {
     "key_differences_from_basic_modal": [
       "animationType='none' instead of 'slide' for custom control",
@@ -325,8 +359,14 @@
       "useEffect to trigger animations based on visible prop changes",
       "Animation completion callbacks before actual modal close"
     ],
+    "size_enhancements": [
+      "Larger modal height (95% vs 90%) for more content space",
+      "Expanded content textarea (200px min-height vs 120px)",
+      "More visible lines (10 vs 6) for better note composition",
+      "Optimized padding for maximum content width"
+    ],
     "ready_for_implementation": true,
-    "estimated_implementation_time": "2-3 hours including testing",
-    "complexity_level": "Intermediate - requires Animated API knowledge"
+    "estimated_implementation_time": "30 minutes for size adjustments",
+    "complexity_level": "Simple - basic CSS/styling changes"
   }
 }

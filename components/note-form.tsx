@@ -69,7 +69,7 @@ export function NoteForm({ onSuccess, onCancel, initialNote }: NoteFormProps) {
         value={content}
         onChangeText={setContent}
         multiline
-        numberOfLines={6}
+        numberOfLines={10}
         textAlignVertical="top"
         editable={!loading}
       />
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     padding: 16,
     fontSize: 16,
     marginBottom: 16,
-    minHeight: 120,
+    minHeight: 200,
   },
   error: {
     fontSize: 14,
