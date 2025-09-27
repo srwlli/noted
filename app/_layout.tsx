@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { Toaster } from 'sonner';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -131,6 +132,13 @@ function AppLayout() {
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>
         <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
+        <Toaster
+          theme={resolvedScheme === 'dark' ? 'dark' : 'light'}
+          position="top-center"
+          expand={true}
+          richColors={true}
+          closeButton={true}
+        />
       </ThemeProvider>
     </View>
   );

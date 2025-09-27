@@ -1,21 +1,24 @@
 import { useTheme } from '@react-navigation/native';
-import { Colors } from '@/constants/theme';
+import { Themes } from '@/constants/theme';
+import { useThemeController } from '@/contexts/theme-controller';
 
 /**
- * Hook that bridges React Navigation themes with our custom color system.
- * Returns computed theme colors based on the current navigation theme.
+ * Hook that provides theme colors based on the selected theme and color scheme.
+ * Returns computed theme colors from the active theme variant.
  */
 export function useThemeColors() {
   const navigationTheme = useTheme();
+  const { themeName } = useThemeController();
   const isDark = navigationTheme.dark;
   const colorScheme = isDark ? 'dark' : 'light';
 
-  // Return our custom colors based on the current scheme
-  const colors = Colors[colorScheme];
+  // Return colors from the selected theme variant
+  const colors = Themes[themeName][colorScheme];
 
   return {
     colors,
     colorScheme,
     isDark,
+    themeName,
   };
 }

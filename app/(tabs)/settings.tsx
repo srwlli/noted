@@ -10,7 +10,7 @@ import { PWAInstallCardMobile } from '@/components/PWAInstallCardMobile';
 import { router } from 'expo-router';
 
 export default function SettingsScreen() {
-  const { colorScheme, resolvedScheme, setColorScheme, isLoading } = useThemeController();
+  const { themeName, colorScheme, resolvedScheme, setTheme, setColorScheme, isLoading } = useThemeController();
   const { colors } = useThemeColors();
   const { signOut, user } = useAuth();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -39,13 +39,57 @@ export default function SettingsScreen() {
 
   return (
     <SharedPageLayout scrollable={true}>
-      <PWAInstallCardDesktop />
-      <PWAInstallCardMobile />
-
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
 
+        {/* Theme Selection */}
         <View style={styles.settingRow}>
+          <View style={styles.settingInfo}>
+            <Text style={[styles.settingLabel, { color: colors.text }]}>Theme Style</Text>
+            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
+              Choose your visual theme
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.themeOptions}>
+          <TouchableOpacity
+            style={[
+              styles.themeOption,
+              { borderColor: colors.border },
+              themeName === 'greyscale' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
+            ]}
+            onPress={() => setTheme('greyscale')}
+            disabled={isLoading}
+          >
+            <View style={[styles.themePreview, { backgroundColor: '#fafafa' }]}>
+              <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#e0e0e0' }]} />
+              <View style={[styles.themePreviewText, { backgroundColor: '#4a4a4a' }]} />
+            </View>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>Greyscale</Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>Clean minimal grey</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.themeOption,
+              { borderColor: colors.border },
+              themeName === 'appleNotes' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
+            ]}
+            onPress={() => setTheme('appleNotes')}
+            disabled={isLoading}
+          >
+            <View style={[styles.themePreview, { backgroundColor: '#fbf9f6' }]}>
+              <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#d1d1d6' }]} />
+              <View style={[styles.themePreviewText, { backgroundColor: '#007aff' }]} />
+            </View>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>Apple Notes</Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>Warm cream & blue</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Dark Mode Toggle */}
+        <View style={[styles.settingRow, { marginTop: 16 }]}>
           <View style={styles.settingInfo}>
             <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
             <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
@@ -62,8 +106,16 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      <PWAInstallCardDesktop />
+      <PWAInstallCardMobile />
+
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Debug</Text>
+
+        <View style={styles.debugRow}>
+          <Text style={[styles.debugLabel, { color: colors.text }]}>Theme:</Text>
+          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{themeName}</Text>
+        </View>
 
         <View style={styles.debugRow}>
           <Text style={[styles.debugLabel, { color: colors.text }]}>Color Scheme:</Text>
@@ -166,5 +218,51 @@ const styles = StyleSheet.create({
   signOutText: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  themeOptions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 8,
+  },
+  themeOption: {
+    flex: 1,
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  themePreview: {
+    width: 60,
+    height: 40,
+    borderRadius: 8,
+    marginBottom: 8,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  themePreviewCard: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    height: 16,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  themePreviewText: {
+    position: 'absolute',
+    bottom: 6,
+    left: 12,
+    right: 20,
+    height: 3,
+    borderRadius: 1,
+  },
+  themeOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  themeOptionDesc: {
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

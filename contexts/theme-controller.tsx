@@ -1,14 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
+import { ThemeName } from '@/constants/theme';
 
 const THEME_STORAGE_KEY = '@noted_theme_preference';
+const THEME_NAME_STORAGE_KEY = '@noted_theme_name';
 
 export type ColorSchemeMode = 'light' | 'dark' | 'system';
 
 interface ThemeControllerContextType {
+  themeName: ThemeName;
   colorScheme: ColorSchemeMode;
   resolvedScheme: 'light' | 'dark';
+  setTheme: (theme: ThemeName) => Promise<void>;
   setColorScheme: (scheme: ColorSchemeMode) => Promise<void>;
   isLoading: boolean;
 }
@@ -20,35 +24,53 @@ interface ThemeControllerProviderProps {
 }
 
 export function ThemeControllerProvider({ children }: ThemeControllerProviderProps) {
+  const [themeNameState, setThemeNameState] = useState<ThemeName>('greyscale');
   const [colorSchemeState, setColorSchemeState] = useState<ColorSchemeMode>('system');
   const [isLoading, setIsLoading] = useState(true);
   const systemScheme = useColorScheme();
 
-  // Load theme preference from storage on mount
+  // Load theme preferences from storage on mount
   useEffect(() => {
-    async function loadThemePreference() {
+    async function loadThemePreferences() {
       try {
-        const stored = await AsyncStorage.getItem(THEME_STORAGE_KEY);
-        if (stored && ['light', 'dark', 'system'].includes(stored)) {
-          setColorSchemeState(stored as ColorSchemeMode);
+        const [storedColorScheme, storedThemeName] = await Promise.all([
+          AsyncStorage.getItem(THEME_STORAGE_KEY),
+          AsyncStorage.getItem(THEME_NAME_STORAGE_KEY)
+        ]);
+
+        if (storedColorScheme && ['light', 'dark', 'system'].includes(storedColorScheme)) {
+          setColorSchemeState(storedColorScheme as ColorSchemeMode);
+        }
+
+        if (storedThemeName && ['greyscale', 'appleNotes'].includes(storedThemeName)) {
+          setThemeNameState(storedThemeName as ThemeName);
         }
       } catch (error) {
-        console.warn('Failed to load theme preference:', error);
+        console.warn('Failed to load theme preferences:', error);
       } finally {
         setIsLoading(false);
       }
     }
 
-    loadThemePreference();
+    loadThemePreferences();
   }, []);
 
-  // Memoized setColorScheme function to prevent re-renders
+  // Memoized theme functions to prevent re-renders
+  const setTheme = useCallback(async (theme: ThemeName) => {
+    try {
+      await AsyncStorage.setItem(THEME_NAME_STORAGE_KEY, theme);
+      setThemeNameState(theme);
+    } catch (error) {
+      console.warn('Failed to save theme name:', error);
+    }
+  }, []);
+
   const setColorScheme = useCallback(async (scheme: ColorSchemeMode) => {
     try {
       await AsyncStorage.setItem(THEME_STORAGE_KEY, scheme);
       setColorSchemeState(scheme);
     } catch (error) {
-      console.warn('Failed to save theme preference:', error);
+      console.warn('Failed to save color scheme:', error);
     }
   }, []);
 
@@ -62,11 +84,13 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
 
   // Memoized context value to prevent unnecessary re-renders
   const value: ThemeControllerContextType = useMemo(() => ({
+    themeName: themeNameState,
     colorScheme: colorSchemeState,
     resolvedScheme,
+    setTheme,
     setColorScheme,
     isLoading,
-  }), [colorSchemeState, resolvedScheme, setColorScheme, isLoading]);
+  }), [themeNameState, colorSchemeState, resolvedScheme, setTheme, setColorScheme, isLoading]);
 
   return (
     <ThemeControllerContext.Provider value={value}>

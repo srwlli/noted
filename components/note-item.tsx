@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Animated } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -9,38 +9,61 @@ interface NoteItemProps {
   note: Note;
   onPress?: () => void;
   onEdit?: () => void;
+  onSave?: (id: string, title: string, content: string) => Promise<void>;
   onDelete?: () => void;
 }
 
-export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
+export function NoteItem({ note, onPress, onEdit, onSave, onDelete }: NoteItemProps) {
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(note.content || '');
+  const [textInputHeight, setTextInputHeight] = useState(150);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
-    });
-  };
+  const editHeightAnimation = useRef(new Animated.Value(0)).current;
+
 
   const handleCopy = async () => {
     try {
       await Clipboard.setStringAsync(note.content || '');
       Alert.alert('Copied', 'Note content copied to clipboard');
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to copy content');
     }
   };
 
-  const handleSaveEdit = () => {
-    // For now, just update local state - integrate with save functionality later
-    setIsEditing(false);
-    if (onEdit) {
-      onEdit(); // Trigger parent edit handler
+  useEffect(() => {
+    if (isEditing) {
+      // Animate edit area slide in
+      Animated.spring(editHeightAnimation, {
+        toValue: 1,
+        useNativeDriver: false,
+      }).start();
+    } else {
+      // Animate edit area slide out
+      Animated.spring(editHeightAnimation, {
+        toValue: 0,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [isEditing, editHeightAnimation]);
+
+  const handleSaveEdit = async () => {
+    if (!onSave) {
+      // Fallback to modal editing if no save callback provided
+      setIsEditing(false);
+      if (onEdit) {
+        onEdit();
+      }
+      return;
+    }
+
+    try {
+      await onSave(note.id, note.title, editedContent);
+      setIsEditing(false);
+      Alert.alert('Saved', 'Note updated successfully');
+    } catch {
+      Alert.alert('Error', 'Failed to save note. Please try again.');
     }
   };
 
@@ -49,12 +72,32 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
     setIsEditing(false);
   };
 
+  const handleContentSizeChange = (event: any) => {
+    const { height } = event.nativeEvent.contentSize;
+    setTextInputHeight(Math.max(150, height + 20));
+  };
+
   return (
-    <TouchableOpacity
-      style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      onPress={onPress}
-      activeOpacity={0.7}
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+        },
+        isEditing && {
+          backgroundColor: colors.background,
+          borderColor: colors.tint,
+          borderWidth: 2,
+          shadowColor: colors.tint,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+          elevation: 4,
+        }
+      ]}
     >
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7} disabled={isEditing}>
       <View style={styles.content}>
         <View style={[
           styles.titleRow,
@@ -128,15 +171,41 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
         </View>
 {isExpanded && note.content && (
           isEditing ? (
-            <View style={styles.editContainer}>
+            <Animated.View
+              style={[
+                styles.editContainer,
+                {
+                  opacity: editHeightAnimation,
+                  transform: [
+                    {
+                      translateY: editHeightAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-20, 0],
+                      }),
+                    },
+                  ],
+                }
+              ]}
+            >
               <TextInput
-                style={[styles.editInput, { color: colors.text, borderColor: colors.border }]}
+                style={[
+                  styles.editInput,
+                  {
+                    color: colors.text,
+                    borderColor: colors.tint,
+                    backgroundColor: colors.surface,
+                    height: textInputHeight,
+                  }
+                ]}
                 value={editedContent}
                 onChangeText={setEditedContent}
+                onContentSizeChange={handleContentSizeChange}
                 multiline
                 placeholder="Note content..."
                 placeholderTextColor={colors.textSecondary}
                 selectionColor={colors.tint}
+                autoFocus
+                textAlignVertical="top"
               />
               <View style={styles.editActions}>
                 <TouchableOpacity
@@ -152,7 +221,7 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
                   <Text style={[styles.editButtonText, { color: colors.text }]}>Cancel</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           ) : (
             <Text
               style={[styles.preview, { color: colors.textSecondary }]}
@@ -163,7 +232,8 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
           )
         )}
       </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
@@ -216,29 +286,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   editContainer: {
-    marginTop: 8,
+    marginTop: 16,
+    marginHorizontal: -4,
   },
   editInput: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    lineHeight: 20,
-    minHeight: 100,
-    textAlignVertical: 'top',
+    borderWidth: 2,
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    minHeight: 150,
+    maxHeight: 300,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   editActions: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 8,
+    gap: 12,
+    marginTop: 16,
+    justifyContent: 'flex-end',
   },
   editButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 6,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 90,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   editButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

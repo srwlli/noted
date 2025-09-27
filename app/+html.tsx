@@ -27,9 +27,9 @@ export default function Root({ children }: { children: React.ReactNode }) {
         <link rel="manifest" href="/manifest.json" />
 
         {/* iOS App Icons */}
-        <link rel="apple-touch-icon" href="/assets/images/icon.png" />
-        <link rel="apple-touch-icon" sizes="192x192" href="/assets/images/icon.png" />
-        <link rel="apple-touch-icon" sizes="512x512" href="/assets/images/icon.png" />
+        <link rel="apple-touch-icon" href="/noted-icon.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/noted-icon.png" />
+        <link rel="apple-touch-icon" sizes="512x512" href="/noted-icon.png" />
 
         {/* Preconnect for performance */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
