@@ -8,7 +8,7 @@ import { Colors } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 
 export default function TabLayout() {
-  const { colorScheme } = useThemeColors();
+  const { colorScheme, colors } = useThemeColors();
   const isWeb = Platform.OS === 'web';
 
   return (
@@ -18,16 +18,16 @@ export default function TabLayout() {
           tabBarActiveTintColor: Colors[colorScheme].tint,
           headerShown: false,
           tabBarShowLabel: false,
+          sceneContainerStyle: {
+            backgroundColor: colors.background,
+          },
           tabBarStyle: {
             backgroundColor: Colors[colorScheme].surface,
             borderTopColor: Colors[colorScheme].border,
             // Add safe area padding for web PWA
             ...(isWeb && {
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-              paddingLeft: 'env(safe-area-inset-left, 0px)',
-              paddingRight: 'env(safe-area-inset-right, 0px)',
+              paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
-              position: 'relative' as const,
             }),
           },
         }}>

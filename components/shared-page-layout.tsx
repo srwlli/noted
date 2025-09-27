@@ -19,14 +19,13 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
     <ScrollView
       style={[
         styles.scrollContainer,
+        { backgroundColor: colors.background },
         // Add safe area padding for web
         isWeb && {
-          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
-          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
-          // Add bottom padding to account for tab bar + safe area
-          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)',
+          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)',
         }
       ]}
+      contentContainerStyle={{ backgroundColor: colors.background }}
       showsVerticalScrollIndicator={false}
     >
       {children}
@@ -35,12 +34,10 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
     <View
       style={[
         styles.container,
+        { backgroundColor: colors.background },
         // Add safe area padding for web
         isWeb && {
-          paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
-          paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
-          // Add bottom padding to account for tab bar + safe area
-          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 16px)',
+          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)',
         }
       ]}
     >

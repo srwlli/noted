@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -71,15 +72,12 @@ function AppLayout() {
           // Safari-specific PWA optimizations
           const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
           if (isSafari) {
-            // Ensure proper viewport for Safari PWA
+            // iOS specific viewport handling
             const viewport = document.querySelector('meta[name=viewport]');
             if (viewport) {
-              const content = viewport.getAttribute('content') || '';
-              if (!content.includes('viewport-fit=cover')) {
-                viewport.setAttribute('content',
-                  content + ', viewport-fit=cover'
-                );
-              }
+              viewport.setAttribute('content',
+                'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover'
+              );
             }
           }
         } else {
@@ -122,8 +120,8 @@ function AppLayout() {
       backgroundColor,
       // Ensure proper height on web
       ...(Platform.OS === 'web' && {
-        height: '100vh',
-        overflow: 'hidden'
+        minHeight: '100vh',
+        width: '100%'
       })
     }}>
       <ThemeProvider value={resolvedScheme === 'dark' ? NotedDarkTheme : NotedLightTheme}>
@@ -140,10 +138,12 @@ function AppLayout() {
 
 export default function RootLayout() {
   return (
-    <ThemeControllerProvider>
-      <AuthProvider>
-        <AppLayout />
-      </AuthProvider>
-    </ThemeControllerProvider>
+    <SafeAreaProvider>
+      <ThemeControllerProvider>
+        <AuthProvider>
+          <AppLayout />
+        </AuthProvider>
+      </ThemeControllerProvider>
+    </SafeAreaProvider>
   );
 }
