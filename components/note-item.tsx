@@ -30,9 +30,36 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
       activeOpacity={0.7}
     >
       <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {note.title}
-        </Text>
+        <View style={styles.titleRow}>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+            {note.title}
+          </Text>
+          <View style={styles.actions}>
+            {onEdit && (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
+              >
+                <MaterialIcons name="more-vert" size={20} color={colors.text} />
+              </TouchableOpacity>
+            )}
+
+            {onDelete && (
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  onDelete();
+                }}
+              >
+                <MaterialIcons name="delete-outline" size={20} color={colors.text} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
         {note.content && (
           <Text style={[styles.preview, { color: colors.textSecondary }]} numberOfLines={2}>
             {note.content}
@@ -41,32 +68,6 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
         <Text style={[styles.date, { color: colors.textSecondary }]}>
           {formatDate(note.created_at)}
         </Text>
-      </View>
-
-      <View style={styles.actions}>
-        {onEdit && (
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-          >
-            <MaterialIcons name="more-vert" size={20} color={colors.text} />
-          </TouchableOpacity>
-        )}
-
-        {onDelete && (
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <MaterialIcons name="delete-outline" size={20} color={colors.text} />
-          </TouchableOpacity>
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -78,18 +79,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 16,
     marginBottom: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
   },
   content: {
     flex: 1,
-    marginRight: 12,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    marginBottom: 4,
+    flex: 1,
   },
   preview: {
     fontSize: 14,
