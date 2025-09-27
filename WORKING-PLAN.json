@@ -329,10 +329,42 @@
     "next_enhancement": "Implement responsive inline editing with dynamic card expansion"
   },
 
+  "authentication_page_ux": {
+    "status": "IN_PROGRESS",
+    "date_identified": "2025-09-27",
+    "user_feedback": "Auth page loads on bottom half of screen, jumps when keyboard appears",
+    "current_issues": [
+      "Form centered vertically causes poor keyboard interaction",
+      "Content jumps when user taps input fields",
+      "'noted' branding outside card is redundant",
+      "Poor mobile UX with keyboard appearance"
+    ],
+    "planned_improvements": [
+      "Remove 'noted' branding text outside the card",
+      "Reposition card to top half of screen (paddingTop: 80-120px)",
+      "Change justifyContent from 'center' to 'flex-start'",
+      "Add KeyboardAvoidingView for better mobile experience",
+      "Ensure stable positioning when keyboard appears"
+    ],
+    "technical_changes": {
+      "file": "app/auth/index.tsx",
+      "modifications": [
+        "Delete Text component showing 'noted' (line 64)",
+        "Remove branding styles (lines 139-144)",
+        "Change container justifyContent to 'flex-start'",
+        "Add paddingTop: 100 to container for top positioning",
+        "Consider KeyboardAvoidingView wrapper for mobile"
+      ]
+    },
+    "expected_outcome": "Clean auth card positioned at top, no jumping with keyboard"
+  },
+
   "next_steps": {
     "immediate": [
       "✅ iOS background fix implemented with SafeAreaView solution",
       "✅ Note card collapsible functionality implemented",
+      "Implement authentication page UX improvements",
+      "Test keyboard behavior on mobile devices",
       "Implement copy/edit functionality for expanded note content",
       "Test background fix on actual iPhone via Safari to verify resolution",
       "Test installation on actual Android via Chrome",
