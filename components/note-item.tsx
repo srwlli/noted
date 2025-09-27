@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -13,6 +13,7 @@ interface NoteItemProps {
 
 export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
   const { colors } = useThemeColors();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -30,7 +31,23 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
       activeOpacity={0.7}
     >
       <View style={styles.content}>
-        <View style={styles.titleRow}>
+        <View style={[
+          styles.titleRow,
+          isExpanded && { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 8, marginBottom: 8 }
+        ]}>
+          <TouchableOpacity
+            style={styles.chevronButton}
+            onPress={(e) => {
+              e.stopPropagation();
+              setIsExpanded(!isExpanded);
+            }}
+          >
+            <MaterialIcons
+              name={isExpanded ? "expand-less" : "chevron-right"}
+              size={20}
+              color={colors.text}
+            />
+          </TouchableOpacity>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {note.title}
           </Text>
@@ -43,7 +60,7 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
                   onEdit();
                 }}
               >
-                <MaterialIcons name="more-vert" size={20} color={colors.text} />
+                <MaterialIcons name="more-horiz" size={20} color={colors.text} />
               </TouchableOpacity>
             )}
 
@@ -55,19 +72,16 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
                   onDelete();
                 }}
               >
-                <MaterialIcons name="delete-outline" size={20} color={colors.text} />
+                <MaterialIcons name="delete" size={20} color={colors.text} />
               </TouchableOpacity>
             )}
           </View>
         </View>
-        {note.content && (
-          <Text style={[styles.preview, { color: colors.textSecondary }]} numberOfLines={2}>
+{isExpanded && note.content && (
+          <Text style={[styles.preview, { color: colors.textSecondary }]}>
             {note.content}
           </Text>
         )}
-        <Text style={[styles.date, { color: colors.textSecondary }]}>
-          {formatDate(note.created_at)}
-        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -105,6 +119,14 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     gap: 8,
+  },
+  chevronButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   iconButton: {
     width: 32,
