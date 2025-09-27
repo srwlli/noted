@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Note } from '@/services/notes';
 
@@ -45,25 +46,25 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
       <View style={styles.actions}>
         {onEdit && (
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.background, borderColor: colors.border }]}
+            style={styles.iconButton}
             onPress={(e) => {
               e.stopPropagation();
               onEdit();
             }}
           >
-            <Text style={[styles.actionText, { color: colors.text }]}>Edit</Text>
+            <MaterialIcons name="more-vert" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
 
         {onDelete && (
           <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: '#fee2e2', borderColor: '#fecaca' }]}
+            style={styles.iconButton}
             onPress={(e) => {
               e.stopPropagation();
               onDelete();
             }}
           >
-            <Text style={[styles.actionText, { color: '#dc2626' }]}>Delete</Text>
+            <MaterialIcons name="delete-outline" size={20} color={colors.text} />
           </TouchableOpacity>
         )}
       </View>
@@ -102,14 +103,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  actionButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-    borderWidth: 1,
-  },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '500',
+  iconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
