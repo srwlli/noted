@@ -358,10 +358,178 @@
     "expected_outcome": "Clean auth card positioned at top, no jumping with keyboard",
     "additional_enhancements": {
       "date": "2025-09-27",
-      "request": "Add 'noted' title and icon branding inside login card",
-      "implementation": "Add noted-white.png icon above 'noted' text title within card",
-      "status": "PENDING"
+      "request": "Add 'noted' title branding inside login card",
+      "implementation": "Added 'noted' text title within card (icon removed per user request)",
+      "status": "COMPLETED",
+      "details": [
+        "✅ Added 'noted' text title at top of auth card",
+        "✅ Centered text with 28px font size",
+        "✅ Theme-aware text color",
+        "✅ 24px bottom margin for proper spacing",
+        "✅ Icon removed to keep design minimal"
+      ]
+    },
+    "forgot_password_flow": {
+      "date_implemented": "2025-09-27",
+      "request": "Implement forgot password flow with link below password field",
+      "status": "COMPLETED",
+      "implementation_details": [
+        "✅ Added resetPassword function to auth context using supabase.auth.resetPasswordForEmail()",
+        "✅ Added 'Forgot Password?' link below password field (login tab only)",
+        "✅ Created modal popup for email input with clean UI",
+        "✅ Implemented complete flow: link → modal → email input → success message",
+        "✅ Added proper loading states and error handling",
+        "✅ Theme-aware styling consistent with auth card design"
+      ],
+      "technical_changes": {
+        "files_modified": [
+          "contexts/auth-context.tsx - Added resetPassword function and interface",
+          "app/auth/index.tsx - Added forgot password link, modal, and flow logic"
+        ],
+        "key_features": [
+          "Modal with email input and cancel/submit buttons",
+          "Only shows on login tab for better UX",
+          "Success/error messages via Alert",
+          "Automatic modal dismissal on success",
+          "Consistent styling with existing auth components"
+        ]
+      },
+      "user_flow": [
+        "1. User on login tab sees 'Forgot Password?' link below password field",
+        "2. Click opens modal with email input",
+        "3. User enters email and clicks 'Send Reset Email'",
+        "4. Success message shows 'Check your email for password reset instructions'",
+        "5. Modal closes automatically, user can check email for reset link"
+      ]
+    },
+    "notification_improvements": {
+      "date_implemented": "2025-09-27",
+      "request": "Improve notifications using Sonner toast library",
+      "status": "COMPLETED",
+      "implementation_details": [
+        "✅ Installed Sonner toast library (v2.0.7)",
+        "✅ Added Toaster component to root layout with theme awareness",
+        "✅ Replaced all Alert.alert() calls with toast notifications",
+        "✅ Configured toast positioning and styling options",
+        "✅ Added success/error toast variants with appropriate colors"
+      ],
+      "technical_changes": {
+        "files_modified": [
+          "package.json - Added sonner dependency",
+          "app/_layout.tsx - Added Toaster component with theme integration",
+          "app/auth/index.tsx - Replaced Alert calls with toast notifications"
+        ],
+        "toast_configuration": {
+          "position": "top-center",
+          "theme": "dynamic (follows app light/dark mode)",
+          "features": ["rich colors", "close button", "expand animation"]
+        }
+      },
+      "notification_improvements": [
+        "Modern toast notifications instead of native alerts",
+        "Better UX with non-blocking notifications",
+        "Consistent theme-aware styling",
+        "Smooth animations and positioning",
+        "Success/error color coding for better visual feedback"
+      ],
+      "replaced_notifications": [
+        "Form validation errors (empty fields)",
+        "Authentication success/failure messages",
+        "Signup confirmation messages",
+        "Login success welcome message",
+        "Forgot password success/error messages",
+        "General error handling messages"
+      ]
     }
+  },
+
+  "apple_notes_theme_implementation": {
+    "date_planned": "2025-09-27",
+    "request": "Add Apple Notes theme as alternative to current greyscale theme",
+    "status": "PLANNED",
+    "motivation": "Provide users with Apple's warm, familiar note-taking aesthetic",
+    "implementation_plan": {
+      "architecture_assessment": {
+        "current_strengths": [
+          "Centralized theme definition in constants/theme.ts",
+          "Theme controller with persistent storage",
+          "Hook-based color access via useThemeColors()",
+          "React Navigation integration for system-wide theming",
+          "Dynamic theme switching already implemented"
+        ],
+        "effort_level": "3/5 - Moderate (estimated 2 hours)",
+        "feasibility": "Very feasible - existing architecture supports multiple themes"
+      },
+      "technical_changes": {
+        "step_1_theme_definitions": {
+          "file": "constants/theme.ts",
+          "changes": [
+            "Restructure Colors export to support multiple themes",
+            "Add Themes object with greyscale and appleNotes variants",
+            "Define Apple Notes color palette with warm cream backgrounds",
+            "Maintain light/dark variants for each theme"
+          ]
+        },
+        "step_2_theme_controller": {
+          "file": "contexts/theme-controller.tsx",
+          "changes": [
+            "Add ThemeName type ('greyscale' | 'appleNotes')",
+            "Extend context to include themeName state",
+            "Add setTheme function for switching between themes",
+            "Update storage to persist both theme name and color scheme"
+          ]
+        },
+        "step_3_color_hook": {
+          "file": "hooks/use-theme-colors.ts",
+          "changes": [
+            "Update hook to use current theme name",
+            "Return colors from selected theme variant",
+            "Maintain backward compatibility"
+          ]
+        },
+        "step_4_settings_ui": {
+          "file": "app/(tabs)/settings.tsx",
+          "changes": [
+            "Add theme picker section",
+            "Theme options: Greyscale, Apple Notes",
+            "Visual preview of each theme",
+            "Integrate with theme controller"
+          ]
+        }
+      },
+      "apple_notes_colors": {
+        "light_theme": {
+          "background": "#fbf9f6",
+          "surface": "#ffffff",
+          "text": "#1c1c1e",
+          "textSecondary": "#8e8e93",
+          "border": "#d1d1d6",
+          "tint": "#007aff",
+          "description": "Warm cream background with Apple's signature blue accent"
+        },
+        "dark_theme": {
+          "background": "#1c1c1e",
+          "surface": "#2c2c2e",
+          "text": "#ffffff",
+          "textSecondary": "#8e8e93",
+          "border": "#48484a",
+          "tint": "#0a84ff",
+          "description": "Apple's dark mode with blue accent variations"
+        }
+      }
+    },
+    "user_experience": {
+      "theme_selection": "Settings page with visual theme picker",
+      "immediate_switching": "Themes apply instantly without app restart",
+      "persistence": "Theme choice saved and restored on app launch",
+      "system_integration": "Respects iOS/system preferences for light/dark mode"
+    },
+    "expected_benefits": [
+      "Familiar Apple aesthetic for iOS users",
+      "Warmer, more inviting note-taking environment",
+      "User choice and customization options",
+      "Better brand alignment with Apple Notes workflow"
+    ]
   },
 
   "next_steps": {
