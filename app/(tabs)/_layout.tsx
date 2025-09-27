@@ -28,6 +28,11 @@ export default function TabLayout() {
             ...(isWeb && {
               paddingBottom: 'env(safe-area-inset-bottom, 0px)',
               height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+              position: 'fixed',
+              bottom: 0,
+              left: 0,
+              right: 0,
+              zIndex: 999,
             }),
           },
         }}>

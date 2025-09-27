@@ -20,8 +20,9 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
       style={[
         styles.scrollContainer,
         { backgroundColor: colors.background },
-        // Add safe area padding for web
+        // Add spacing for fixed header/footer on web
         isWeb && {
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)',
           paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)',
         }
       ]}
@@ -35,8 +36,9 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
       style={[
         styles.container,
         { backgroundColor: colors.background },
-        // Add safe area padding for web
+        // Add spacing for fixed header/footer on web
         isWeb && {
+          paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)',
           paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)',
         }
       ]}

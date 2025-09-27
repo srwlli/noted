@@ -35,6 +35,11 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing }: CommonHeaderP
         ...(isWeb && {
           paddingLeft: 'max(env(safe-area-inset-left, 0px), 16px)',
           paddingRight: 'max(env(safe-area-inset-right, 0px), 16px)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
         })
       }
     ]}>
