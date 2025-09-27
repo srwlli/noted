@@ -23,7 +23,7 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
         // Add spacing for fixed header/footer on web
         isWeb && {
           paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)',
-          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)',
+          paddingBottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 20px)',
         }
       ]}
       contentContainerStyle={{ backgroundColor: colors.background }}
@@ -39,7 +39,7 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
         // Add spacing for fixed header/footer on web
         isWeb && {
           paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)',
-          paddingBottom: 'calc(60px + env(safe-area-inset-bottom, 0px) + 20px)',
+          paddingBottom: 'calc(44px + env(safe-area-inset-bottom, 0px) + 20px)',
         }
       ]}
     >

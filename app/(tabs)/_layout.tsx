@@ -18,6 +18,10 @@ export default function TabLayout() {
           tabBarActiveTintColor: Colors[colorScheme].tint,
           headerShown: false,
           tabBarShowLabel: false,
+          tabBarItemStyle: {
+            justifyContent: 'center',
+            alignItems: 'center',
+          },
           sceneContainerStyle: {
             backgroundColor: colors.background,
           },
@@ -27,7 +31,7 @@ export default function TabLayout() {
             // Add safe area padding for web PWA
             ...(isWeb && {
               paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-              height: 'calc(60px + env(safe-area-inset-bottom, 0px))',
+              height: 'calc(44px + env(safe-area-inset-bottom, 0px))',
               position: 'fixed',
               bottom: 0,
               left: 0,
@@ -41,7 +45,7 @@ export default function TabLayout() {
           key="docs-tab"
           options={{
             title: 'About',
-            tabBarIcon: ({ color }) => <MaterialIcons size={28} name="info" color={color} />,
+            tabBarIcon: ({ color }) => <MaterialIcons size={24} name="info" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -49,7 +53,7 @@ export default function TabLayout() {
           key="index-tab"
           options={{
             title: 'Notes',
-            tabBarIcon: ({ color }) => <MaterialIcons size={28} name="description" color={color} />,
+            tabBarIcon: ({ color }) => <MaterialIcons size={24} name="description" color={color} />,
           }}
         />
         <Tabs.Screen
@@ -57,7 +61,7 @@ export default function TabLayout() {
           key="settings-tab"
           options={{
             title: 'Settings',
-            tabBarIcon: ({ color }) => <MaterialIcons size={28} name="settings" color={color} />,
+            tabBarIcon: ({ color }) => <MaterialIcons size={24} name="settings" color={color} />,
           }}
         />
       </Tabs>
