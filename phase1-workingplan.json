@@ -1,0 +1,284 @@
+{
+  "phase": "Phase 1: Add 3 New Themes",
+  "status": "READY_TO_EXECUTE",
+  "date_created": "2025-09-30",
+  "estimated_time": "2-3 hours",
+  "files_to_modify": [
+    "constants/theme.ts",
+    "app/(tabs)/settings.tsx",
+    "CHANGELOG.md"
+  ],
+
+  "overview": {
+    "goal": "Add Sepia, Nord, and Bear Red Graphite themes to expand from 2 to 5 total themes",
+    "approach": "Use existing 9-color ColorScheme structure - no breaking changes",
+    "themes_to_add": [
+      {
+        "name": "sepia",
+        "displayName": "Sepia",
+        "description": "Warm vintage aesthetic for comfortable reading",
+        "mood": "warm, nostalgic, comfortable"
+      },
+      {
+        "name": "nord",
+        "displayName": "Nord",
+        "description": "Cool Arctic-inspired palette for focused work",
+        "mood": "cool, calm, focused"
+      },
+      {
+        "name": "bearRedGraphite",
+        "displayName": "Bear Red Graphite",
+        "description": "Bold red accent on elegant graphite base",
+        "mood": "bold, elegant, modern"
+      }
+    ]
+  },
+
+  "implementation_steps": {
+    "step_1_update_theme_name_type": {
+      "order": 1,
+      "file": "constants/theme.ts",
+      "line": 8,
+      "task": "Update ThemeName type to include 3 new themes",
+      "current_code": "export type ThemeName = 'greyscale' | 'appleNotes';",
+      "new_code": "export type ThemeName = 'greyscale' | 'appleNotes' | 'sepia' | 'nord' | 'bearRedGraphite';",
+      "rationale": "TypeScript needs to know about new theme names for type safety"
+    },
+
+    "step_2_add_sepia_theme": {
+      "order": 2,
+      "file": "constants/theme.ts",
+      "line": 85,
+      "task": "Add Sepia theme definition to Themes object",
+      "location": "After appleNotes theme definition, before closing brace",
+      "code_to_add": "sepia: {\n  displayName: 'Sepia',\n  description: 'Warm vintage aesthetic for comfortable reading',\n  light: {\n    background: '#f5f1e8',\n    surface: '#fdfcf7',\n    text: '#3d3226',\n    textSecondary: '#6d5d4d',\n    border: '#d4c7b3',\n    tint: '#8b6f47',\n    icon: '#6d5d4d',\n    tabIconDefault: '#6d5d4d',\n    tabIconSelected: '#8b6f47',\n  },\n  dark: {\n    background: '#1a1612',\n    surface: '#2a231d',\n    text: '#e8e0d5',\n    textSecondary: '#a89a88',\n    border: '#3d352c',\n    tint: '#c4a576',\n    icon: '#a89a88',\n    tabIconDefault: '#a89a88',\n    tabIconSelected: '#c4a576',\n  },\n},"
+    },
+
+    "step_3_add_nord_theme": {
+      "order": 3,
+      "file": "constants/theme.ts",
+      "line": "After sepia theme",
+      "task": "Add Nord theme definition to Themes object",
+      "code_to_add": "nord: {\n  displayName: 'Nord',\n  description: 'Cool Arctic-inspired palette for focused work',\n  light: {\n    background: '#eceff4',\n    surface: '#e5e9f0',\n    text: '#2e3440',\n    textSecondary: '#4c566a',\n    border: '#d8dee9',\n    tint: '#5e81ac',\n    icon: '#4c566a',\n    tabIconDefault: '#4c566a',\n    tabIconSelected: '#5e81ac',\n  },\n  dark: {\n    background: '#2e3440',\n    surface: '#3b4252',\n    text: '#eceff4',\n    textSecondary: '#d8dee9',\n    border: '#4c566a',\n    tint: '#88c0d0',\n    icon: '#d8dee9',\n    tabIconDefault: '#d8dee9',\n    tabIconSelected: '#88c0d0',\n  },\n},"
+    },
+
+    "step_4_add_bear_red_graphite_theme": {
+      "order": 4,
+      "file": "constants/theme.ts",
+      "line": "After nord theme",
+      "task": "Add Bear Red Graphite theme definition to Themes object",
+      "code_to_add": "bearRedGraphite: {\n  displayName: 'Bear Red Graphite',\n  description: 'Bold red accent on elegant graphite base',\n  light: {\n    background: '#fafaf8',\n    surface: '#ffffff',\n    text: '#1a1a1a',\n    textSecondary: '#6a6a6a',\n    border: '#e0e0e0',\n    tint: '#d4534f',\n    icon: '#6a6a6a',\n    tabIconDefault: '#6a6a6a',\n    tabIconSelected: '#d4534f',\n  },\n  dark: {\n    background: '#1d1d1d',\n    surface: '#2a2a2a',\n    text: '#f5f5f5',\n    textSecondary: '#b0b0b0',\n    border: '#404040',\n    tint: '#d4534f',\n    icon: '#b0b0b0',\n    tabIconDefault: '#b0b0b0',\n    tabIconSelected: '#d4534f',\n  },\n},"
+    },
+
+    "step_5_add_sepia_ui_card": {
+      "order": 5,
+      "file": "app/(tabs)/settings.tsx",
+      "line": 107,
+      "task": "Add Sepia theme selection card to settings UI",
+      "location": "After appleNotes TouchableOpacity, before Dark Mode Toggle section",
+      "code_to_add": "<TouchableOpacity\n  style={[\n    styles.themeOption,\n    { borderColor: colors.border },\n    themeName === 'sepia' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }\n  ]}\n  onPress={() => setTheme('sepia')}\n  disabled={isLoading}\n>\n  <View style={[styles.themePreview, { backgroundColor: '#f5f1e8' }]}>>\n    <View style={[styles.themePreviewCard, { backgroundColor: '#fdfcf7', borderColor: '#d4c7b3' }]} />\n    <View style={[styles.themePreviewText, { backgroundColor: '#8b6f47' }]} />\n  </View>\n  <Text style={[styles.themeOptionText, { color: colors.text }]}>\n    {Themes.sepia.displayName}\n  </Text>\n  <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>\n    {Themes.sepia.description}\n  </Text>\n</TouchableOpacity>"
+    },
+
+    "step_6_add_nord_ui_card": {
+      "order": 6,
+      "file": "app/(tabs)/settings.tsx",
+      "line": "After sepia TouchableOpacity",
+      "task": "Add Nord theme selection card to settings UI",
+      "code_to_add": "<TouchableOpacity\n  style={[\n    styles.themeOption,\n    { borderColor: colors.border },\n    themeName === 'nord' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }\n  ]}\n  onPress={() => setTheme('nord')}\n  disabled={isLoading}\n>\n  <View style={[styles.themePreview, { backgroundColor: '#eceff4' }]}>>\n    <View style={[styles.themePreviewCard, { backgroundColor: '#e5e9f0', borderColor: '#d8dee9' }]} />\n    <View style={[styles.themePreviewText, { backgroundColor: '#5e81ac' }]} />\n  </View>\n  <Text style={[styles.themeOptionText, { color: colors.text }]}>\n    {Themes.nord.displayName}\n  </Text>\n  <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>\n    {Themes.nord.description}\n  </Text>\n</TouchableOpacity>"
+    },
+
+    "step_7_add_bear_ui_card": {
+      "order": 7,
+      "file": "app/(tabs)/settings.tsx",
+      "line": "After nord TouchableOpacity",
+      "task": "Add Bear Red Graphite theme selection card to settings UI",
+      "code_to_add": "<TouchableOpacity\n  style={[\n    styles.themeOption,\n    { borderColor: colors.border },\n    themeName === 'bearRedGraphite' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }\n  ]}\n  onPress={() => setTheme('bearRedGraphite')}\n  disabled={isLoading}\n>\n  <View style={[styles.themePreview, { backgroundColor: '#fafaf8' }]}>>\n    <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#e0e0e0' }]} />\n    <View style={[styles.themePreviewText, { backgroundColor: '#d4534f' }]} />\n  </View>\n  <Text style={[styles.themeOptionText, { color: colors.text }]}>\n    {Themes.bearRedGraphite.displayName}\n  </Text>\n  <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>\n    {Themes.bearRedGraphite.description}\n  </Text>\n</TouchableOpacity>"
+    },
+
+    "step_8_update_settings_layout": {
+      "order": 8,
+      "file": "app/(tabs)/settings.tsx",
+      "line": 240,
+      "task": "Verify/update theme options layout for 5 themes",
+      "current_style": "themeOptions: { flexDirection: 'row', gap: 12, marginBottom: 8 }",
+      "consideration": "May need to add flexWrap: 'wrap' if 5 themes don't fit in a row on mobile",
+      "action": "Test during manual testing, update if needed"
+    },
+
+    "step_9_verify_valid_theme_names": {
+      "order": 9,
+      "file": "constants/theme.ts",
+      "line": 88,
+      "task": "Verify VALID_THEME_NAMES automatically includes new themes",
+      "action": "NO CODE CHANGE - Just verification",
+      "current_code": "export const VALID_THEME_NAMES = Object.keys(Themes) as ThemeName[];",
+      "expected_result": "VALID_THEME_NAMES will automatically include 'sepia', 'nord', 'bearRedGraphite'"
+    },
+
+    "step_10_typescript_check": {
+      "order": 10,
+      "task": "Run TypeScript compilation check",
+      "command": "npx tsc --noEmit",
+      "expected_result": "0 errors",
+      "action": "Verify type safety before proceeding to manual testing"
+    },
+
+    "step_11_manual_testing": {
+      "order": 11,
+      "task": "Manual testing in app",
+      "subtasks": [
+        "Start dev server (npm start)",
+        "Open app in browser/emulator",
+        "Navigate to Settings tab",
+        "Verify all 5 themes visible with correct names/descriptions",
+        "Switch to Sepia theme - test light mode",
+        "Switch to Sepia theme - test dark mode",
+        "Switch to Nord theme - test light mode",
+        "Switch to Nord theme - test dark mode",
+        "Switch to Bear Red Graphite theme - test light mode",
+        "Switch to Bear Red Graphite theme - test dark mode",
+        "Close app, reopen - verify theme persists",
+        "Test on different screen sizes if possible"
+      ]
+    },
+
+    "step_12_visual_quality_check": {
+      "order": 12,
+      "task": "Visual quality and readability check",
+      "checks": [
+        "Text readable in all themes (light and dark)",
+        "Preview colors match actual theme colors",
+        "Theme cards visually distinct",
+        "Border/tint colors provide clear selection feedback",
+        "Dark mode variants have appropriate contrast",
+        "No visual glitches or layout issues with 5 themes"
+      ]
+    },
+
+    "step_13_update_changelog": {
+      "order": 13,
+      "file": "CHANGELOG.md",
+      "task": "Document addition of 3 new themes",
+      "section": "## [Unreleased]",
+      "content_to_add": "- **New Themes Added** (Phase 1 of Theme Expansion)\n  - Sepia: Warm vintage aesthetic for comfortable reading\n  - Nord: Cool Arctic-inspired palette for focused work\n  - Bear Red Graphite: Bold red accent on elegant graphite base\n  - All themes support light/dark modes with professional color palettes\n  - Total themes increased from 2 to 5"
+    },
+
+    "step_14_git_commit": {
+      "order": 14,
+      "task": "Create git commit",
+      "files_to_stage": [
+        "constants/theme.ts",
+        "app/(tabs)/settings.tsx",
+        "CHANGELOG.md"
+      ],
+      "commit_message": "Add 3 new themes: Sepia, Nord, Bear Red Graphite (Phase 1)\n\nExpanded theme system from 2 to 5 professionally-designed themes:\n- Sepia: Warm brown tones for comfortable reading\n- Nord: Cool Arctic blues for focused work\n- Bear Red Graphite: Bold red accent on neutral base\n\nAll themes:\n- Support light/dark modes with 9-color ColorScheme\n- Include displayName and description metadata\n- Automatically included in VALID_THEME_NAMES validation\n- Visible in settings UI with preview cards\n\nPhase 1 of 3-phase theme expansion (WORKING-PLAN.json)\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>"
+    }
+  },
+
+  "color_definitions": {
+    "sepia": {
+      "light": {
+        "background": "#f5f1e8",
+        "surface": "#fdfcf7",
+        "text": "#3d3226",
+        "textSecondary": "#6d5d4d",
+        "border": "#d4c7b3",
+        "tint": "#8b6f47",
+        "icon": "#6d5d4d",
+        "tabIconDefault": "#6d5d4d",
+        "tabIconSelected": "#8b6f47"
+      },
+      "dark": {
+        "background": "#1a1612",
+        "surface": "#2a231d",
+        "text": "#e8e0d5",
+        "textSecondary": "#a89a88",
+        "border": "#3d352c",
+        "tint": "#c4a576",
+        "icon": "#a89a88",
+        "tabIconDefault": "#a89a88",
+        "tabIconSelected": "#c4a576"
+      }
+    },
+    "nord": {
+      "light": {
+        "background": "#eceff4",
+        "surface": "#e5e9f0",
+        "text": "#2e3440",
+        "textSecondary": "#4c566a",
+        "border": "#d8dee9",
+        "tint": "#5e81ac",
+        "icon": "#4c566a",
+        "tabIconDefault": "#4c566a",
+        "tabIconSelected": "#5e81ac"
+      },
+      "dark": {
+        "background": "#2e3440",
+        "surface": "#3b4252",
+        "text": "#eceff4",
+        "textSecondary": "#d8dee9",
+        "border": "#4c566a",
+        "tint": "#88c0d0",
+        "icon": "#d8dee9",
+        "tabIconDefault": "#d8dee9",
+        "tabIconSelected": "#88c0d0"
+      }
+    },
+    "bearRedGraphite": {
+      "light": {
+        "background": "#fafaf8",
+        "surface": "#ffffff",
+        "text": "#1a1a1a",
+        "textSecondary": "#6a6a6a",
+        "border": "#e0e0e0",
+        "tint": "#d4534f",
+        "icon": "#6a6a6a",
+        "tabIconDefault": "#6a6a6a",
+        "tabIconSelected": "#d4534f"
+      },
+      "dark": {
+        "background": "#1d1d1d",
+        "surface": "#2a2a2a",
+        "text": "#f5f5f5",
+        "textSecondary": "#b0b0b0",
+        "border": "#404040",
+        "tint": "#d4534f",
+        "icon": "#b0b0b0",
+        "tabIconDefault": "#b0b0b0",
+        "tabIconSelected": "#d4534f"
+      }
+    }
+  },
+
+  "success_criteria": [
+    "5 total themes available (greyscale, appleNotes, sepia, nord, bearRedGraphite)",
+    "All themes visible in settings with correct displayName and description",
+    "Theme switching works for all new themes",
+    "Light/dark mode works correctly for all new themes",
+    "Theme persistence works across app restarts",
+    "0 TypeScript compilation errors",
+    "Text is readable in all themes (both light and dark)",
+    "VALID_THEME_NAMES automatically includes new themes",
+    "CHANGELOG.md documents the changes",
+    "Changes committed to git with descriptive message"
+  ],
+
+  "todo_checklist": [
+    "Update ThemeName type in constants/theme.ts",
+    "Add Sepia theme definition to Themes object",
+    "Add Nord theme definition to Themes object",
+    "Add Bear Red Graphite theme definition to Themes object",
+    "Add Sepia UI card in settings.tsx",
+    "Add Nord UI card in settings.tsx",
+    "Add Bear Red Graphite UI card in settings.tsx",
+    "Verify/update settings layout for 5 themes",
+    "Verify VALID_THEME_NAMES includes new themes",
+    "Run TypeScript compilation check (npx tsc --noEmit)",
+    "Manual testing: theme switching for all new themes",
+    "Manual testing: light/dark mode for all new themes",
+    "Manual testing: theme persistence across app restart",
+    "Visual quality check: readability and contrast",
+    "Update CHANGELOG.md with new themes",
+    "Create git commit with all changes"
+  ]
+}
