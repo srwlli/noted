@@ -8,9 +8,10 @@ import { ConfirmationModal } from '@/components/confirmation-modal';
 import { PWAInstallCardDesktop } from '@/components/PWAInstallCardDesktop';
 import { PWAInstallCardMobile } from '@/components/PWAInstallCardMobile';
 import { router } from 'expo-router';
+import { Themes } from '@/constants/theme';
 
 export default function SettingsScreen() {
-  const { themeName, colorScheme, resolvedScheme, setTheme, setColorScheme, isLoading } = useThemeController();
+  const { themeName, colorScheme, resolvedScheme, setTheme, setColorScheme, isLoading, loadError } = useThemeController();
   const { colors } = useThemeColors();
   const { signOut, user } = useAuth();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
@@ -39,6 +40,15 @@ export default function SettingsScreen() {
 
   return (
     <SharedPageLayout scrollable={true}>
+      {loadError && (
+        <View style={[styles.errorBanner, { backgroundColor: colors.surface, borderColor: '#ff6b6b' }]}>
+          <Text style={[styles.errorText, { color: '#ff6b6b' }]}>⚠️ {loadError}</Text>
+          <Text style={[styles.errorSubtext, { color: colors.textSecondary }]}>
+            Using default theme. Your preferences may not have loaded correctly.
+          </Text>
+        </View>
+      )}
+
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
 
@@ -66,8 +76,12 @@ export default function SettingsScreen() {
               <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#e0e0e0' }]} />
               <View style={[styles.themePreviewText, { backgroundColor: '#4a4a4a' }]} />
             </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>Greyscale</Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>Clean minimal grey</Text>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>
+              {Themes.greyscale.displayName}
+            </Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
+              {Themes.greyscale.description}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -83,8 +97,12 @@ export default function SettingsScreen() {
               <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#d1d1d6' }]} />
               <View style={[styles.themePreviewText, { backgroundColor: '#007aff' }]} />
             </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>Apple Notes</Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>Warm cream & blue</Text>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>
+              {Themes.appleNotes.displayName}
+            </Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
+              {Themes.appleNotes.description}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -264,5 +282,19 @@ const styles = StyleSheet.create({
   themeOptionDesc: {
     fontSize: 12,
     textAlign: 'center',
+  },
+  errorBanner: {
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  errorSubtext: {
+    fontSize: 14,
   },
 });

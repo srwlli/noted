@@ -7,12 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Brand Icon Implementation**
+  - Replaced generic placeholder icons with custom `noted-white.png` brand asset
+  - Unified icon across browser favicon, PWA desktop shortcuts, iOS home screen, and Android launchers
+  - Added branding assets documentation to README
+- **Theme System Architecture Overhaul** (All 5 improvements completed 2025-09-30)
+  - Extracted theme validation to `VALID_THEME_NAMES` constant for automatic validation updates
+  - Added `DEFAULT_THEME_NAME` and `DEFAULT_COLOR_SCHEME` constants for single source of truth
+  - Created typed storage utility (`lib/theme-storage.ts`) for type-safe theme persistence
+  - Added theme metadata with `displayName` and `description` fields for professional UI
+  - Implemented error state tracking with user-visible error banner in settings
+  - System now ready for easy addition of new themes without code duplication
+
+### Changed
+- **Icon Assets**
+  - Moved `noted-white.png` to `assets/images/` directory for proper organization
+  - Updated `app.json` favicon and PWA manifest icon references
+  - Updated `app/+html.tsx` Apple touch icon paths
+  - Backed up old icons as `favicon-old.png` and `icon-old.png`
+- **Theme System**
+  - Theme validation now automatically includes new themes when added to `Themes` object
+  - Default theme and color scheme defined via constants instead of magic strings
+  - Backward compatibility export now uses `DEFAULT_THEME_NAME` constant
+  - Removed `Colors` object dependency in tab layout (app/(tabs)/_layout.tsx:17,28,29)
+  - All AsyncStorage theme operations now use typed `ThemeStorage` utility
+  - Settings UI displays theme metadata (displayName/description) for better UX
+  - Error banner shows when theme preferences fail to load
+
+### Technical Improvements
+- **Theme System Architecture**: Complete refactor for maintainability and extensibility
+  - Single source of truth for theme validation (constants/theme.ts:88 - VALID_THEME_NAMES)
+  - Eliminated magic strings ('greyscale', 'system') throughout codebase
+  - Enhanced type safety with default theme constants and typed storage utility
+  - Type-safe AsyncStorage wrapper (lib/theme-storage.ts) with ThemeName/ColorSchemeMode types
+  - Error state propagation from storage layer to UI with user-facing error messages
+  - Theme metadata system supports future extensibility (icons, preview colors, etc.)
+- Professional asset organization with semantic naming conventions
+
 ### Known Issues
 - Safe area CSS causing excessive whitespace above header and below footer on non-iOS devices
 - Need to restrict safe area padding to standalone PWA mode only
+- TypeScript errors related to web CSS strings in React Native styles (non-critical)
+
+### Removed
+- "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
 - Tab sliding animation by removing haptic feedback component
+- Type indexing errors in tab layout by using `colors` from `useThemeColors()` hook
 
 ## [1.0.0] - 2025-09-21
 

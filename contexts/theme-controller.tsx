@@ -1,10 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'react-native';
-import { ThemeName } from '@/constants/theme';
-
-const THEME_STORAGE_KEY = '@noted_theme_preference';
-const THEME_NAME_STORAGE_KEY = '@noted_theme_name';
+import { ThemeName, VALID_THEME_NAMES, DEFAULT_THEME_NAME, DEFAULT_COLOR_SCHEME } from '@/constants/theme';
+import { ThemeStorage } from '@/lib/theme-storage';
 
 export type ColorSchemeMode = 'light' | 'dark' | 'system';
 
@@ -15,6 +12,7 @@ interface ThemeControllerContextType {
   setTheme: (theme: ThemeName) => Promise<void>;
   setColorScheme: (scheme: ColorSchemeMode) => Promise<void>;
   isLoading: boolean;
+  loadError: string | null;
 }
 
 const ThemeControllerContext = createContext<ThemeControllerContextType | null>(null);
@@ -24,9 +22,10 @@ interface ThemeControllerProviderProps {
 }
 
 export function ThemeControllerProvider({ children }: ThemeControllerProviderProps) {
-  const [themeNameState, setThemeNameState] = useState<ThemeName>('greyscale');
-  const [colorSchemeState, setColorSchemeState] = useState<ColorSchemeMode>('system');
+  const [themeNameState, setThemeNameState] = useState<ThemeName>(DEFAULT_THEME_NAME);
+  const [colorSchemeState, setColorSchemeState] = useState<ColorSchemeMode>(DEFAULT_COLOR_SCHEME);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const systemScheme = useColorScheme();
 
   // Load theme preferences from storage on mount
@@ -34,19 +33,21 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
     async function loadThemePreferences() {
       try {
         const [storedColorScheme, storedThemeName] = await Promise.all([
-          AsyncStorage.getItem(THEME_STORAGE_KEY),
-          AsyncStorage.getItem(THEME_NAME_STORAGE_KEY)
+          ThemeStorage.getColorScheme(),
+          ThemeStorage.getThemeName()
         ]);
 
-        if (storedColorScheme && ['light', 'dark', 'system'].includes(storedColorScheme)) {
-          setColorSchemeState(storedColorScheme as ColorSchemeMode);
+        if (storedColorScheme) {
+          setColorSchemeState(storedColorScheme);
         }
 
-        if (storedThemeName && ['greyscale', 'appleNotes'].includes(storedThemeName)) {
-          setThemeNameState(storedThemeName as ThemeName);
+        if (storedThemeName && VALID_THEME_NAMES.includes(storedThemeName)) {
+          setThemeNameState(storedThemeName);
         }
       } catch (error) {
-        console.warn('Failed to load theme preferences:', error);
+        const errorMessage = 'Failed to load theme preferences';
+        console.warn(errorMessage, error);
+        setLoadError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -58,7 +59,7 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
   // Memoized theme functions to prevent re-renders
   const setTheme = useCallback(async (theme: ThemeName) => {
     try {
-      await AsyncStorage.setItem(THEME_NAME_STORAGE_KEY, theme);
+      await ThemeStorage.setThemeName(theme);
       setThemeNameState(theme);
     } catch (error) {
       console.warn('Failed to save theme name:', error);
@@ -67,7 +68,7 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
 
   const setColorScheme = useCallback(async (scheme: ColorSchemeMode) => {
     try {
-      await AsyncStorage.setItem(THEME_STORAGE_KEY, scheme);
+      await ThemeStorage.setColorScheme(scheme);
       setColorSchemeState(scheme);
     } catch (error) {
       console.warn('Failed to save color scheme:', error);
@@ -90,7 +91,8 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
     setTheme,
     setColorScheme,
     isLoading,
-  }), [themeNameState, colorSchemeState, resolvedScheme, setTheme, setColorScheme, isLoading]);
+    loadError,
+  }), [themeNameState, colorSchemeState, resolvedScheme, setTheme, setColorScheme, isLoading, loadError]);
 
   return (
     <ThemeControllerContext.Provider value={value}>

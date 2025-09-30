@@ -7,6 +7,16 @@ import { Platform } from 'react-native';
 
 export type ThemeName = 'greyscale' | 'appleNotes';
 
+export const DEFAULT_THEME_NAME: ThemeName = 'greyscale';
+export const DEFAULT_COLOR_SCHEME = 'system' as const;
+
+interface ThemeMetadata {
+  displayName: string;
+  description: string;
+  light: ColorScheme;
+  dark: ColorScheme;
+}
+
 interface ColorScheme {
   background: string;
   surface: string;
@@ -19,8 +29,10 @@ interface ColorScheme {
   tabIconSelected: string;
 }
 
-export const Themes: Record<ThemeName, { light: ColorScheme; dark: ColorScheme }> = {
+export const Themes: Record<ThemeName, ThemeMetadata> = {
   greyscale: {
+    displayName: 'Greyscale',
+    description: 'Clean monochrome design',
     light: {
       background: '#fafafa',    // Light grey background (not white)
       surface: '#ffffff',       // Card/surface color
@@ -45,6 +57,8 @@ export const Themes: Record<ThemeName, { light: ColorScheme; dark: ColorScheme }
     },
   },
   appleNotes: {
+    displayName: 'Apple Notes',
+    description: 'Warm cream aesthetic inspired by iOS Notes',
     light: {
       background: '#fbf9f6',    // Apple Notes warm cream
       surface: '#ffffff',       // Pure white cards
@@ -70,8 +84,11 @@ export const Themes: Record<ThemeName, { light: ColorScheme; dark: ColorScheme }
   },
 };
 
+// Valid theme names derived from Themes object
+export const VALID_THEME_NAMES = Object.keys(Themes) as ThemeName[];
+
 // Backward compatibility - defaults to greyscale theme
-export const Colors = Themes.greyscale;
+export const Colors = Themes[DEFAULT_THEME_NAME];
 
 export const Fonts = Platform.select({
   ios: {

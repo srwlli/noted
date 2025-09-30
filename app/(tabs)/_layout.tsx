@@ -4,7 +4,6 @@ import { Platform } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { AuthGuard } from '@/components/auth-guard';
-import { Colors } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 
 export default function TabLayout() {
@@ -15,7 +14,7 @@ export default function TabLayout() {
     <AuthGuard>
       <Tabs
         screenOptions={{
-          tabBarActiveTintColor: Colors[colorScheme].tint,
+          tabBarActiveTintColor: colors.tint,
           headerShown: false,
           tabBarShowLabel: false,
           tabBarItemStyle: {
@@ -26,8 +25,8 @@ export default function TabLayout() {
             backgroundColor: colors.background,
           },
           tabBarStyle: {
-            backgroundColor: Colors[colorScheme].surface,
-            borderTopColor: Colors[colorScheme].border,
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
             // Add safe area padding for web PWA
             ...(isWeb && {
               paddingBottom: 'env(safe-area-inset-bottom, 0px)',
