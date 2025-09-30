@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Bear Red Graphite: Bold red accent on elegant graphite base for modern aesthetic
   - All 3 new themes support light/dark modes with professional 9-color palettes
   - Total themes increased from 2 to 5 (greyscale, appleNotes, sepia, nord, bearRedGraphite)
+- **Modal Theme Picker**
+  - Full-screen modal with large theme previews (120x80px showing background, surface, text, tint)
+  - Light/Dark preview toggle to see themes before applying
+  - Responsive grid layout (2 columns mobile, 3 columns desktop)
+  - Selected theme indicator with "Current" badge
+  - Smooth slide-up animation
 - **Brand Icon Implementation**
   - Replaced generic placeholder icons with custom `noted-white.png` brand asset
   - Unified icon across browser favicon, PWA desktop shortcuts, iOS home screen, and Android launchers
@@ -27,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Theme Selection UI Enhancement**
+  - Replaced horizontal card grid with compact selector button in settings
+  - Settings page now shows single-row theme selector with color preview dots
+  - Tapping selector opens full-screen modal theme picker
+  - Scalable design ready for 20+ themes in future phases
 - **Icon Assets**
   - Moved `noted-white.png` to `assets/images/` directory for proper organization
   - Updated `app.json` favicon and PWA manifest icon references

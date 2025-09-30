@@ -7,6 +7,7 @@ import { SharedPageLayout } from '@/components/shared-page-layout';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 import { PWAInstallCardDesktop } from '@/components/PWAInstallCardDesktop';
 import { PWAInstallCardMobile } from '@/components/PWAInstallCardMobile';
+import { ThemePickerModal } from '@/components/theme-picker-modal';
 import { router } from 'expo-router';
 import { Themes } from '@/constants/theme';
 
@@ -16,6 +17,7 @@ export default function SettingsScreen() {
   const { signOut, user } = useAuth();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
 
   const handleThemeToggle = (value: boolean) => {
     setColorScheme(value ? 'dark' : 'light');
@@ -62,112 +64,29 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        <View style={styles.themeOptions}>
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              { borderColor: colors.border },
-              themeName === 'greyscale' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
-            ]}
-            onPress={() => setTheme('greyscale')}
-            disabled={isLoading}
-          >
-            <View style={[styles.themePreview, { backgroundColor: '#fafafa' }]}>
-              <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#e0e0e0' }]} />
-              <View style={[styles.themePreviewText, { backgroundColor: '#4a4a4a' }]} />
-            </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>
-              {Themes.greyscale.displayName}
-            </Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
-              {Themes.greyscale.description}
-            </Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.themeSelectorButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          onPress={() => setShowThemePicker(true)}
+          disabled={isLoading}
+        >
+          <View style={styles.currentThemePreview}>
+            <View style={[styles.previewDot, { backgroundColor: colors.background, borderColor: colors.border }]} />
+            <View style={[styles.previewDot, { backgroundColor: colors.surface, borderColor: colors.border }]} />
+            <View style={[styles.previewDot, { backgroundColor: colors.tint, borderColor: colors.border }]} />
+          </View>
 
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              { borderColor: colors.border },
-              themeName === 'appleNotes' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
-            ]}
-            onPress={() => setTheme('appleNotes')}
-            disabled={isLoading}
-          >
-            <View style={[styles.themePreview, { backgroundColor: '#fbf9f6' }]}>
-              <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#d1d1d6' }]} />
-              <View style={[styles.themePreviewText, { backgroundColor: '#007aff' }]} />
-            </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>
-              {Themes.appleNotes.displayName}
+          <View style={styles.themeSelectorInfo}>
+            <Text style={[styles.themeSelectorValue, { color: colors.text }]}>
+              {Themes[themeName].displayName}
             </Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
-              {Themes.appleNotes.description}
+            <Text style={[styles.themeSelectorDesc, { color: colors.textSecondary }]} numberOfLines={1}>
+              {Themes[themeName].description}
             </Text>
-          </TouchableOpacity>
+          </View>
 
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              { borderColor: colors.border },
-              themeName === 'sepia' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
-            ]}
-            onPress={() => setTheme('sepia')}
-            disabled={isLoading}
-          >
-            <View style={[styles.themePreview, { backgroundColor: '#f5f1e8' }]}>
-              <View style={[styles.themePreviewCard, { backgroundColor: '#fdfcf7', borderColor: '#d4c7b3' }]} />
-              <View style={[styles.themePreviewText, { backgroundColor: '#8b6f47' }]} />
-            </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>
-              {Themes.sepia.displayName}
-            </Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
-              {Themes.sepia.description}
-            </Text>
-          </TouchableOpacity>
+          <Text style={[styles.chevron, { color: colors.textSecondary }]}>›</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              { borderColor: colors.border },
-              themeName === 'nord' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
-            ]}
-            onPress={() => setTheme('nord')}
-            disabled={isLoading}
-          >
-            <View style={[styles.themePreview, { backgroundColor: '#eceff4' }]}>
-              <View style={[styles.themePreviewCard, { backgroundColor: '#e5e9f0', borderColor: '#d8dee9' }]} />
-              <View style={[styles.themePreviewText, { backgroundColor: '#5e81ac' }]} />
-            </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>
-              {Themes.nord.displayName}
-            </Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
-              {Themes.nord.description}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.themeOption,
-              { borderColor: colors.border },
-              themeName === 'bearRedGraphite' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
-            ]}
-            onPress={() => setTheme('bearRedGraphite')}
-            disabled={isLoading}
-          >
-            <View style={[styles.themePreview, { backgroundColor: '#fafaf8' }]}>
-              <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#e0e0e0' }]} />
-              <View style={[styles.themePreviewText, { backgroundColor: '#d4534f' }]} />
-            </View>
-            <Text style={[styles.themeOptionText, { color: colors.text }]}>
-              {Themes.bearRedGraphite.displayName}
-            </Text>
-            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
-              {Themes.bearRedGraphite.description}
-            </Text>
-          </TouchableOpacity>
-        </View>
 
         {/* Dark Mode Toggle */}
         <View style={[styles.settingRow, { marginTop: 16 }]}>
@@ -243,6 +162,13 @@ export default function SettingsScreen() {
         onConfirm={confirmSignOut}
         onCancel={() => setShowSignOutModal(false)}
       />
+
+      <ThemePickerModal
+        visible={showThemePicker}
+        currentTheme={themeName}
+        onSelectTheme={setTheme}
+        onClose={() => setShowThemePicker(false)}
+      />
     </SharedPageLayout>
   );
 }
@@ -300,52 +226,39 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  themeOptions: {
+  themeSelectorButton: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 8,
-  },
-  themeOption: {
-    flex: 1,
-    borderWidth: 2,
-    borderRadius: 12,
-    padding: 12,
     alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginVertical: 12,
   },
-  themePreview: {
-    width: 60,
-    height: 40,
-    borderRadius: 8,
-    marginBottom: 8,
-    position: 'relative',
-    overflow: 'hidden',
+  currentThemePreview: {
+    flexDirection: 'row',
+    gap: 6,
+    marginRight: 12,
   },
-  themePreviewCard: {
-    position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 8,
-    height: 16,
-    borderRadius: 4,
+  previewDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
   },
-  themePreviewText: {
-    position: 'absolute',
-    bottom: 6,
-    left: 12,
-    right: 20,
-    height: 3,
-    borderRadius: 1,
+  themeSelectorInfo: {
+    flex: 1,
   },
-  themeOptionText: {
-    fontSize: 14,
+  themeSelectorValue: {
+    fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
   },
-  themeOptionDesc: {
-    fontSize: 12,
-    textAlign: 'center',
+  themeSelectorDesc: {
+    fontSize: 14,
+  },
+  chevron: {
+    fontSize: 24,
+    fontWeight: '300',
   },
   errorBanner: {
     marginBottom: 16,
