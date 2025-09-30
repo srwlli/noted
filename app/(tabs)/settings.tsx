@@ -104,6 +104,69 @@ export default function SettingsScreen() {
               {Themes.appleNotes.description}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.themeOption,
+              { borderColor: colors.border },
+              themeName === 'sepia' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
+            ]}
+            onPress={() => setTheme('sepia')}
+            disabled={isLoading}
+          >
+            <View style={[styles.themePreview, { backgroundColor: '#f5f1e8' }]}>
+              <View style={[styles.themePreviewCard, { backgroundColor: '#fdfcf7', borderColor: '#d4c7b3' }]} />
+              <View style={[styles.themePreviewText, { backgroundColor: '#8b6f47' }]} />
+            </View>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>
+              {Themes.sepia.displayName}
+            </Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
+              {Themes.sepia.description}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.themeOption,
+              { borderColor: colors.border },
+              themeName === 'nord' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
+            ]}
+            onPress={() => setTheme('nord')}
+            disabled={isLoading}
+          >
+            <View style={[styles.themePreview, { backgroundColor: '#eceff4' }]}>
+              <View style={[styles.themePreviewCard, { backgroundColor: '#e5e9f0', borderColor: '#d8dee9' }]} />
+              <View style={[styles.themePreviewText, { backgroundColor: '#5e81ac' }]} />
+            </View>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>
+              {Themes.nord.displayName}
+            </Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
+              {Themes.nord.description}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.themeOption,
+              { borderColor: colors.border },
+              themeName === 'bearRedGraphite' && { borderColor: colors.tint, backgroundColor: `${colors.tint}10` }
+            ]}
+            onPress={() => setTheme('bearRedGraphite')}
+            disabled={isLoading}
+          >
+            <View style={[styles.themePreview, { backgroundColor: '#fafaf8' }]}>
+              <View style={[styles.themePreviewCard, { backgroundColor: '#ffffff', borderColor: '#e0e0e0' }]} />
+              <View style={[styles.themePreviewText, { backgroundColor: '#d4534f' }]} />
+            </View>
+            <Text style={[styles.themeOptionText, { color: colors.text }]}>
+              {Themes.bearRedGraphite.displayName}
+            </Text>
+            <Text style={[styles.themeOptionDesc, { color: colors.textSecondary }]}>
+              {Themes.bearRedGraphite.description}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Dark Mode Toggle */}
@@ -239,6 +302,7 @@ const styles = StyleSheet.create({
   },
   themeOptions: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginBottom: 8,
   },

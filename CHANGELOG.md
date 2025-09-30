@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **New Themes Added** (Phase 1 of Theme Expansion)
+  - Sepia: Warm vintage aesthetic for comfortable reading with brown earth tones
+  - Nord: Cool Arctic-inspired palette for focused work with blue accents
+  - Bear Red Graphite: Bold red accent on elegant graphite base for modern aesthetic
+  - All 3 new themes support light/dark modes with professional 9-color palettes
+  - Total themes increased from 2 to 5 (greyscale, appleNotes, sepia, nord, bearRedGraphite)
 - **Brand Icon Implementation**
   - Replaced generic placeholder icons with custom `noted-white.png` brand asset
   - Unified icon across browser favicon, PWA desktop shortcuts, iOS home screen, and Android launchers

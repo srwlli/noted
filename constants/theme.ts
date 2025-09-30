@@ -5,7 +5,7 @@
 
 import { Platform } from 'react-native';
 
-export type ThemeName = 'greyscale' | 'appleNotes';
+export type ThemeName = 'greyscale' | 'appleNotes' | 'sepia' | 'nord' | 'bearRedGraphite';
 
 export const DEFAULT_THEME_NAME: ThemeName = 'greyscale';
 export const DEFAULT_COLOR_SCHEME = 'system' as const;
@@ -80,6 +80,84 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#8e8e93',         // Apple's icon color
       tabIconDefault: '#8e8e93',
       tabIconSelected: '#0a84ff',
+    },
+  },
+  sepia: {
+    displayName: 'Sepia',
+    description: 'Warm vintage aesthetic for comfortable reading',
+    light: {
+      background: '#f5f1e8',
+      surface: '#fdfcf7',
+      text: '#3d3226',
+      textSecondary: '#6d5d4d',
+      border: '#d4c7b3',
+      tint: '#8b6f47',
+      icon: '#6d5d4d',
+      tabIconDefault: '#6d5d4d',
+      tabIconSelected: '#8b6f47',
+    },
+    dark: {
+      background: '#1a1612',
+      surface: '#2a231d',
+      text: '#e8e0d5',
+      textSecondary: '#a89a88',
+      border: '#3d352c',
+      tint: '#c4a576',
+      icon: '#a89a88',
+      tabIconDefault: '#a89a88',
+      tabIconSelected: '#c4a576',
+    },
+  },
+  nord: {
+    displayName: 'Nord',
+    description: 'Cool Arctic-inspired palette for focused work',
+    light: {
+      background: '#eceff4',
+      surface: '#e5e9f0',
+      text: '#2e3440',
+      textSecondary: '#4c566a',
+      border: '#d8dee9',
+      tint: '#5e81ac',
+      icon: '#4c566a',
+      tabIconDefault: '#4c566a',
+      tabIconSelected: '#5e81ac',
+    },
+    dark: {
+      background: '#2e3440',
+      surface: '#3b4252',
+      text: '#eceff4',
+      textSecondary: '#d8dee9',
+      border: '#4c566a',
+      tint: '#88c0d0',
+      icon: '#d8dee9',
+      tabIconDefault: '#d8dee9',
+      tabIconSelected: '#88c0d0',
+    },
+  },
+  bearRedGraphite: {
+    displayName: 'Bear Red Graphite',
+    description: 'Bold red accent on elegant graphite base',
+    light: {
+      background: '#fafaf8',
+      surface: '#ffffff',
+      text: '#1a1a1a',
+      textSecondary: '#6a6a6a',
+      border: '#e0e0e0',
+      tint: '#d4534f',
+      icon: '#6a6a6a',
+      tabIconDefault: '#6a6a6a',
+      tabIconSelected: '#d4534f',
+    },
+    dark: {
+      background: '#1d1d1d',
+      surface: '#2a2a2a',
+      text: '#f5f5f5',
+      textSecondary: '#b0b0b0',
+      border: '#404040',
+      tint: '#d4534f',
+      icon: '#b0b0b0',
+      tabIconDefault: '#b0b0b0',
+      tabIconSelected: '#d4534f',
     },
   },
 };
