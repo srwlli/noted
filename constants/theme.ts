@@ -18,6 +18,7 @@ interface ThemeMetadata {
 }
 
 interface ColorScheme {
+  // Original 9 fields (PRESERVED)
   background: string;
   surface: string;
   text: string;
@@ -27,6 +28,16 @@ interface ColorScheme {
   icon: string;
   tabIconDefault: string;
   tabIconSelected: string;
+
+  // New 8 fields (ADDED - Phase 2)
+  elevatedSurface: string;
+  overlay: string;
+  hover: string;
+  pressed: string;
+  disabled: string;
+  highlight: string;
+  linkColor: string;
+  accentSecondary: string;
 }
 
 export const Themes: Record<ThemeName, ThemeMetadata> = {
@@ -43,6 +54,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#6a6a6a',         // Default icons
       tabIconDefault: '#6a6a6a',
       tabIconSelected: '#4a4a4a',
+      elevatedSurface: '#f2f2f0',
+      overlay: 'rgba(18, 18, 18, 0.5)',
+      hover: '#ececec',
+      pressed: '#e0e0e0',
+      disabled: '#bcbcbc',
+      highlight: '#ffeb3b',
+      linkColor: '#0066cc',
+      accentSecondary: '#6a6a6a',
     },
     dark: {
       background: '#121212',    // Dark grey background (not black)
@@ -54,6 +73,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#b0b0b0',         // Default icons
       tabIconDefault: '#b0b0b0',
       tabIconSelected: '#d0d0d0',
+      elevatedSurface: '#2a2a2a',
+      overlay: 'rgba(0, 0, 0, 0.7)',
+      hover: '#1a1a1a',
+      pressed: '#0d0d0d',
+      disabled: '#666666',
+      highlight: '#ffeb3b',
+      linkColor: '#5eb3ff',
+      accentSecondary: '#b0b0b0',
     },
   },
   appleNotes: {
@@ -69,6 +96,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#8e8e93',         // Apple's icon color
       tabIconDefault: '#8e8e93',
       tabIconSelected: '#007aff',
+      elevatedSurface: '#ffffff',
+      overlay: 'rgba(28, 28, 30, 0.4)',
+      hover: '#f5f3f0',
+      pressed: '#ebe9e6',
+      disabled: '#c7c7cc',
+      highlight: '#dbe9f5',
+      linkColor: '#007aff',
+      accentSecondary: '#5eb3ff',
     },
     dark: {
       background: '#1c1c1e',    // Apple's dark background
@@ -80,6 +115,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#8e8e93',         // Apple's icon color
       tabIconDefault: '#8e8e93',
       tabIconSelected: '#0a84ff',
+      elevatedSurface: '#363638',
+      overlay: 'rgba(0, 0, 0, 0.7)',
+      hover: '#2c2c2e',
+      pressed: '#1c1c1e',
+      disabled: '#636366',
+      highlight: '#4c566a',
+      linkColor: '#0a84ff',
+      accentSecondary: '#5eb3ff',
     },
   },
   sepia: {
@@ -95,6 +138,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#6d5d4d',
       tabIconDefault: '#6d5d4d',
       tabIconSelected: '#8b6f47',
+      elevatedSurface: '#fdfcf7',
+      overlay: 'rgba(26, 22, 18, 0.4)',
+      hover: '#ece6dc',
+      pressed: '#e0d7ca',
+      disabled: '#b8aea0',
+      highlight: '#fff3d6',
+      linkColor: '#8b6f47',
+      accentSecondary: '#c4a576',
     },
     dark: {
       background: '#1a1612',
@@ -106,6 +157,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#a89a88',
       tabIconDefault: '#a89a88',
       tabIconSelected: '#c4a576',
+      elevatedSurface: '#322a23',
+      overlay: 'rgba(0, 0, 0, 0.7)',
+      hover: '#2f2924',
+      pressed: '#251f1a',
+      disabled: '#6b5f55',
+      highlight: '#3a322b',
+      linkColor: '#c4a576',
+      accentSecondary: '#9e8767',
     },
   },
   nord: {
@@ -121,6 +180,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#4c566a',
       tabIconDefault: '#4c566a',
       tabIconSelected: '#5e81ac',
+      elevatedSurface: '#ffffff',
+      overlay: 'rgba(46, 52, 64, 0.4)',
+      hover: '#dde3eb',
+      pressed: '#cbd5e1',
+      disabled: '#aeb6c3',
+      highlight: '#dbe9f5',
+      linkColor: '#5e81ac',
+      accentSecondary: '#81a1c1',
     },
     dark: {
       background: '#2e3440',
@@ -132,6 +199,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#d8dee9',
       tabIconDefault: '#d8dee9',
       tabIconSelected: '#88c0d0',
+      elevatedSurface: '#434c5e',
+      overlay: 'rgba(0, 0, 0, 0.7)',
+      hover: '#454d60',
+      pressed: '#3a4150',
+      disabled: '#6b7689',
+      highlight: '#4c566a',
+      linkColor: '#88c0d0',
+      accentSecondary: '#81a1c1',
     },
   },
   bearRedGraphite: {
@@ -147,6 +222,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#6a6a6a',
       tabIconDefault: '#6a6a6a',
       tabIconSelected: '#d4534f',
+      elevatedSurface: '#f2f2f0',
+      overlay: 'rgba(29, 29, 29, 0.4)',
+      hover: '#f0efed',
+      pressed: '#e0dfdd',
+      disabled: '#bcbcbc',
+      highlight: '#ffe4e3',
+      linkColor: '#d4534f',
+      accentSecondary: '#f0807c',
     },
     dark: {
       background: '#1d1d1d',
@@ -158,6 +241,14 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       icon: '#b0b0b0',
       tabIconDefault: '#b0b0b0',
       tabIconSelected: '#d4534f',
+      elevatedSurface: '#333333',
+      overlay: 'rgba(0, 0, 0, 0.7)',
+      hover: '#363636',
+      pressed: '#2c2c2c',
+      disabled: '#666666',
+      highlight: '#3f2a2a',
+      linkColor: '#d4534f',
+      accentSecondary: '#a63a36',
     },
   },
 };

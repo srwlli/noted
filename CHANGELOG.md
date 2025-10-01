@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **17-Color Theme System** (Phase 2 of Theme Expansion)
+  - Expanded from 9 to 17 colors per theme for richer UI design
+  - Added elevatedSurface for layered UI elements (modals, popovers)
+  - Added overlay for semi-transparent modal backdrops
+  - Added hover and pressed states for interactive elements
+  - Added disabled state for non-interactive elements
+  - Added highlight color for selections and notifications
+  - Added linkColor for hyperlinks (distinct from buttons)
+  - Added accentSecondary for visual variety
+  - All 5 themes updated with full 17-color palettes (170 total color values)
+  - Backward compatible: existing components work unchanged
 - **New Themes Added** (Phase 1 of Theme Expansion)
   - Sepia: Warm vintage aesthetic for comfortable reading with brown earth tones
   - Nord: Cool Arctic-inspired palette for focused work with blue accents
@@ -71,6 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
+- **iOS App Icon Path** (Phase 1 - iOS Icon Fix)
+  - Updated app.json line 7 to point to correct `noted-white.png` asset
+  - Fixed broken iOS builds caused by reference to non-existent icon.png file
+  - Backed up original 1024x1024 icon as `noted-white-original.png`
 - Tab sliding animation by removing haptic feedback component
 - Type indexing errors in tab layout by using `colors` from `useThemeColors()` hook
 
