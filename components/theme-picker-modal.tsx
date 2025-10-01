@@ -41,7 +41,7 @@ function ThemeCard({ themeKey, theme, isSelected, previewMode, onSelect }: Theme
       </View>
 
       {/* Theme Info */}
-      <View style={[styles.themeCardInfo, { backgroundColor: colors.surface }]}>
+      <View style={[styles.themeCardInfo, { backgroundColor: colors.elevatedSurface }]}>
         <Text style={[styles.themeCardName, { color: colors.text }]}>{theme.displayName}</Text>
         <Text style={[styles.themeCardDesc, { color: colors.textSecondary }]} numberOfLines={2}>
           {theme.description}
@@ -49,8 +49,8 @@ function ThemeCard({ themeKey, theme, isSelected, previewMode, onSelect }: Theme
 
         {/* Selected Indicator */}
         {isSelected && (
-          <View style={[styles.selectedBadge, { backgroundColor: colors.tint }]}>
-            <Text style={styles.selectedText}>✓ Current</Text>
+          <View style={[styles.selectedBadge, { backgroundColor: colors.highlight }]}>
+            <Text style={[styles.selectedText, { color: colors.text }]}>✓ Current</Text>
           </View>
         )}
       </View>
@@ -245,6 +245,5 @@ const styles = StyleSheet.create({
   selectedText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#ffffff',
   },
 });

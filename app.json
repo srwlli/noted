@@ -4,7 +4,7 @@
     "slug": "mobile-tailwind-portal",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/noted-white.png",
     "scheme": "mobiletailwindportal",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -29,7 +29,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png",
+      "favicon": "./assets/images/noted-white.png",
       "name": "Noted",
       "shortName": "Noted",
       "description": "Simple notes app with authentication",
@@ -56,13 +56,13 @@
       "manifest": {
         "icons": [
           {
-            "src": "./assets/images/icon.png",
+            "src": "./assets/images/noted-white.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any maskable"
           },
           {
-            "src": "./assets/images/icon.png",
+            "src": "./assets/images/noted-white.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any maskable"
