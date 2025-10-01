@@ -52,10 +52,6 @@ export default function NotesScreen() {
     setShowModal(true);
   };
 
-  const handleInlineSave = async (id: string, title: string, content: string) => {
-    await notesService.updateNote(id, title, content);
-    loadNotes(); // Refresh the notes list
-  };
 
   const handleModalSuccess = () => {
     setShowModal(false);
@@ -134,7 +130,6 @@ export default function NotesScreen() {
               key={note.id}
               note={note}
               onEdit={() => handleEditNote(note)}
-              onSave={handleInlineSave}
               onDelete={() => setDeleteNote(note)}
             />
           ))

@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -9,18 +9,13 @@ interface NoteItemProps {
   note: Note;
   onPress?: () => void;
   onEdit?: () => void;
-  onSave?: (id: string, title: string, content: string) => Promise<void>;
   onDelete?: () => void;
 }
 
-export function NoteItem({ note, onPress, onEdit, onSave, onDelete }: NoteItemProps) {
+export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedContent, setEditedContent] = useState(note.content || '');
-  const [textInputHeight, setTextInputHeight] = useState(150);
-
-  const editHeightAnimation = useRef(new Animated.Value(0)).current;
+  const [showMenu, setShowMenu] = useState(false);
 
 
   const handleCopy = async () => {
@@ -32,72 +27,17 @@ export function NoteItem({ note, onPress, onEdit, onSave, onDelete }: NoteItemPr
     }
   };
 
-  useEffect(() => {
-    if (isEditing) {
-      // Animate edit area slide in
-      Animated.spring(editHeightAnimation, {
-        toValue: 1,
-        useNativeDriver: false,
-      }).start();
-    } else {
-      // Animate edit area slide out
-      Animated.spring(editHeightAnimation, {
-        toValue: 0,
-        useNativeDriver: false,
-      }).start();
-    }
-  }, [isEditing, editHeightAnimation]);
-
-  const handleSaveEdit = async () => {
-    if (!onSave) {
-      // Fallback to modal editing if no save callback provided
-      setIsEditing(false);
-      if (onEdit) {
-        onEdit();
-      }
-      return;
-    }
-
-    try {
-      await onSave(note.id, note.title, editedContent);
-      setIsEditing(false);
-      Alert.alert('Saved', 'Note updated successfully');
-    } catch {
-      Alert.alert('Error', 'Failed to save note. Please try again.');
-    }
-  };
-
-  const handleCancelEdit = () => {
-    setEditedContent(note.content || '');
-    setIsEditing(false);
-  };
-
-  const handleContentSizeChange = (event: any) => {
-    const { height } = event.nativeEvent.contentSize;
-    setTextInputHeight(Math.max(150, height + 20));
-  };
-
   return (
-    <Animated.View
+    <View
       style={[
         styles.container,
         {
           backgroundColor: colors.surface,
           borderColor: colors.border,
-        },
-        isEditing && {
-          backgroundColor: colors.background,
-          borderColor: colors.tint,
-          borderWidth: 2,
-          shadowColor: colors.tint,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-          elevation: 4,
         }
       ]}
     >
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7} disabled={isEditing}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <View style={styles.content}>
         <View style={[
           styles.titleRow,
@@ -120,120 +60,73 @@ export function NoteItem({ note, onPress, onEdit, onSave, onDelete }: NoteItemPr
             {note.title}
           </Text>
           <View style={styles.actions}>
-            {isExpanded && (
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                setShowMenu(true);
+              }}
+            >
+              <MaterialIcons name="more-vert" size={20} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+        {isExpanded && note.content && (
+          <Text
+            style={[styles.preview, { color: colors.textSecondary }]}
+            selectable={true}
+          >
+            {note.content}
+          </Text>
+        )}
+      </View>
+      </TouchableOpacity>
+
+      {showMenu && (
+        <Modal transparent visible={showMenu} onRequestClose={() => setShowMenu(false)}>
+          <TouchableOpacity
+            style={styles.menuOverlay}
+            activeOpacity={1}
+            onPress={() => setShowMenu(false)}
+          >
+            <View style={[styles.menuContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <TouchableOpacity
-                style={styles.iconButton}
-                onPress={(e) => {
-                  e.stopPropagation();
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  onEdit?.();
+                }}
+              >
+                <MaterialIcons name="edit" size={20} color={colors.text} />
+                <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
                   handleCopy();
                 }}
               >
                 <MaterialIcons name="content-copy" size={20} color={colors.text} />
+                <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
               </TouchableOpacity>
-            )}
 
-            {isExpanded && (
               <TouchableOpacity
-                style={styles.iconButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  setIsEditing(!isEditing);
-                }}
-              >
-                <MaterialIcons name={isEditing ? "close" : "edit"} size={20} color={colors.text} />
-              </TouchableOpacity>
-            )}
-
-            {onEdit && !isExpanded && (
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onEdit();
-                }}
-              >
-                <MaterialIcons name="more-horiz" size={20} color={colors.text} />
-              </TouchableOpacity>
-            )}
-
-            {onDelete && (
-              <TouchableOpacity
-                style={styles.iconButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  onDelete();
+                style={styles.menuItem}
+                onPress={() => {
+                  setShowMenu(false);
+                  onDelete?.();
                 }}
               >
                 <MaterialIcons name="delete" size={20} color={colors.text} />
+                <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        </View>
-{isExpanded && note.content && (
-          isEditing ? (
-            <Animated.View
-              style={[
-                styles.editContainer,
-                {
-                  opacity: editHeightAnimation,
-                  transform: [
-                    {
-                      translateY: editHeightAnimation.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-20, 0],
-                      }),
-                    },
-                  ],
-                }
-              ]}
-            >
-              <TextInput
-                style={[
-                  styles.editInput,
-                  {
-                    color: colors.text,
-                    borderColor: colors.tint,
-                    backgroundColor: colors.surface,
-                    height: textInputHeight,
-                  }
-                ]}
-                value={editedContent}
-                onChangeText={setEditedContent}
-                onContentSizeChange={handleContentSizeChange}
-                multiline
-                placeholder="Note content..."
-                placeholderTextColor={colors.textSecondary}
-                selectionColor={colors.tint}
-                autoFocus
-                textAlignVertical="top"
-              />
-              <View style={styles.editActions}>
-                <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: colors.tint }]}
-                  onPress={handleSaveEdit}
-                >
-                  <Text style={[styles.editButtonText, { color: 'white' }]}>Save</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.editButton, { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 }]}
-                  onPress={handleCancelEdit}
-                >
-                  <Text style={[styles.editButtonText, { color: colors.text }]}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </Animated.View>
-          ) : (
-            <Text
-              style={[styles.preview, { color: colors.textSecondary }]}
-              selectable={true}
-            >
-              {note.content}
-            </Text>
-          )
-        )}
-      </View>
-      </TouchableOpacity>
-    </Animated.View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
+    </View>
   );
 }
 
@@ -285,44 +178,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editContainer: {
-    marginTop: 16,
-    marginHorizontal: -4,
-  },
-  editInput: {
-    borderWidth: 2,
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    lineHeight: 24,
-    minHeight: 150,
-    maxHeight: 300,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  editActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 16,
-    justifyContent: 'flex-end',
-  },
-  editButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    minWidth: 90,
+  menuOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
   },
-  editButtonText: {
+  menuContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 8,
+    minWidth: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  menuText: {
     fontSize: 16,
-    fontWeight: '600',
   },
 });
