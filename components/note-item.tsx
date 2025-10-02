@@ -10,13 +10,12 @@ import { foldersService, Folder } from '@/services/folders';
 
 interface NoteItemProps {
   note: Note;
-  onPress?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
   onMoveToFolder?: () => void;
 }
 
-export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder }: NoteItemProps) => {
+export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteItemProps) => {
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -75,12 +74,7 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
     onDelete?.();
   }, [onDelete]);
 
-  const handlePress = useCallback(() => {
-    onPress?.();
-  }, [onPress]);
-
-  const handleToggleExpanded = useCallback((e: any) => {
-    e.stopPropagation();
+  const handleToggleExpanded = useCallback(() => {
     setIsExpanded(prev => !prev);
   }, []);
 
@@ -108,16 +102,15 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
       headerContent={
         <>
           <TouchableOpacity
-            style={styles.chevronButton}
+            style={styles.titleContainer}
             onPress={handleToggleExpanded}
+            activeOpacity={0.7}
           >
             <MaterialIcons
-              name={isExpanded ? "expand-less" : "chevron-right"}
-              size={20}
-              color={colors.text}
+              name={isExpanded ? "keyboard-arrow-down" : "keyboard-arrow-right"}
+              size={24}
+              color={colors.textSecondary}
             />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePress} activeOpacity={0.7} style={styles.titleButton}>
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
               {note.title}
             </Text>
@@ -207,19 +200,16 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
 NoteItem.displayName = 'NoteItem';
 
 const styles = StyleSheet.create({
-  chevronButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  titleButton: {
+  titleContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
+    flex: 1,
   },
   actions: {
     flexDirection: 'row',

@@ -116,9 +116,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Card Component Standardization** (2025-10-02)
   - Refactored all info cards to use universal Card component instead of inline structure
   - Refactored note-item.tsx to use Card component for consistent sizing
+  - Refactored settings page into 3 card components (theme, profile, account)
   - Note card button sizes reduced from 32x32 to 24x24 to match info card icons
-  - Collapsed card heights now identical across notes and info pages
+  - Collapsed card heights now identical across notes, info, and settings pages
   - Visual consistency: all cards share same border, padding, radius, and header structure
+  - Standardized chevron icons across all cards (keyboard-arrow-down/right, size 24, textSecondary color)
+  - Settings page reduced from 242 to 60 lines (75% reduction)
+  - Settings cards now collapsible with single-card expansion pattern
+  - Note card title click area expanded (chevron + title both trigger expansion)
 - **Info Page Structure**
   - Renamed "docs" tab to "info" tab
   - Reordered header icons: refresh, folder, new note (left to right)
