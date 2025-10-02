@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { toast } from 'sonner';
+import { toast } from 'sonner-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from 'expo-router';
@@ -47,7 +47,7 @@ export default function AuthScreen() {
         toast.success('Please check your email to confirm your account');
       } else {
         console.log('Login successful, redirecting to dashboard');
-        toast.success('Welcome back!');
+        // toast.success('Welcome back!'); // Removed: Silent login for cleaner UX
         router.replace('/(tabs)');
       }
     } catch (err) {
