@@ -229,6 +229,9 @@ const styles = StyleSheet.create({
     paddingTop: 100,
   },
   card: {
+    width: '100%',
+    maxWidth: 400,
+    alignSelf: 'center',
     borderRadius: 16,
     borderWidth: 1,
     padding: 24,
