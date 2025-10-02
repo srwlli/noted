@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Database Input Validation Constraints** (2025-10-02)
+  - Title max length: 200 characters (enforced at database level)
+  - Title cannot be null or empty/whitespace
+  - Content max length: 50,000 characters (~10 pages)
+  - Prevents database corruption and malicious input
+  - Migration: `20251002032805_add_note_constraints.sql`
+- **Frontend Input Validation** (2025-10-02)
+  - Real-time character counters (e.g., "150/200" for title)
+  - Visual feedback: red borders when exceeding limits
+  - Red counter text when over character limit
+  - maxLength props prevent typing beyond limits
+  - Validation errors before save with clear messages
+  - Auto-trim whitespace before saving
+  - Two-layer protection: frontend UX + database security
 - **18-Color Theme System** (Phase 2.1 - selectedSurface)
   - Added selectedSurface color (9th Phase 2 color) for selected/active item states
   - Provides visual feedback when note card menu is open

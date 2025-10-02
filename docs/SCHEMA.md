@@ -1,11 +1,11 @@
 # Noted Schema Reference
 
-**Date**: September 21, 2025
-**Schema Version**: 1.0.0
+**Date**: October 2, 2025
+**Schema Version**: 1.3.0
 
 ## Overview
 
-This document defines the data schemas, TypeScript interfaces, validation rules, and database relationships for the Noted application. The app uses Supabase as the backend service with TypeScript for type safety and validation.
+This document defines the data schemas, TypeScript interfaces, validation rules, and database relationships for the Noted application. The app uses Supabase as the backend service with TypeScript for type safety, multi-theme support, enhanced authentication with forgot password functionality, and Sonner toast notification integration.
 
 **Referenced Documentation**:
 - README.md: Modern React Native note-taking app with Expo Router and Supabase backend
@@ -38,8 +38,8 @@ CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid
 ```sql
 CREATE TABLE notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title VARCHAR(500) NOT NULL,
-  content TEXT,
+  title VARCHAR(200) NOT NULL CHECK (LENGTH(TRIM(title)) > 0),
+  content TEXT CHECK (LENGTH(content) <= 50000),
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -90,6 +90,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error: any }>;
 }
 
 // Supabase User Type (imported from @supabase/supabase-js)
@@ -154,44 +155,48 @@ interface NotesListResponse {
 }
 ```
 
-### Theme System Types
+### Multi-Theme System Types
 
 ```typescript
-// Color Scheme Type
-type ColorScheme = 'light' | 'dark';
+// Theme Name Type
+export type ThemeName = 'greyscale' | 'appleNotes';
 
-// Theme Colors Interface
-interface ThemeColors {
-  primary: string;
-  light: {
-    background: string;
-    surface: string;
-    text: string;
-    textSecondary: string;
-    border: string;
-    tint: string;
-    icon: string;
-    tabIconDefault: string;
-    tabIconSelected: string;
+// Color Scheme Type
+export type ColorSchemeMode = 'light' | 'dark' | 'system';
+
+// Color Scheme Interface
+interface ColorScheme {
+  background: string;
+  surface: string;
+  text: string;
+  textSecondary: string;
+  border: string;
+  tint: string;
+  icon: string;
+  tabIconDefault: string;
+  tabIconSelected: string;
+}
+
+// Multi-Theme Structure
+interface Themes {
+  greyscale: {
+    light: ColorScheme;
+    dark: ColorScheme;
   };
-  dark: {
-    background: string;
-    surface: string;
-    text: string;
-    textSecondary: string;
-    border: string;
-    tint: string;
-    icon: string;
-    tabIconDefault: string;
-    tabIconSelected: string;
+  appleNotes: {
+    light: ColorScheme;
+    dark: ColorScheme;
   };
 }
 
-// Theme Context Interface
-interface ThemeContextType {
-  colors: ThemeColors[ColorScheme];
-  colorScheme: ColorScheme;
-  setColorScheme: (scheme: ColorScheme) => void;
+// Enhanced Theme Context Interface
+interface ThemeControllerContextType {
+  themeName: ThemeName;
+  colorScheme: ColorSchemeMode;
+  resolvedScheme: 'light' | 'dark';
+  setTheme: (theme: ThemeName) => Promise<void>;
+  setColorScheme: (scheme: ColorSchemeMode) => Promise<void>;
+  isLoading: boolean;
 }
 
 // Themed Component Props
@@ -264,6 +269,38 @@ interface UserSettings {
 }
 
 interface SettingsUpdateRequest extends Partial<UserSettings> {}
+
+### Notification Types
+
+```typescript
+// Sonner Toast Types
+interface ToastOptions {
+  position?: 'top-left' | 'top-right' | 'top-center' | 'bottom-left' | 'bottom-right' | 'bottom-center';
+  theme?: 'light' | 'dark' | 'system';
+  expand?: boolean;
+  richColors?: boolean;
+  closeButton?: boolean;
+}
+
+// Toast Message Types
+type ToastType = 'success' | 'error' | 'warning' | 'info';
+
+interface ToastMessage {
+  type: ToastType;
+  message: string;
+  duration?: number;
+}
+
+// Auth-related Toast Messages
+interface AuthToastMessages {
+  signInSuccess: 'Welcome back!';
+  signUpSuccess: 'Please check your email to confirm your account';
+  passwordResetSuccess: 'Check your email for password reset instructions';
+  signOutSuccess: 'Signed out successfully';
+  validationError: 'Please fill in all fields';
+  authenticationError: string; // Dynamic based on Supabase error
+  passwordResetError: string; // Dynamic based on Supabase error
+}
 ```
 
 ## API Response Schemas
@@ -321,11 +358,11 @@ const PASSWORD_REQUIREMENTS = {
   requireSpecialChars: false
 };
 
-// Note Validation
+// Note Validation (matches database constraints)
 const NOTE_CONSTRAINTS = {
   title: {
     minLength: 1,
-    maxLength: 500,
+    maxLength: 200,
     required: true
   },
   content: {
@@ -450,6 +487,9 @@ function validateNote(note: CreateNoteRequest): ValidationResult {
 - `AUTH_TOKEN_EXPIRED`: JWT token has expired
 - `AUTH_TOKEN_INVALID`: JWT token is malformed or invalid
 - `AUTH_USER_NOT_FOUND`: User account does not exist
+- `AUTH_PASSWORD_RESET_FAILED`: Failed to send password reset email
+- `AUTH_INVALID_EMAIL_FORMAT`: Email address format is invalid
+- `AUTH_PASSWORD_RESET_EXPIRED`: Password reset token has expired
 
 ### Validation Errors
 
@@ -463,6 +503,13 @@ function validateNote(note: CreateNoteRequest): ValidationResult {
 - `RESOURCE_NOT_FOUND`: Requested resource does not exist
 - `RESOURCE_ACCESS_DENIED`: User lacks permission to access resource
 - `RESOURCE_CONFLICT`: Resource conflicts with existing data
+
+### Theme System Errors
+
+- `THEME_INVALID_NAME`: Invalid theme name provided
+- `THEME_INVALID_COLOR_SCHEME`: Invalid color scheme mode
+- `THEME_PERSISTENCE_FAILED`: Failed to save theme preferences to storage
+- `THEME_LOAD_FAILED`: Failed to load theme preferences from storage
 
 ## Environment Configuration
 
@@ -490,9 +537,9 @@ interface SupabaseConfig {
 
 ---
 
-**Date**: September 21, 2025
-**Schema Version**: 1.0.0
+**Date**: October 2, 2025
+**Schema Version**: 1.3.0
 
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
-This schema reference provides comprehensive data structure documentation for the Noted application, optimized for AI-assisted development with complete type definitions, validation rules, and database relationships for seamless integration and extension.
+This schema reference provides comprehensive data structure documentation for the Noted application, including multi-theme support, enhanced authentication with forgot password functionality, Sonner toast notification integration, and input validation constraints. Optimized for AI-assisted development with complete type definitions, validation rules, and database relationships for seamless integration and extension.

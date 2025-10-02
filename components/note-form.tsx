@@ -3,6 +3,10 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator 
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { notesService } from '@/services/notes';
 
+// Validation constants (match database constraints)
+const MAX_TITLE_LENGTH = 200;
+const MAX_CONTENT_LENGTH = 50000;
+
 interface NoteFormProps {
   onSuccess?: () => void;
   onCancel?: () => void;
@@ -22,9 +26,26 @@ export function NoteForm({ onSuccess, onCancel, initialNote }: NoteFormProps) {
 
   const isEditing = !!initialNote?.id;
 
+  // Calculate character counts
+  const titleLength = title.length;
+  const contentLength = content.length;
+  const isTitleTooLong = titleLength > MAX_TITLE_LENGTH;
+  const isContentTooLong = contentLength > MAX_CONTENT_LENGTH;
+
   const handleSubmit = async () => {
+    // Validation
     if (!title.trim()) {
       setError('Title is required');
+      return;
+    }
+
+    if (isTitleTooLong) {
+      setError(`Title must be less than ${MAX_TITLE_LENGTH} characters`);
+      return;
+    }
+
+    if (isContentTooLong) {
+      setError(`Content must be less than ${MAX_CONTENT_LENGTH} characters`);
       return;
     }
 
@@ -33,9 +54,9 @@ export function NoteForm({ onSuccess, onCancel, initialNote }: NoteFormProps) {
 
     try {
       if (isEditing && initialNote?.id) {
-        await notesService.updateNote(initialNote.id, title, content);
+        await notesService.updateNote(initialNote.id, title.trim(), content.trim());
       } else {
-        await notesService.createNote(title, content);
+        await notesService.createNote(title.trim(), content.trim());
       }
 
       setTitle('');
@@ -51,23 +72,55 @@ export function NoteForm({ onSuccess, onCancel, initialNote }: NoteFormProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
+      <View style={styles.labelRow}>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Title</Text>
+        <Text style={[
+          styles.charCounter,
+          { color: isTitleTooLong ? '#ef4444' : colors.textSecondary }
+        ]}>
+          {titleLength}/{MAX_TITLE_LENGTH}
+        </Text>
+      </View>
       <TextInput
-        style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.background,
+            borderColor: isTitleTooLong ? '#ef4444' : colors.border,
+            color: colors.text
+          }
+        ]}
         placeholder="Enter note title..."
         placeholderTextColor={colors.textSecondary}
         value={title}
         onChangeText={setTitle}
+        maxLength={MAX_TITLE_LENGTH}
         editable={!loading}
       />
 
-      <Text style={[styles.label, { color: colors.textSecondary }]}>Content</Text>
+      <View style={styles.labelRow}>
+        <Text style={[styles.label, { color: colors.textSecondary }]}>Content</Text>
+        <Text style={[
+          styles.charCounter,
+          { color: isContentTooLong ? '#ef4444' : colors.textSecondary }
+        ]}>
+          {contentLength}/{MAX_CONTENT_LENGTH}
+        </Text>
+      </View>
       <TextInput
-        style={[styles.textArea, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
+        style={[
+          styles.textArea,
+          {
+            backgroundColor: colors.background,
+            borderColor: isContentTooLong ? '#ef4444' : colors.border,
+            color: colors.text
+          }
+        ]}
         placeholder="Enter note content..."
         placeholderTextColor={colors.textSecondary}
         value={content}
         onChangeText={setContent}
+        maxLength={MAX_CONTENT_LENGTH}
         multiline
         numberOfLines={10}
         textAlignVertical="top"
@@ -114,12 +167,21 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
   },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  charCounter: {
+    fontSize: 12,
+    fontWeight: '500',
   },
   input: {
     height: 48,
