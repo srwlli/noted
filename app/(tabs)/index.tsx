@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { NoteModal } from '@/components/note-modal';
@@ -10,6 +11,7 @@ import { notesService, Note } from '@/services/notes';
 
 export default function NotesScreen() {
   const { colors } = useThemeColors();
+  const params = useLocalSearchParams();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -22,6 +24,13 @@ export default function NotesScreen() {
   useEffect(() => {
     loadNotes();
   }, []);
+
+  // Open modal if navigation param is set
+  useEffect(() => {
+    if (params.openModal === 'true') {
+      setShowModal(true);
+    }
+  }, [params.openModal]);
 
   const loadNotes = async () => {
     try {

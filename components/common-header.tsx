@@ -19,7 +19,7 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing }: CommonHeaderP
     if (onNewNote) {
       onNewNote();
     } else {
-      router.push('/');
+      router.push('/?openModal=true');
     }
   };
 
