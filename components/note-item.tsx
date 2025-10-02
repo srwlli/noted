@@ -1,32 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Note } from '@/services/notes';
+import { foldersService, Folder } from '@/services/folders';
 
 interface NoteItemProps {
   note: Note;
   onPress?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onMoveToFolder?: () => void;
 }
 
-export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
+export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder }: NoteItemProps) => {
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setIsMenuOpen(false);
+      setIsExpanded(false);
+    };
+  }, []);
 
-  const handleCopy = async () => {
+  // Load folders when menu opens
+  useEffect(() => {
+    if (isMenuOpen && !loadingFolders && folders.length === 0) {
+      loadFolders();
+    }
+  }, [isMenuOpen]);
+
+  const loadFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const data = await foldersService.getFolders();
+      setFolders(data);
+    } catch (err) {
+      console.error('Failed to load folders:', err);
+    } finally {
+      setLoadingFolders(false);
+    }
+  };
+
+  const handleCopy = useCallback(async () => {
     try {
       await Clipboard.setStringAsync(note.content || '');
       Alert.alert('Copied', 'Note content copied to clipboard');
     } catch {
       Alert.alert('Error', 'Failed to copy content');
     }
-  };
+  }, [note.content]);
+
+  const handleMenuOpen = useCallback(() => {
+    setIsMenuOpen(true);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setIsMenuOpen(false);
+  }, []);
+
+  const handleEdit = useCallback(() => {
+    onEdit?.();
+  }, [onEdit]);
+
+  const handleDelete = useCallback(() => {
+    onDelete?.();
+  }, [onDelete]);
+
+  const handlePress = useCallback(() => {
+    onPress?.();
+  }, [onPress]);
+
+  const handleToggleExpanded = useCallback((e: any) => {
+    e.stopPropagation();
+    setIsExpanded(prev => !prev);
+  }, []);
+
+  const handleMoveToFolder = useCallback(async (folderId: string | null) => {
+    try {
+      await foldersService.moveNoteToFolder(note.id, folderId);
+      Alert.alert('Success', `Note moved to ${folderId ? 'folder' : 'All Notes'}`);
+      onMoveToFolder?.();
+    } catch (err) {
+      console.error('Failed to move note:', err);
+      Alert.alert('Error', 'Failed to move note to folder');
+    }
+  }, [note.id, onMoveToFolder]);
+
+  const handleMoveToAllNotes = useCallback(() => {
+    handleMoveToFolder(null);
+  }, [handleMoveToFolder]);
 
   return (
     <View
@@ -38,7 +108,7 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
         }
       ]}
     >
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
       <View style={styles.content}>
         <View style={[
           styles.titleRow,
@@ -46,10 +116,7 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
         ]}>
           <TouchableOpacity
             style={styles.chevronButton}
-            onPress={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
+            onPress={handleToggleExpanded}
           >
             <MaterialIcons
               name={isExpanded ? "expand-less" : "chevron-right"}
@@ -62,8 +129,8 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
           </Text>
           <View style={styles.actions}>
             <Menu
-              onOpen={() => setIsMenuOpen(true)}
-              onClose={() => setIsMenuOpen(false)}
+              onOpen={handleMenuOpen}
+              onClose={handleMenuClose}
             >
               <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>
                 <MaterialIcons name="more-vert" size={20} color={colors.text} />
@@ -83,7 +150,7 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
                   elevation: 5,
                 }
               }}>
-                <MenuOption onSelect={() => onEdit?.()} customStyles={{ optionWrapper: styles.menuItem }}>
+                <MenuOption onSelect={handleEdit} customStyles={{ optionWrapper: styles.menuItem }}>
                   <MaterialIcons name="edit" size={20} color={colors.text} />
                   <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
                 </MenuOption>
@@ -91,7 +158,32 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
                   <MaterialIcons name="content-copy" size={20} color={colors.text} />
                   <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
                 </MenuOption>
-                <MenuOption onSelect={() => onDelete?.()} customStyles={{ optionWrapper: styles.menuItem }}>
+
+                {/* Move to Folder submenu */}
+                <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+                <View style={[styles.menuItem, { opacity: 0.5 }]}>
+                  <MaterialIcons name="folder" size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text }]}>Move to Folder</Text>
+                </View>
+
+                <MenuOption onSelect={handleMoveToAllNotes} customStyles={{ optionWrapper: styles.submenuItem }}>
+                  <MaterialIcons name="folder-open" size={18} color={colors.text} />
+                  <Text style={[styles.submenuText, { color: colors.text }]}>All Notes</Text>
+                </MenuOption>
+
+                {folders.map((folder) => (
+                  <MenuOption
+                    key={folder.id}
+                    onSelect={() => handleMoveToFolder(folder.id)}
+                    customStyles={{ optionWrapper: styles.submenuItem }}
+                  >
+                    <MaterialIcons name="folder" size={18} color={colors.text} />
+                    <Text style={[styles.submenuText, { color: colors.text }]}>{folder.name}</Text>
+                  </MenuOption>
+                ))}
+
+                <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+                <MenuOption onSelect={handleDelete} customStyles={{ optionWrapper: styles.menuItem }}>
                   <MaterialIcons name="delete" size={20} color={colors.text} />
                   <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
                 </MenuOption>
@@ -111,7 +203,13 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
       </TouchableOpacity>
     </View>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if note actually changed
+  return prevProps.note.id === nextProps.note.id &&
+         prevProps.note.updated_at === nextProps.note.updated_at;
+});
+
+NoteItem.displayName = 'NoteItem';
 
 const styles = StyleSheet.create({
   container: {
@@ -169,5 +267,19 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 16,
+  },
+  submenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    paddingLeft: 24,
+    gap: 12,
+  },
+  submenuText: {
+    fontSize: 14,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    marginVertical: 4,
   },
 });

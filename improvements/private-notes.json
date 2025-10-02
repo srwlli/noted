@@ -1,0 +1,161 @@
+{
+  "feature": "Private Notes",
+  "createdAt": "2025-10-01T00:00:00Z",
+  "overview": {
+    "description": "Allow users to mark notes as private for enhanced privacy and organization",
+    "approach": "Boolean flag (is_private) on notes table + UI filters",
+    "integration": "Works independently of folders - private notes can exist in any folder or be unfiled"
+  },
+  "databaseSchema": {
+    "alterTable": "ALTER TABLE notes ADD COLUMN is_private BOOLEAN DEFAULT FALSE;",
+    "index": "CREATE INDEX idx_notes_is_private ON notes(is_private);",
+    "updatedNoteInterface": {
+      "id": "string",
+      "user_id": "string",
+      "title": "string",
+      "content": "string",
+      "folder_id": "string | null",
+      "is_private": "boolean (NEW)",
+      "created_at": "string",
+      "updated_at": "string"
+    }
+  },
+  "uiImplementation": {
+    "headerIntegration": {
+      "location": "Header of notes screen",
+      "trigger": "Folders icon (📁) button",
+      "action": "Opens FolderSelectorModal"
+    },
+    "folderSelectorModal": {
+      "component": "components/folder-selector-modal.tsx (NEW)",
+      "filterOptions": [
+        {
+          "id": "all",
+          "label": "All Notes",
+          "icon": "📋"
+        },
+        {
+          "id": "private",
+          "label": "Private",
+          "icon": "🔒",
+          "query": "WHERE is_private = TRUE"
+        },
+        {
+          "id": "unfiled",
+          "label": "Unfiled",
+          "icon": "📄",
+          "query": "WHERE folder_id IS NULL"
+        }
+      ],
+      "dynamicFolders": "User-created folders listed below static options"
+    },
+    "noteForm": {
+      "file": "components/note-form.tsx",
+      "addition": "Toggle switch: 'Mark as private'",
+      "behavior": "Saves is_private boolean with note"
+    },
+    "noteDisplay": {
+      "file": "components/note-item.tsx",
+      "addition": "Lock icon (🔒) badge displayed when note.is_private === true",
+      "placement": "Next to note title or in corner of note card"
+    }
+  },
+  "serviceLayer": {
+    "file": "services/notes.ts",
+    "updates": [
+      {
+        "method": "createNote",
+        "signature": "async createNote(title: string, content: string, folderId?: string, isPrivate = false)",
+        "change": "Add isPrivate parameter to note creation"
+      },
+      {
+        "method": "updateNote",
+        "signature": "async updateNote(id: string, title: string, content: string, isPrivate?: boolean)",
+        "change": "Allow updating is_private flag"
+      },
+      {
+        "method": "getPrivateNotes (NEW)",
+        "signature": "async getPrivateNotes()",
+        "query": "SELECT * FROM notes WHERE is_private = TRUE ORDER BY created_at DESC"
+      }
+    ]
+  },
+  "filteringLogic": {
+    "file": "app/(tabs)/index.tsx",
+    "implementation": {
+      "state": "const [selectedFilter, setSelectedFilter] = useState<'all' | 'private' | 'unfiled' | string>('all');",
+      "filterFunction": "const filteredNotes = notes.filter(note => {\n  if (selectedFilter === 'all') return true;\n  if (selectedFilter === 'private') return note.is_private;\n  if (selectedFilter === 'unfiled') return !note.folder_id;\n  return note.folder_id === selectedFilter;\n});"
+    }
+  },
+  "userExperience": {
+    "workflow": [
+      "1. User taps folders icon (📁) in header",
+      "2. Modal shows: All Notes, Private, Unfiled, + custom folders",
+      "3. User selects 'Private' filter",
+      "4. Notes list shows only notes where is_private = true",
+      "5. Private notes display lock icon badge"
+    ],
+    "createPrivateNote": [
+      "1. User taps 'New Note' button",
+      "2. Note form appears with 'Mark as private' toggle",
+      "3. User enables toggle and saves note",
+      "4. Note is saved with is_private = true",
+      "5. Lock icon appears on note card"
+    ]
+  },
+  "securityConsiderations": {
+    "currentImplementation": "Boolean flag only - no encryption",
+    "recommendations": [
+      "Private notes are only visually separated, not encrypted",
+      "Row-level security (RLS) ensures users only see their own notes",
+      "Consider adding biometric authentication to view private notes",
+      "Future: Implement end-to-end encryption for private notes"
+    ]
+  },
+  "futureEnhancements": {
+    "phase1": {
+      "name": "Basic Privacy",
+      "features": [
+        "is_private boolean flag",
+        "Private filter in folder modal",
+        "Lock icon badge on notes",
+        "Toggle in note form"
+      ]
+    },
+    "phase2": {
+      "name": "Enhanced Security",
+      "features": [
+        "Biometric authentication (Face ID/Touch ID) to view private notes",
+        "PIN/password protection",
+        "Auto-lock after inactivity",
+        "Hide private notes from search results (optional)"
+      ]
+    },
+    "phase3": {
+      "name": "Encryption",
+      "features": [
+        "End-to-end encryption for private notes",
+        "Client-side encryption keys",
+        "Secure key storage in device keychain",
+        "Encrypted backup/sync"
+      ]
+    }
+  },
+  "implementationSteps": [
+    "1. Run database migration: ALTER TABLE notes ADD COLUMN is_private BOOLEAN DEFAULT FALSE",
+    "2. Update Note interface in services/notes.ts to include is_private",
+    "3. Update createNote and updateNote methods to handle isPrivate parameter",
+    "4. Create components/folder-selector-modal.tsx with filter options",
+    "5. Add folders icon button to header (shared-page-layout.tsx)",
+    "6. Update components/note-form.tsx to include 'Mark as private' toggle",
+    "7. Update components/note-item.tsx to show lock icon for private notes",
+    "8. Add filtering logic to app/(tabs)/index.tsx",
+    "9. Update docs/SCHEMA.md to document is_private column"
+  ],
+  "relationshipToFolders": {
+    "independence": "Private notes work independently of folders feature",
+    "compatibility": "Can be implemented before, after, or alongside folders",
+    "flexibility": "Private notes can exist in any folder, or be unfiled",
+    "queryExample": "Get private notes in specific folder: WHERE is_private = TRUE AND folder_id = 'xyz'"
+  }
+}

@@ -1,0 +1,266 @@
+{
+  "feature": "Storage Abstraction Layer - Multi-Provider Support",
+  "createdAt": "2025-10-01T00:00:00Z",
+  "approach": "Database abstraction allowing users to choose storage backend",
+  "overview": {
+    "concept": "Provider pattern that decouples app logic from storage implementation",
+    "userBenefit": "Users choose where their data lives (cloud, local, sheets, etc.)",
+    "architecturePattern": "Interface-based abstraction with pluggable providers",
+    "inspiration": "Obsidian (local + sync options), Logseq (multiple backends)"
+  },
+  "architecture": {
+    "diagram": "App → Storage Interface → [Supabase | Sheets | SQLite | Firebase | Custom]",
+    "layers": {
+      "application": "React Native app components and screens",
+      "abstraction": "StorageProvider interface (common methods)",
+      "implementation": "Provider-specific implementations (Supabase, Sheets, etc.)",
+      "storage": "Actual storage backend (PostgreSQL, Google Sheets, SQLite, etc.)"
+    },
+    "benefits": {
+      "forUsers": [
+        "Choose where data lives",
+        "Own their data (Sheets, local SQLite)",
+        "Privacy control (local-only option)",
+        "Use existing infrastructure",
+        "Avoid vendor lock-in",
+        "Free options (local, Sheets) vs paid (Supabase)"
+      ],
+      "forDevelopers": [
+        "Flexible architecture",
+        "Easy to add new providers",
+        "Can offer free/paid tiers",
+        "Future-proof design",
+        "Differentiation from competitors",
+        "Testing flexibility (mock providers)"
+      ]
+    }
+  },
+  "storageInterface": {
+    "file": "services/storage/storage-interface.ts",
+    "purpose": "Defines common contract all storage providers must implement",
+    "interface": "export interface StorageProvider {\n  // Notes CRUD\n  getNotes(): Promise<Note[]>;\n  getNote(id: string): Promise<Note>;\n  createNote(note: Omit<Note, 'id' | 'created_at' | 'updated_at'>): Promise<Note>;\n  updateNote(id: string, note: Partial<Note>): Promise<Note>;\n  deleteNote(id: string): Promise<void>;\n  \n  // Search\n  searchNotes(query: string): Promise<Note[]>;\n  \n  // Folders (optional - not all providers may support)\n  getFolders?(): Promise<Folder[]>;\n  createFolder?(name: string): Promise<Folder>;\n  updateFolder?(id: string, name: string): Promise<Folder>;\n  deleteFolder?(id: string): Promise<void>;\n  \n  // Auth\n  signIn(email: string, password: string): Promise<{ user: User; error?: any }>;\n  signUp(email: string, password: string): Promise<{ user: User; error?: any }>;\n  signOut(): Promise<void>;\n  getCurrentUser(): Promise<User | null>;\n  \n  // Sync (for local providers with cloud backup)\n  sync?(): Promise<void>;\n}",
+    "noteInterface": "export interface Note {\n  id: string;\n  title: string;\n  content: string;\n  user_id: string;\n  folder_id?: string;\n  is_private?: boolean;\n  created_at: string;\n  updated_at: string;\n}"
+  },
+  "providerImplementations": {
+    "supabase": {
+      "file": "services/storage/supabase-provider.ts",
+      "description": "Cloud-based PostgreSQL storage via Supabase",
+      "features": ["Real-time sync", "Multi-device", "Row-level security", "Full-text search"],
+      "pros": ["Scalable", "Real-time updates", "Built-in auth", "Free tier available"],
+      "cons": ["Requires internet", "Vendor lock-in (mitigated by abstraction)"],
+      "implementation": "export class SupabaseProvider implements StorageProvider {\n  async getNotes(): Promise<Note[]> {\n    const { data, error } = await supabase\n      .from('notes')\n      .select('*')\n      .order('created_at', { ascending: false });\n    if (error) throw error;\n    return data;\n  }\n\n  async createNote(note: Omit<Note, 'id' | 'created_at' | 'updated_at'>): Promise<Note> {\n    const { data, error } = await supabase\n      .from('notes')\n      .insert(note)\n      .select()\n      .single();\n    if (error) throw error;\n    return data;\n  }\n\n  async signIn(email: string, password: string) {\n    return await supabase.auth.signInWithPassword({ email, password });\n  }\n\n  // ... other methods\n}",
+      "configuration": {
+        "required": ["SUPABASE_URL", "SUPABASE_ANON_KEY"],
+        "setup": "User provides Supabase project credentials in settings"
+      }
+    },
+    "googleSheets": {
+      "file": "services/storage/sheets-provider.ts",
+      "description": "Stores notes as rows in Google Sheets spreadsheet",
+      "features": ["Familiar interface", "Accessible via browser", "Free (Google account)", "Easy sharing"],
+      "pros": ["No server needed", "Users understand Sheets", "Free storage", "Easy backup/export"],
+      "cons": ["Slower than database", "Limited query capabilities", "Not real-time"],
+      "implementation": "export class SheetsProvider implements StorageProvider {\n  private sheets = google.sheets('v4');\n  private spreadsheetId: string;\n\n  async getNotes(): Promise<Note[]> {\n    const auth = await GoogleSignin.getTokens();\n    const response = await this.sheets.spreadsheets.values.get({\n      auth: auth.accessToken,\n      spreadsheetId: this.spreadsheetId,\n      range: 'Notes!A2:H',\n    });\n    const rows = response.data.values || [];\n    return rows.map(row => ({\n      id: row[0],\n      title: row[1],\n      content: row[2],\n      user_id: row[3],\n      folder_id: row[4],\n      is_private: row[5] === 'true',\n      created_at: row[6],\n      updated_at: row[7],\n    }));\n  }\n\n  async createNote(note: Omit<Note, 'id' | 'created_at' | 'updated_at'>): Promise<Note> {\n    const id = generateId();\n    const now = new Date().toISOString();\n    await this.sheets.spreadsheets.values.append({\n      spreadsheetId: this.spreadsheetId,\n      range: 'Notes!A:H',\n      valueInputOption: 'RAW',\n      requestBody: {\n        values: [[id, note.title, note.content, note.user_id, note.folder_id || '', note.is_private ? 'true' : 'false', now, now]]\n      }\n    });\n    return { ...note, id, created_at: now, updated_at: now };\n  }\n\n  // ... other methods\n}",
+      "configuration": {
+        "required": ["GOOGLE_CLIENT_ID", "SPREADSHEET_ID"],
+        "setup": "User authenticates with Google, app creates/uses spreadsheet"
+      },
+      "spreadsheetStructure": {
+        "sheetName": "Notes",
+        "columns": ["ID", "Title", "Content", "User ID", "Folder ID", "Is Private", "Created At", "Updated At"],
+        "headerRow": "Row 1",
+        "dataRows": "Row 2+"
+      }
+    },
+    "sqlite": {
+      "file": "services/storage/sqlite-provider.ts",
+      "description": "Local SQLite database on device (offline-first)",
+      "features": ["Fully offline", "Fast", "Private (data never leaves device)", "No internet required"],
+      "pros": ["Maximum privacy", "Fast queries", "No cloud costs", "Works offline"],
+      "cons": ["No multi-device sync (unless paired with cloud)", "Local backup needed"],
+      "implementation": "export class SQLiteProvider implements StorageProvider {\n  private db: SQLite.Database;\n\n  constructor() {\n    this.db = SQLite.openDatabase('noted.db');\n    this.initDatabase();\n  }\n\n  private async initDatabase() {\n    await this.db.execAsync(`\n      CREATE TABLE IF NOT EXISTS notes (\n        id TEXT PRIMARY KEY,\n        title TEXT,\n        content TEXT,\n        user_id TEXT,\n        folder_id TEXT,\n        is_private INTEGER,\n        created_at TEXT,\n        updated_at TEXT\n      );\n      CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);\n      CREATE INDEX IF NOT EXISTS idx_notes_user_id ON notes(user_id);\n    `);\n  }\n\n  async getNotes(): Promise<Note[]> {\n    const result = await this.db.getAllAsync('SELECT * FROM notes ORDER BY created_at DESC');\n    return result.map(row => ({ ...row, is_private: row.is_private === 1 }));\n  }\n\n  async createNote(note: Omit<Note, 'id' | 'created_at' | 'updated_at'>): Promise<Note> {\n    const id = generateId();\n    const now = new Date().toISOString();\n    await this.db.runAsync(\n      'INSERT INTO notes (id, title, content, user_id, folder_id, is_private, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',\n      [id, note.title, note.content, note.user_id, note.folder_id, note.is_private ? 1 : 0, now, now]\n    );\n    return { ...note, id, created_at: now, updated_at: now };\n  }\n\n  // Optional: Sync to cloud backup\n  async sync() {\n    // Export to cloud provider (Supabase, Dropbox, etc.)\n  }\n\n  // ... other methods\n}",
+      "configuration": {
+        "required": [],
+        "setup": "No setup needed - works immediately",
+        "optional": "Can configure cloud backup for sync"
+      }
+    },
+    "firebase": {
+      "file": "services/storage/firebase-provider.ts",
+      "description": "Google Firebase Firestore (NoSQL cloud database)",
+      "features": ["Real-time sync", "Google ecosystem", "Offline support", "Scalable"],
+      "pros": ["Real-time updates", "Offline cache built-in", "Free tier", "Google Cloud integration"],
+      "cons": ["Requires Firebase setup", "NoSQL structure (less query flexibility)"],
+      "implementation": "export class FirebaseProvider implements StorageProvider {\n  async getNotes(): Promise<Note[]> {\n    const user = auth().currentUser;\n    if (!user) throw new Error('Not authenticated');\n    const snapshot = await firestore()\n      .collection('notes')\n      .where('user_id', '==', user.uid)\n      .orderBy('created_at', 'desc')\n      .get();\n    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Note));\n  }\n\n  async createNote(note: Omit<Note, 'id' | 'created_at' | 'updated_at'>): Promise<Note> {\n    const now = new Date().toISOString();\n    const docRef = await firestore().collection('notes').add({\n      ...note,\n      created_at: now,\n      updated_at: now\n    });\n    return { ...note, id: docRef.id, created_at: now, updated_at: now };\n  }\n\n  async signIn(email: string, password: string) {\n    const result = await auth().signInWithEmailAndPassword(email, password);\n    return { user: result.user };\n  }\n\n  // ... other methods\n}",
+      "configuration": {
+        "required": ["FIREBASE_API_KEY", "FIREBASE_PROJECT_ID"],
+        "setup": "User creates Firebase project, adds credentials"
+      }
+    },
+    "futureProviders": {
+      "notion": {
+        "description": "Store notes as Notion pages in a database",
+        "implementation": "Uses Notion API to create/update pages",
+        "benefit": "Users can access notes in Notion + your app"
+      },
+      "airtable": {
+        "description": "Store notes as Airtable records",
+        "implementation": "Uses Airtable API",
+        "benefit": "Users can use Airtable's powerful features (views, formulas)"
+      },
+      "dropbox": {
+        "description": "Store notes as markdown files in Dropbox",
+        "implementation": "Like Obsidian with Dropbox sync",
+        "benefit": "File-based, portable, version history"
+      },
+      "customAPI": {
+        "description": "User provides their own API endpoint",
+        "implementation": "Generic REST API adapter",
+        "benefit": "Full control, self-hosted option"
+      }
+    }
+  },
+  "providerFactory": {
+    "file": "services/storage/storage-factory.ts",
+    "purpose": "Creates provider instances based on type",
+    "storageTypes": "export type StorageType = 'supabase' | 'sheets' | 'sqlite' | 'firebase' | 'notion' | 'airtable' | 'dropbox' | 'custom';",
+    "implementation": "export class StorageFactory {\n  static create(type: StorageType, config?: any): StorageProvider {\n    switch (type) {\n      case 'supabase':\n        return new SupabaseProvider(config);\n      case 'sheets':\n        return new SheetsProvider(config);\n      case 'sqlite':\n        return new SQLiteProvider();\n      case 'firebase':\n        return new FirebaseProvider(config);\n      case 'notion':\n        return new NotionProvider(config);\n      case 'airtable':\n        return new AirtableProvider(config);\n      case 'dropbox':\n        return new DropboxProvider(config);\n      case 'custom':\n        return new CustomAPIProvider(config);\n      default:\n        throw new Error(`Unknown storage type: ${type}`);\n    }\n  }\n\n  static getSupportedTypes(): StorageType[] {\n    return ['supabase', 'sheets', 'sqlite', 'firebase'];\n  }\n\n  static getProviderInfo(type: StorageType) {\n    const info = {\n      supabase: { name: 'Supabase', icon: '🗄️', description: 'Cloud database with real-time sync', requiresInternet: true },\n      sheets: { name: 'Google Sheets', icon: '📊', description: 'Store notes in a spreadsheet', requiresInternet: true },\n      sqlite: { name: 'Local Only', icon: '📱', description: 'Private, offline storage', requiresInternet: false },\n      firebase: { name: 'Firebase', icon: '🔥', description: 'Google Cloud database', requiresInternet: true },\n    };\n    return info[type];\n  }\n}"
+  },
+  "storageContext": {
+    "file": "contexts/storage-context.tsx",
+    "purpose": "React Context to provide storage provider throughout app",
+    "implementation": "interface StorageContextType {\n  provider: StorageProvider;\n  storageType: StorageType;\n  switchProvider: (type: StorageType, config?: any) => Promise<void>;\n  isLoading: boolean;\n}\n\nconst StorageContext = createContext<StorageContextType>(null!);\n\nexport function StorageProvider({ children }) {\n  const [storageType, setStorageType] = useState<StorageType>('supabase');\n  const [provider, setProvider] = useState<StorageProvider>(StorageFactory.create('supabase'));\n  const [isLoading, setIsLoading] = useState(true);\n\n  // Load saved preference on mount\n  useEffect(() => {\n    AsyncStorage.getItem('storage_type').then(type => {\n      if (type) {\n        setStorageType(type as StorageType);\n        setProvider(StorageFactory.create(type as StorageType));\n      }\n      setIsLoading(false);\n    });\n  }, []);\n\n  const switchProvider = async (type: StorageType, config?: any) => {\n    setIsLoading(true);\n    const newProvider = StorageFactory.create(type, config);\n    setProvider(newProvider);\n    setStorageType(type);\n    await AsyncStorage.setItem('storage_type', type);\n    if (config) {\n      await AsyncStorage.setItem(`storage_config_${type}`, JSON.stringify(config));\n    }\n    setIsLoading(false);\n  };\n\n  return (\n    <StorageContext.Provider value={{ provider, storageType, switchProvider, isLoading }}>\n      {children}\n    </StorageContext.Provider>\n  );\n}\n\nexport const useStorage = () => useContext(StorageContext);"
+  },
+  "usage": {
+    "inServices": {
+      "file": "services/notes.ts",
+      "implementation": "import { useStorage } from '@/contexts/storage-context';\n\nexport function useNotes() {\n  const { provider } = useStorage();\n\n  const getNotes = async () => {\n    return await provider.getNotes();\n  };\n\n  const createNote = async (title: string, content: string, folderId?: string, isPrivate = false) => {\n    const { data: { user } } = await provider.getCurrentUser();\n    return await provider.createNote({\n      title,\n      content,\n      user_id: user.id,\n      folder_id: folderId,\n      is_private: isPrivate\n    });\n  };\n\n  const updateNote = async (id: string, title: string, content: string) => {\n    return await provider.updateNote(id, { title, content });\n  };\n\n  const deleteNote = async (id: string) => {\n    return await provider.deleteNote(id);\n  };\n\n  return { getNotes, createNote, updateNote, deleteNote };\n}"
+    },
+    "inComponents": {
+      "example": "import { useNotes } from '@/services/notes';\n\nexport default function NotesScreen() {\n  const { getNotes, createNote } = useNotes();\n  const [notes, setNotes] = useState<Note[]>([]);\n\n  useEffect(() => {\n    loadNotes();\n  }, []);\n\n  const loadNotes = async () => {\n    const data = await getNotes(); // Works with any provider!\n    setNotes(data);\n  };\n\n  // Component works the same regardless of storage backend\n}"
+    }
+  },
+  "settingsUI": {
+    "file": "app/(tabs)/settings.tsx",
+    "purpose": "Allow users to select and configure storage provider",
+    "implementation": "import { useStorage } from '@/contexts/storage-context';\n\nexport default function Settings() {\n  const { storageType, switchProvider } = useStorage();\n  const [showConfig, setShowConfig] = useState(false);\n\n  return (\n    <ScrollView>\n      <Text style={styles.sectionTitle}>Storage Provider</Text>\n      <Text style={styles.description}>Choose where your notes are stored</Text>\n\n      <TouchableOpacity\n        style={[styles.providerCard, storageType === 'supabase' && styles.selected]}\n        onPress={() => switchProvider('supabase')}\n      >\n        <Text style={styles.icon}>🗄️</Text>\n        <View style={styles.providerInfo}>\n          <Text style={styles.providerName}>Supabase</Text>\n          <Text style={styles.providerDesc}>Cloud database with real-time sync</Text>\n        </View>\n        {storageType === 'supabase' && <Text>✓</Text>}\n      </TouchableOpacity>\n\n      <TouchableOpacity\n        style={[styles.providerCard, storageType === 'sheets' && styles.selected]}\n        onPress={() => setShowConfig('sheets')}\n      >\n        <Text style={styles.icon}>📊</Text>\n        <View style={styles.providerInfo}>\n          <Text style={styles.providerName}>Google Sheets</Text>\n          <Text style={styles.providerDesc}>Store notes in a spreadsheet</Text>\n        </View>\n        {storageType === 'sheets' && <Text>✓</Text>}\n      </TouchableOpacity>\n\n      <TouchableOpacity\n        style={[styles.providerCard, storageType === 'sqlite' && styles.selected]}\n        onPress={() => switchProvider('sqlite')}\n      >\n        <Text style={styles.icon}>📱</Text>\n        <View style={styles.providerInfo}>\n          <Text style={styles.providerName}>Local Only</Text>\n          <Text style={styles.providerDesc}>Private, offline storage</Text>\n        </View>\n        {storageType === 'sqlite' && <Text>✓</Text>}\n      </TouchableOpacity>\n\n      <TouchableOpacity\n        style={[styles.providerCard, storageType === 'firebase' && styles.selected]}\n        onPress={() => setShowConfig('firebase')}\n      >\n        <Text style={styles.icon}>🔥</Text>\n        <View style={styles.providerInfo}>\n          <Text style={styles.providerName}>Firebase</Text>\n          <Text style={styles.providerDesc}>Google Cloud database</Text>\n        </View>\n        {storageType === 'firebase' && <Text>✓</Text>}\n      </TouchableOpacity>\n\n      {/* Configuration modals for providers that need setup */}\n      <ConfigModal\n        visible={showConfig === 'sheets'}\n        onClose={() => setShowConfig(false)}\n        onSave={(config) => switchProvider('sheets', config)}\n      />\n    </ScrollView>\n  );\n}",
+    "configurationModals": {
+      "sheets": {
+        "fields": ["Google account sign-in", "Spreadsheet ID (or create new)"],
+        "flow": "1. User signs in with Google\n2. App creates spreadsheet or user provides ID\n3. App sets up sheet structure (columns)\n4. Provider switches to Sheets"
+      },
+      "firebase": {
+        "fields": ["Firebase API key", "Project ID", "App ID"],
+        "flow": "1. User creates Firebase project\n2. User copies credentials\n3. App validates credentials\n4. Provider switches to Firebase"
+      },
+      "custom": {
+        "fields": ["API endpoint URL", "API key (optional)", "Auth method"],
+        "flow": "1. User provides API endpoint\n2. App tests connection\n3. User configures auth\n4. Provider switches to custom API"
+      }
+    }
+  },
+  "dataMigration": {
+    "purpose": "Allow users to move notes between providers",
+    "exportImport": {
+      "export": "async exportNotes(): Promise<Note[]> {\n  const { provider } = useStorage();\n  return await provider.getNotes();\n}",
+      "import": "async importNotes(notes: Note[], targetProvider: StorageProvider): Promise<void> {\n  for (const note of notes) {\n    await targetProvider.createNote({\n      title: note.title,\n      content: note.content,\n      user_id: note.user_id,\n      folder_id: note.folder_id,\n      is_private: note.is_private\n    });\n  }\n}",
+      "migration": "async migrateToProvider(fromType: StorageType, toType: StorageType): Promise<void> {\n  const fromProvider = StorageFactory.create(fromType);\n  const toProvider = StorageFactory.create(toType);\n  \n  // Export from source\n  const notes = await fromProvider.getNotes();\n  \n  // Import to destination\n  await importNotes(notes, toProvider);\n  \n  // Switch active provider\n  await switchProvider(toType);\n}"
+    },
+    "ui": {
+      "location": "Settings → Data Migration",
+      "features": ["Export all notes to JSON", "Import notes from JSON", "Switch provider (with data copy)", "Backup to file"]
+    }
+  },
+  "implementationPhases": {
+    "phase1": {
+      "name": "Foundation",
+      "duration": "Week 1",
+      "tasks": [
+        "Create StorageProvider interface",
+        "Implement SupabaseProvider (current implementation)",
+        "Implement SQLiteProvider (offline backup)",
+        "Create StorageFactory",
+        "Create StorageContext",
+        "Update existing code to use abstraction"
+      ],
+      "deliverable": "App works with Supabase OR SQLite (user choice)"
+    },
+    "phase2": {
+      "name": "Expansion",
+      "duration": "Week 2",
+      "tasks": [
+        "Implement SheetsProvider (Google Sheets integration)",
+        "Add provider selection UI in settings",
+        "Add provider configuration modals",
+        "Test provider switching",
+        "Add data export/import"
+      ],
+      "deliverable": "Users can choose between Supabase, SQLite, or Google Sheets"
+    },
+    "phase3": {
+      "name": "Advanced",
+      "duration": "Week 3-4",
+      "tasks": [
+        "Implement FirebaseProvider",
+        "Add data migration tools (move between providers)",
+        "Add sync feature (local SQLite + cloud backup)",
+        "Add custom API provider option",
+        "Polish UI, add provider info/help"
+      ],
+      "deliverable": "Full multi-provider support with migration tools"
+    },
+    "futurePhases": {
+      "notion": "Add Notion integration",
+      "airtable": "Add Airtable integration",
+      "dropbox": "Add Dropbox file-based storage",
+      "selfHosted": "Allow users to run their own backend"
+    }
+  },
+  "monetizationOpportunities": {
+    "freeTier": {
+      "providers": ["SQLite (local only)", "Google Sheets (user's account)"],
+      "limitations": "No cloud sync, manual backups"
+    },
+    "paidTier": {
+      "providers": ["Supabase (your instance)", "Firebase (your project)", "Premium features"],
+      "features": ["Multi-device sync", "Real-time updates", "Automatic backups", "Priority support"]
+    },
+    "bringYourOwn": {
+      "concept": "Users can use their own Supabase/Firebase/etc. accounts",
+      "benefit": "No ongoing costs for you, user has full control",
+      "revenue": "One-time purchase or subscription for advanced features"
+    }
+  },
+  "testing": {
+    "mockProvider": {
+      "purpose": "Test app without real backend",
+      "implementation": "export class MockProvider implements StorageProvider {\n  private notes: Note[] = [];\n  \n  async getNotes(): Promise<Note[]> {\n    return [...this.notes];\n  }\n  \n  async createNote(note: Omit<Note, 'id' | 'created_at' | 'updated_at'>): Promise<Note> {\n    const newNote = {\n      ...note,\n      id: Math.random().toString(36),\n      created_at: new Date().toISOString(),\n      updated_at: new Date().toISOString()\n    };\n    this.notes.push(newNote);\n    return newNote;\n  }\n  \n  // ... other methods\n}"
+    },
+    "integration": "Test each provider implementation with real backends",
+    "migration": "Test data migration between providers",
+    "offline": "Test SQLite provider offline behavior"
+  },
+  "similarApps": {
+    "obsidian": {
+      "approach": "Local files + optional sync providers (Obsidian Sync, iCloud, Dropbox)",
+      "lesson": "Users love local-first with optional cloud sync"
+    },
+    "logseq": {
+      "approach": "Local-first + multiple sync backends",
+      "lesson": "Open architecture builds trust and community"
+    },
+    "standardNotes": {
+      "approach": "Encrypted cloud + option to self-host",
+      "lesson": "Privacy-focused users will pay for control"
+    },
+    "joplin": {
+      "approach": "Sync to Dropbox, OneDrive, Nextcloud, WebDAV, etc.",
+      "lesson": "Multiple sync options increase adoption"
+    }
+  },
+  "documentation": {
+    "userGuide": "docs/storage-providers.md - Explain each provider option, setup, pros/cons",
+    "developerGuide": "docs/adding-providers.md - How to implement new storage providers",
+    "apiDocs": "docs/storage-api.md - StorageProvider interface documentation"
+  }
+}

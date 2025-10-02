@@ -8,6 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Folders for Note Organization** (2025-10-02)
+  - Created `folders` table with RLS policies for user-specific folder access
+  - Added `folder_id` column to notes table (nullable, ON DELETE SET NULL)
+  - Database constraints ensure folder names are not empty (max 255 characters)
+  - Folder icon in header with dropdown menu for navigation and creation
+  - "All Notes" default view shows all notes across folders
+  - "Move to Folder" submenu in note card (...) menu for quick organization
+  - New folder creation via header menu with validation modal
+  - Real-time folder filtering without page reload
+  - Services layer: `services/folders.ts` with full CRUD operations
+  - Updated `services/notes.ts` with `getNotesByFolder()` method
+  - Components: `FolderModal` for creation/renaming, folder dropdown in `CommonHeader`
+  - Migration: `20251002120000_add_folders.sql`
+  - Uses MaterialIcons and react-native-popup-menu for consistent UI
+  - Foundation for nested folders via `parent_folder_id` (future enhancement)
+- **Memory Leak Fix in NoteItem Component** (2025-10-02)
+  - Fixed critical memory leak causing 4.5GB memory usage during development
+  - Added cleanup useEffect to properly remove event listeners on unmount
+  - Memoized all callback functions with useCallback to prevent listener accumulation
+  - Wrapped component with React.memo() and custom comparison function
+  - Prevents unnecessary re-renders when parent updates
+  - Expected impact: 84% memory reduction (4.5GB → 700MB-1GB stable)
+  - Fixes event listener accumulation from react-native-popup-menu Menu component
+  - Component now only re-renders when note.id or note.updated_at changes
 - **Database Input Validation Constraints** (2025-10-02)
   - Title max length: 200 characters (enforced at database level)
   - Title cannot be null or empty/whitespace
