@@ -8,6 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **18-Color Theme System** (Phase 2.1 - selectedSurface)
+  - Added selectedSurface color (9th Phase 2 color) for selected/active item states
+  - Provides visual feedback when note card menu is open
+  - Semantically distinct from elevatedSurface (selection vs elevation)
+  - All 10 themes include selectedSurface in light and dark modes
+- **10-Theme Color Spectrum** (5 new themes added)
+  - Forest: Natural green aesthetic for calm and focused work
+  - Lavender: Soft purple aesthetic for creative work
+  - Amber: Warm amber tones for energetic focus
+  - Midnight: True black for OLED screens with maximum contrast
+  - Rose: Soft rose aesthetic for gentle, modern design
+  - Complete color spectrum coverage: grey, teal, brown, blue, red, green, purple, orange, black, pink
 - **17-Color Theme System** (Phase 2 of Theme Expansion)
   - Expanded from 9 to 17 colors per theme for richer UI design
   - Added elevatedSurface for layered UI elements (modals, popovers)
@@ -17,14 +29,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added highlight color for selections and notifications
   - Added linkColor for hyperlinks (distinct from buttons)
   - Added accentSecondary for visual variety
-  - All 5 themes updated with full 17-color palettes (170 total color values)
+  - All themes updated with full 18-color palettes (180 total color values per theme)
   - Backward compatible: existing components work unchanged
 - **New Themes Added** (Phase 1 of Theme Expansion)
   - Sepia: Warm vintage aesthetic for comfortable reading with brown earth tones
   - Nord: Cool Arctic-inspired palette for focused work with blue accents
-  - Bear Red Graphite: Bold red accent on elegant graphite base for modern aesthetic
-  - All 3 new themes support light/dark modes with professional 9-color palettes
-  - Total themes increased from 2 to 5 (greyscale, appleNotes, sepia, nord, bearRedGraphite)
+  - Total themes increased from 2 to 10 across multiple phases
 - **Modal Theme Picker**
   - Full-screen modal with large theme previews (120x80px showing background, surface, text, tint)
   - Light/Dark preview toggle to see themes before applying
@@ -44,11 +54,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Theme Names Modernized**
+  - Renamed greyscale → Monochrome (pure cool neutrals)
+  - Renamed bearRedGraphite → Crimson (rich red aesthetic)
+  - Renamed appleNotes → Ocean (vibrant teal/turquoise)
+  - Updated DEFAULT_THEME_NAME to 'monochrome'
+- **Note Card UX Improvements**
+  - Decluttered note cards by consolidating actions into overflow menu
+  - Removed inline editing in favor of modal editing (preparing for rich text)
+  - Replaced centered modal menu with contextual dropdown using react-native-popup-menu
+  - Added visual highlight (selectedSurface background) when note menu is active
+- **Info Page Reorganization**
+  - Reordered cards: Quick Start (new), About, Git, Contact (new)
+  - Removed README and Integrations cards
+  - Added Quick Start onboarding card
+  - Added Contact support card
+- **Settings Page Cleanup**
+  - Removed "Theme Style" label above theme picker
+  - Renamed Debug section → Profile
+  - Profile section now shows only user email
+  - Removed debug color/scheme display fields
 - **Theme Selection UI Enhancement**
   - Replaced horizontal card grid with compact selector button in settings
   - Settings page now shows single-row theme selector with color preview dots
   - Tapping selector opens full-screen modal theme picker
-  - Scalable design ready for 20+ themes in future phases
+  - Scalable design supports 10+ themes
 - **Icon Assets**
   - Moved `noted-white.png` to `assets/images/` directory for proper organization
   - Updated `app.json` favicon and PWA manifest icon references
