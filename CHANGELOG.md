@@ -8,6 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Universal Card Component** (2025-10-02)
+  - Created universal Card component (`components/common/card.tsx`) ensuring pixel-perfect consistency across all card types
+  - Single source of truth for card structure: borderWidth 1, borderRadius 12, padding 16
+  - Header always includes bottom border for visual separation
+  - Supports both accordion mode (collapsible content) and static mode (always visible)
+  - Empty children handling to prevent unnecessary spacing
+  - All info cards migrated to use Card wrapper (download, quick-start, tech-stack, coming-soon, contact)
+  - Note cards refactored to use Card component while maintaining independent expansion behavior
+  - Eliminated duplicate card styling code across 6 components
+
+### Added
 - **Info Page Accordion Cards** (2025-10-02)
   - Created Download Card with iOS/Android/PC tabs and auto-detection
   - Platform-specific installation instructions for PWA setup
@@ -102,6 +113,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Card Component Standardization** (2025-10-02)
+  - Refactored all info cards to use universal Card component instead of inline structure
+  - Refactored note-item.tsx to use Card component for consistent sizing
+  - Note card button sizes reduced from 32x32 to 24x24 to match info card icons
+  - Collapsed card heights now identical across notes and info pages
+  - Visual consistency: all cards share same border, padding, radius, and header structure
 - **Info Page Structure**
   - Renamed "docs" tab to "info" tab
   - Reordered header icons: refresh, folder, new note (left to right)

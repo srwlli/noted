@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { Card } from '@/components/common/card';
 import { Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
 
@@ -99,21 +100,13 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
   }, [handleMoveToFolder]);
 
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,
-          borderColor: colors.border,
-        }
-      ]}
-    >
-      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-      <View style={styles.content}>
-        <View style={[
-          styles.titleRow,
-          isExpanded && { borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 8, marginBottom: 8 }
-        ]}>
+    <Card
+      isAccordion={false}
+      style={{
+        backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,
+      }}
+      headerContent={
+        <>
           <TouchableOpacity
             style={styles.chevronButton}
             onPress={handleToggleExpanded}
@@ -124,9 +117,11 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
               color={colors.text}
             />
           </TouchableOpacity>
-          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-            {note.title}
-          </Text>
+          <TouchableOpacity onPress={handlePress} activeOpacity={0.7} style={styles.titleButton}>
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {note.title}
+            </Text>
+          </TouchableOpacity>
           <View style={styles.actions}>
             <Menu
               onOpen={handleMenuOpen}
@@ -190,18 +185,18 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
               </MenuOptions>
             </Menu>
           </View>
-        </View>
-        {isExpanded && note.content && (
-          <Text
-            style={[styles.preview, { color: colors.textSecondary }]}
-            selectable={true}
-          >
-            {note.content}
-          </Text>
-        )}
-      </View>
-      </TouchableOpacity>
-    </View>
+        </>
+      }
+    >
+      {isExpanded && note.content && (
+        <Text
+          style={[styles.preview, { color: colors.textSecondary }]}
+          selectable={true}
+        >
+          {note.content}
+        </Text>
+      )}
+    </Card>
   );
 }, (prevProps, nextProps) => {
   // Only re-render if note actually changed
@@ -212,52 +207,34 @@ export const NoteItem = memo(({ note, onPress, onEdit, onDelete, onMoveToFolder 
 NoteItem.displayName = 'NoteItem';
 
 const styles = StyleSheet.create({
-  container: {
+  chevronButton: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-    marginBottom: 12,
-  },
-  content: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+  },
+  titleButton: {
+    flex: 1,
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
-    flex: 1,
-  },
-  preview: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  date: {
-    fontSize: 12,
   },
   actions: {
     flexDirection: 'row',
     gap: 8,
   },
-  chevronButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
   iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  preview: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   menuItem: {
     flexDirection: 'row',

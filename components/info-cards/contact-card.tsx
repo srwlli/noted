@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
+import { Text, TouchableOpacity, StyleSheet, Linking } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { Card } from '@/components/common/card';
 
 interface ContactCardProps {
   isExpanded: boolean;
@@ -16,24 +17,21 @@ export function ContactCard({ isExpanded, onToggle }: ContactCardProps) {
   };
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Accordion Header */}
-      <TouchableOpacity
-        style={styles.header}
-        onPress={onToggle}
-        activeOpacity={0.7}
-      >
-        <MaterialIcons
-          name={isExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'}
-          size={24}
-          color={colors.textSecondary}
-        />
-        <Text style={[styles.title, { color: colors.text }]}>Contact</Text>
-      </TouchableOpacity>
-
-      {/* Content Area - Only shown when expanded */}
-      {isExpanded && (
-        <View style={styles.content}>
+    <Card
+      isAccordion={true}
+      isExpanded={isExpanded}
+      onToggle={onToggle}
+      headerContent={
+        <>
+          <MaterialIcons
+            name={isExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'}
+            size={24}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.title, { color: colors.text }]}>Contact</Text>
+        </>
+      }
+    >
           <Text style={[styles.description, { color: colors.text }]}>
             Contact the team, report a bug or problem:
           </Text>
@@ -47,33 +45,14 @@ export function ContactCard({ isExpanded, onToggle }: ContactCardProps) {
               will.hart.sr@icloud.com
             </Text>
           </TouchableOpacity>
-        </View>
-      )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-  },
   title: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  content: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
-    padding: 16,
   },
   description: {
     fontSize: 14,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { Card } from '@/components/common/card';
 
 interface DownloadCardProps {
   isExpanded: boolean;
@@ -30,24 +31,21 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
   }, []);
 
   return (
-    <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      {/* Accordion Header */}
-      <TouchableOpacity
-        style={styles.header}
-        onPress={onToggle}
-        activeOpacity={0.7}
-      >
-        <MaterialIcons
-          name={isExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'}
-          size={24}
-          color={colors.textSecondary}
-        />
-        <Text style={[styles.title, { color: colors.text }]}>Download</Text>
-      </TouchableOpacity>
-
-      {/* Content Area - Only shown when expanded */}
-      {isExpanded && (
-        <View style={styles.content}>
+    <Card
+      isAccordion={true}
+      isExpanded={isExpanded}
+      onToggle={onToggle}
+      headerContent={
+        <>
+          <MaterialIcons
+            name={isExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'}
+            size={24}
+            color={colors.textSecondary}
+          />
+          <Text style={[styles.title, { color: colors.text }]}>Download</Text>
+        </>
+      }
+    >
           {/* Tab Headers */}
           <View style={[styles.tabHeaders, { borderBottomColor: colors.border }]}>
             <TouchableOpacity
@@ -99,8 +97,8 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
             </TouchableOpacity>
           </View>
 
-          {/* Tab Content */}
-          <View style={styles.tabContent}>
+        {/* Tab Content */}
+        <View style={styles.tabContent}>
             {activeTab === 'ios' && (
               <View>
                 <Text style={[styles.instructionTitle, { color: colors.text }]}>
@@ -181,33 +179,15 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
                 </Text>
               </View>
             )}
-          </View>
         </View>
-      )}
-    </View>
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-  },
   title: {
     fontSize: 18,
     fontWeight: '600',
-  },
-  content: {
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
   },
   tabHeaders: {
     flexDirection: 'row',
