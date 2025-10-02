@@ -1,0 +1,322 @@
+{
+  "title": "Marketing Website Plan for Noted App",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "medium",
+
+  "overview": {
+    "purpose": "Create a marketing landing page to showcase Noted app features, drive downloads, and improve SEO/discoverability",
+    "targetAudience": [
+      "Users looking for simple note-taking apps",
+      "Privacy-conscious users seeking offline-first solutions",
+      "Cross-platform users (iOS, Android, Desktop PWA)"
+    ],
+    "goals": [
+      "Increase app installations",
+      "Improve search engine visibility",
+      "Communicate app value proposition clearly",
+      "Provide download instructions for all platforms"
+    ]
+  },
+
+  "recommendedStack": {
+    "primary": {
+      "framework": "Astro",
+      "reasoning": [
+        "Fast, SEO-optimized static site generator",
+        "Ships zero JavaScript by default (perfect for marketing)",
+        "Excellent Core Web Vitals out of the box",
+        "Content-focused architecture",
+        "Component islands pattern for selective interactivity"
+      ],
+      "styling": "Tailwind CSS",
+      "stylingReason": [
+        "Quick styling with utility classes",
+        "Matches modern aesthetic",
+        "Can share design tokens/colors from main app",
+        "Responsive design built-in"
+      ],
+      "deployment": "Vercel",
+      "deploymentReason": [
+        "Already using Vercel for main app",
+        "Zero-config deployment",
+        "Free tier for static sites",
+        "Automatic HTTPS and CDN",
+        "Git-based workflow"
+      ]
+    },
+    "alternativeSimple": {
+      "stack": "HTML/CSS/JS (single index.html)",
+      "pros": [
+        "Zero build step",
+        "Ultimate simplicity",
+        "No dependencies"
+      ],
+      "cons": [
+        "Less tooling for components/reusability",
+        "Manual optimization required",
+        "Harder to maintain at scale"
+      ],
+      "useCase": "Minimum viable marketing page"
+    },
+    "alternativeWithCMS": {
+      "stack": "Astro + Decap CMS (or Astro + Supabase)",
+      "pros": [
+        "Non-technical team can update content",
+        "Visual editing interface",
+        "Can reuse existing Supabase database"
+      ],
+      "cons": [
+        "Additional complexity",
+        "CMS setup and maintenance",
+        "Likely overkill for simple marketing page"
+      ],
+      "useCase": "If marketing team needs frequent content updates"
+    }
+  },
+
+  "alternativeFrameworks": {
+    "qwik": {
+      "description": "Innovative framework with 'resumability' - instant interactivity without hydration",
+      "strengths": [
+        "Loads JS only when needed (similar to Astro)",
+        "Great for complex apps with lots of interactivity",
+        "Zero hydration cost for React/Vue components"
+      ],
+      "weaknesses": [
+        "Less mature than Astro",
+        "Smaller ecosystem and community",
+        "More complex than needed for simple marketing sites",
+        "Better suited for e-commerce or interactive apps"
+      ],
+      "recommendation": "Skip for Noted marketing page - Astro is simpler and more established"
+    },
+    "nextjs": {
+      "strengths": ["Familiar if you know React", "Large ecosystem"],
+      "weaknesses": ["Overkill for static marketing page", "More complex than Astro"],
+      "recommendation": "Use Astro instead"
+    },
+    "gatsby": {
+      "strengths": ["Mature static site generator"],
+      "weaknesses": ["Slower builds", "Astro is newer and faster"],
+      "recommendation": "Astro is better choice in 2025"
+    }
+  },
+
+  "cmsExplanation": {
+    "definition": "Content Management System - tool that lets non-technical people edit website content without touching code",
+    "example": "Instead of editing HTML to change '10 features' to '15 features', you use a visual editor/admin panel",
+    "popularOptions": {
+      "headlessCMS": {
+        "decapCMS": {
+          "description": "Formerly Netlify CMS - Free, git-based, no backend needed",
+          "bestFor": "Small teams, simple content updates"
+        },
+        "sanity": {
+          "description": "Powerful, free tier, real-time collaboration",
+          "bestFor": "Teams needing structured content and collaboration"
+        },
+        "strapi": {
+          "description": "Open source, self-hosted or cloud",
+          "bestFor": "Full control over content API"
+        },
+        "contentful": {
+          "description": "Enterprise-grade, generous free tier",
+          "bestFor": "Large teams, complex content models"
+        }
+      },
+      "gitBased": {
+        "decapCMS": "Commits directly to GitHub",
+        "tinaCMS": "Visual editing, saves to git"
+      }
+    },
+    "doYouNeedCMS": {
+      "probablyNo": [
+        "Simple, static content (features, pricing, download links)",
+        "You're technical and comfortable editing code",
+        "Content rarely changes"
+      ],
+      "probablyYes": [
+        "Marketing team needs to update content frequently",
+        "Multiple people need to edit without knowing code",
+        "Blog with frequent posts",
+        "Regular promotions or pricing changes"
+      ]
+    },
+    "recommendationForNoted": "Skip CMS. Use Astro with markdown files - easy to edit, no extra complexity"
+  },
+
+  "pageStructure": {
+    "sections": [
+      {
+        "name": "Hero",
+        "content": [
+          "App name and tagline",
+          "Brief value proposition",
+          "Primary CTA (Download/Install)",
+          "Hero image/screenshot"
+        ]
+      },
+      {
+        "name": "Features",
+        "content": [
+          "Highlight key features (folders, themes, offline, PWA)",
+          "Use icons and brief descriptions",
+          "Focus on benefits, not just features"
+        ]
+      },
+      {
+        "name": "Cross-Platform",
+        "content": [
+          "iOS, Android, Desktop support",
+          "PWA benefits (install as native app)",
+          "Offline-first capabilities"
+        ]
+      },
+      {
+        "name": "Download/Install",
+        "content": [
+          "Platform-specific download buttons",
+          "Installation instructions",
+          "Can reuse content from app's Download Card"
+        ]
+      },
+      {
+        "name": "Privacy & Security",
+        "content": [
+          "Highlight Supabase RLS and user data protection",
+          "Offline support = data stays local",
+          "No ads, no tracking (if applicable)"
+        ]
+      },
+      {
+        "name": "FAQ (optional)",
+        "content": [
+          "Common questions about PWA, offline mode, sync",
+          "Browser compatibility",
+          "Pricing (if applicable)"
+        ]
+      },
+      {
+        "name": "Footer",
+        "content": [
+          "Links to app, GitHub, contact",
+          "Social media (if applicable)",
+          "Copyright notice"
+        ]
+      }
+    ]
+  },
+
+  "implementationSteps": {
+    "phase1": {
+      "name": "Setup",
+      "tasks": [
+        "Create new Astro project (npx create astro@latest)",
+        "Install Tailwind CSS",
+        "Configure Vercel deployment",
+        "Set up custom domain (optional)"
+      ]
+    },
+    "phase2": {
+      "name": "Design & Content",
+      "tasks": [
+        "Extract design tokens from main app (colors, fonts)",
+        "Write marketing copy for each section",
+        "Gather screenshots and images",
+        "Create brand assets (logo, icons)"
+      ]
+    },
+    "phase3": {
+      "name": "Development",
+      "tasks": [
+        "Build page sections with Astro components",
+        "Style with Tailwind CSS",
+        "Optimize images (Astro Image component)",
+        "Add SEO meta tags",
+        "Implement analytics (if desired)"
+      ]
+    },
+    "phase4": {
+      "name": "SEO & Performance",
+      "tasks": [
+        "Add meta descriptions and Open Graph tags",
+        "Generate sitemap.xml",
+        "Optimize Core Web Vitals",
+        "Test on mobile devices",
+        "Add structured data (JSON-LD)"
+      ]
+    },
+    "phase5": {
+      "name": "Launch",
+      "tasks": [
+        "Deploy to Vercel",
+        "Test all links and CTAs",
+        "Submit to Google Search Console",
+        "Monitor analytics and performance"
+      ]
+    }
+  },
+
+  "seoConsiderations": {
+    "keywords": [
+      "note taking app",
+      "offline notes",
+      "PWA notes app",
+      "cross-platform notes",
+      "privacy-focused notes",
+      "folder organization notes"
+    ],
+    "metaTags": {
+      "title": "Noted - Simple, Private Note-Taking App",
+      "description": "Cross-platform note-taking app with folders, themes, and offline support. Install as a PWA on iOS, Android, and Desktop.",
+      "ogImage": "URL to social share image",
+      "twitterCard": "summary_large_image"
+    },
+    "performance": {
+      "targetLighthouseScore": 95,
+      "targetCoreWebVitals": {
+        "LCP": "< 2.5s",
+        "FID": "< 100ms",
+        "CLS": "< 0.1"
+      }
+    }
+  },
+
+  "designConsiderations": {
+    "branding": {
+      "colors": "Reuse theme colors from main app (can showcase theme variety)",
+      "typography": "Match app fonts or use complementary web fonts",
+      "logo": "Use existing noted-white.png or create marketing variant"
+    },
+    "tone": {
+      "voice": "Simple, clear, user-friendly",
+      "focus": "Benefits over features",
+      "style": "Modern, clean, minimal (match app aesthetic)"
+    },
+    "mobileFirst": "Design for mobile, enhance for desktop (PWA is mobile-first)"
+  },
+
+  "estimatedTimeline": {
+    "minimum": "4-8 hours (basic landing page)",
+    "recommended": "16-24 hours (polished, SEO-optimized)",
+    "withCMS": "24-40 hours (add 8-16 hours for CMS setup)"
+  },
+
+  "costEstimate": {
+    "development": "Free (DIY) or $500-2000 (freelancer)",
+    "hosting": "Free (Vercel)",
+    "domain": "$10-15/year (if custom domain desired)",
+    "total": "$10-2015/year depending on approach"
+  },
+
+  "futureEnhancements": {
+    "blog": "Add blog for updates, tips, tutorials (use Astro Content Collections)",
+    "documentation": "Separate docs site or integrated docs section",
+    "community": "User testimonials, case studies",
+    "analytics": "Track downloads, conversions, popular features",
+    "ab-testing": "Test different CTAs, hero copy, layouts"
+  },
+
+  "recommendation": "Start with Astro + Tailwind for fastest development. Deploy to Vercel. Skip CMS unless you have a marketing team. Focus on clear value proposition and strong CTAs. Optimize for SEO and Core Web Vitals from day one."
+}

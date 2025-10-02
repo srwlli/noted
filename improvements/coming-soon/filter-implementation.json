@@ -1,0 +1,383 @@
+{
+  "title": "Advanced Filtering System for Notes",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "low",
+
+  "overview": {
+    "description": "Add advanced filtering options beyond folder organization to help users find and organize notes",
+    "currentState": {
+      "filtering": "Only folder-based filtering exists (All Notes or specific folder)",
+      "sorting": "Notes sorted by created_at descending (newest first)",
+      "noAdvancedFilters": "No date filters, tag filters, or custom sorting"
+    },
+    "userNeed": [
+      "View recently edited notes",
+      "Filter by date range (last 7 days, last 30 days, etc.)",
+      "Sort by title (alphabetical), date created, date modified",
+      "Combine filters (e.g., folder + date range)",
+      "Quick filters without complex UI"
+    ]
+  },
+
+  "proposedFilters": {
+    "sortOptions": [
+      {
+        "id": "created_desc",
+        "label": "Newest First",
+        "description": "Sort by created_at descending (default)",
+        "orderBy": "created_at",
+        "ascending": false
+      },
+      {
+        "id": "created_asc",
+        "label": "Oldest First",
+        "description": "Sort by created_at ascending",
+        "orderBy": "created_at",
+        "ascending": true
+      },
+      {
+        "id": "updated_desc",
+        "label": "Recently Edited",
+        "description": "Sort by updated_at descending",
+        "orderBy": "updated_at",
+        "ascending": false
+      },
+      {
+        "id": "title_asc",
+        "label": "Title (A-Z)",
+        "description": "Sort by title alphabetically",
+        "orderBy": "title",
+        "ascending": true
+      },
+      {
+        "id": "title_desc",
+        "label": "Title (Z-A)",
+        "description": "Sort by title reverse alphabetically",
+        "orderBy": "title",
+        "ascending": false
+      }
+    ],
+    "dateFilters": [
+      {
+        "id": "all_time",
+        "label": "All Time",
+        "description": "Show all notes (default)"
+      },
+      {
+        "id": "today",
+        "label": "Today",
+        "description": "Notes created/updated today"
+      },
+      {
+        "id": "last_7_days",
+        "label": "Last 7 Days",
+        "description": "Notes from past week"
+      },
+      {
+        "id": "last_30_days",
+        "label": "Last 30 Days",
+        "description": "Notes from past month"
+      },
+      {
+        "id": "last_90_days",
+        "label": "Last 90 Days",
+        "description": "Notes from past quarter"
+      },
+      {
+        "id": "custom_range",
+        "label": "Custom Range",
+        "description": "User-selected start/end dates (future enhancement)"
+      }
+    ]
+  },
+
+  "uiDesign": {
+    "location": "Header area, near search/folder controls",
+    "component": "Filter button with dropdown menu",
+    "icon": "MaterialIcons 'filter-list' or 'tune'",
+    "dropdownSections": [
+      {
+        "title": "Sort By",
+        "options": "Radio buttons for sort options (single selection)",
+        "default": "Newest First"
+      },
+      {
+        "title": "Date Range",
+        "options": "Radio buttons for date filters (single selection)",
+        "default": "All Time"
+      }
+    ],
+    "activeIndicator": "Badge or dot on filter icon when non-default filters applied",
+    "clearFilters": "Reset to defaults button in dropdown footer"
+  },
+
+  "technicalImplementation": {
+    "state": {
+      "sortBy": {
+        "type": "useState<SortOption>('created_desc')",
+        "description": "Current sort option"
+      },
+      "dateFilter": {
+        "type": "useState<DateFilter>('all_time')",
+        "description": "Current date filter"
+      }
+    },
+    "filtering": {
+      "clientSide": true,
+      "reasoning": [
+        "Notes already loaded in memory",
+        "Instant filtering without API calls",
+        "Works offline (PWA requirement)",
+        "Simple array.filter() and array.sort()"
+      ],
+      "filterFunction": "const filteredNotes = notes\n  .filter(note => {\n    // Apply date filter\n    if (dateFilter === 'today') {\n      return isToday(new Date(note.updated_at));\n    }\n    if (dateFilter === 'last_7_days') {\n      return isWithinDays(new Date(note.updated_at), 7);\n    }\n    // ... etc\n    return true; // all_time\n  })\n  .sort((a, b) => {\n    // Apply sort option\n    if (sortBy === 'title_asc') {\n      return a.title.localeCompare(b.title);\n    }\n    if (sortBy === 'updated_desc') {\n      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();\n    }\n    // ... etc\n  });"
+    },
+    "files": {
+      "modified": [
+        {
+          "file": "app/(tabs)/index.tsx",
+          "changes": [
+            "Add sortBy and dateFilter state",
+            "Add filteredAndSortedNotes computed state",
+            "Apply filters and sorting before rendering",
+            "Pass filter state to SharedPageLayout/CommonHeader"
+          ]
+        },
+        {
+          "file": "components/common-header.tsx",
+          "changes": [
+            "Add filter button with dropdown",
+            "Show active filter indicator",
+            "Handle filter selection",
+            "Emit filter changes to parent"
+          ]
+        },
+        {
+          "file": "components/shared-page-layout.tsx",
+          "changes": [
+            "Add filter-related props",
+            "Pass to CommonHeader"
+          ]
+        }
+      ],
+      "created": [
+        {
+          "file": "components/filter-dropdown.tsx",
+          "purpose": "Reusable filter dropdown component",
+          "contains": [
+            "Sort options radio group",
+            "Date filter radio group",
+            "Clear filters button",
+            "Styled with theme colors"
+          ]
+        },
+        {
+          "file": "utils/date-helpers.ts",
+          "purpose": "Date filtering utility functions",
+          "contains": [
+            "isToday(date): boolean",
+            "isWithinDays(date, days): boolean",
+            "isWithinDateRange(date, start, end): boolean"
+          ]
+        }
+      ]
+    }
+  },
+
+  "implementationPlan": {
+    "phase1": {
+      "name": "Create Date Helper Utilities",
+      "tasks": [
+        {
+          "id": "1.1",
+          "task": "Create utils/date-helpers.ts",
+          "details": [
+            "isToday(date): boolean - checks if date is today",
+            "isWithinDays(date, days): boolean - checks if date within N days",
+            "Export helper functions for date filtering"
+          ]
+        }
+      ]
+    },
+    "phase2": {
+      "name": "Create Filter Dropdown Component",
+      "tasks": [
+        {
+          "id": "2.1",
+          "task": "Create components/filter-dropdown.tsx",
+          "details": [
+            "Modal/dropdown UI for filter options",
+            "Sort By section with radio buttons",
+            "Date Range section with radio buttons",
+            "Clear Filters button",
+            "Theme-aware styling",
+            "Close on selection or backdrop tap"
+          ]
+        },
+        {
+          "id": "2.2",
+          "task": "Define TypeScript types",
+          "details": [
+            "SortOption type (union of sort IDs)",
+            "DateFilter type (union of date filter IDs)",
+            "FilterDropdownProps interface"
+          ]
+        }
+      ]
+    },
+    "phase3": {
+      "name": "Integrate Filters into Notes Page",
+      "tasks": [
+        {
+          "id": "3.1",
+          "task": "Add filter state to index.tsx",
+          "details": [
+            "useState for sortBy (default: 'created_desc')",
+            "useState for dateFilter (default: 'all_time')",
+            "useMemo for filteredAndSortedNotes",
+            "Apply date filter first, then sort"
+          ]
+        },
+        {
+          "id": "3.2",
+          "task": "Add filter button to CommonHeader",
+          "details": [
+            "Filter icon button (MaterialIcons 'tune')",
+            "Show active indicator when filters applied",
+            "Open FilterDropdown on tap",
+            "Position: after search, before new note button"
+          ]
+        },
+        {
+          "id": "3.3",
+          "task": "Wire up filter callbacks",
+          "details": [
+            "onSortChange callback",
+            "onDateFilterChange callback",
+            "onClearFilters callback (resets to defaults)",
+            "Pass through SharedPageLayout to CommonHeader"
+          ]
+        }
+      ]
+    },
+    "phase4": {
+      "name": "Polish and Testing",
+      "tasks": [
+        {
+          "id": "4.1",
+          "task": "Add active filter indicator",
+          "details": [
+            "Badge or dot on filter icon when non-default",
+            "Clear visual feedback that filters are active",
+            "Update when filters change"
+          ]
+        },
+        {
+          "id": "4.2",
+          "task": "Test all filter combinations",
+          "details": [
+            "Each sort option works correctly",
+            "Each date filter works correctly",
+            "Filters combine with folder selection",
+            "Filters combine with search (if implemented)",
+            "Clear filters resets to defaults"
+          ]
+        },
+        {
+          "id": "4.3",
+          "task": "Empty state handling",
+          "details": [
+            "No notes after filtering: 'No notes match your filters'",
+            "Suggest clearing filters or changing folder",
+            "Different from 'No notes yet' empty state"
+          ]
+        },
+        {
+          "id": "4.4",
+          "task": "Update CHANGELOG.md",
+          "details": [
+            "Document filter feature",
+            "List sort and date filter options",
+            "Note offline support"
+          ]
+        }
+      ]
+    }
+  },
+
+  "filterInteractions": {
+    "withFolders": "Filters apply to notes in selected folder (or All Notes)",
+    "withSearch": "Search filters titles/content, then filters/sort apply to search results",
+    "priority": "Folder → Search → Date Filter → Sort",
+    "persistence": "Filter state resets on app reload (no localStorage) - keep simple"
+  },
+
+  "edgeCases": {
+    "noNotesAfterFilter": "Show 'No notes match your filters' with clear filters button",
+    "emptyFolder": "Filters disabled when folder is empty (gray out filter icon)",
+    "invalidDates": "Date filter handles timezone differences gracefully",
+    "performanceOver1000Notes": "Client-side filter/sort may slow down - consider virtualization"
+  },
+
+  "futureEnhancements": {
+    "customDateRange": [
+      "Date picker for start/end dates",
+      "Preset ranges (This Week, This Month, This Year)",
+      "Relative ranges (Last 6 months, Last year)"
+    ],
+    "tagFiltering": [
+      "Requires tags feature first",
+      "Filter by one or more tags",
+      "Combine tag filters (AND/OR logic)"
+    ],
+    "savedFilters": [
+      "Save filter presets",
+      "Quick access to favorite filter combinations",
+      "Share filter presets between devices"
+    ],
+    "advancedSorting": [
+      "Multi-level sort (e.g., folder → date → title)",
+      "Manual note ordering (drag-and-drop)",
+      "Pin notes to top"
+    ],
+    "filterPersistence": [
+      "Save filter state to localStorage",
+      "Restore filters on app reload",
+      "Per-folder filter preferences"
+    ]
+  },
+
+  "estimatedDuration": "6-8 hours",
+
+  "successCriteria": {
+    "functional": [
+      "All sort options work correctly",
+      "All date filters work correctly",
+      "Filters combine with folder selection",
+      "Clear filters resets to defaults",
+      "Active filter indicator shows/hides correctly",
+      "Works offline (PWA)"
+    ],
+    "visual": [
+      "Filter dropdown matches app theme",
+      "Active indicator clearly visible",
+      "Filter button aligns with header icons",
+      "Dropdown animations smooth"
+    ],
+    "ux": [
+      "Filter changes apply instantly",
+      "Easy to understand filter options",
+      "Clear feedback when no results",
+      "Easy to clear filters and reset"
+    ]
+  },
+
+  "notes": [
+    "Filters complement folders and search - not a replacement",
+    "Client-side filtering keeps app fast and offline-capable",
+    "Start simple (sort + date range) - add complexity later if needed",
+    "Active filter indicator crucial for user awareness",
+    "Consider filter icon placement carefully - don't clutter header"
+  ]
+}

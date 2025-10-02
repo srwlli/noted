@@ -1,0 +1,183 @@
+{
+  "title": "New Themes and Styles",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "low",
+
+  "overview": {
+    "description": "Expand theme system with additional color themes and customization options",
+    "currentState": {
+      "themes": "10 themes (Monochrome, Ocean, Sepia, Nord, Crimson, Forest, Lavender, Amber, Midnight, Rose)",
+      "colorScheme": "Light/Dark mode support",
+      "customization": "None - users limited to preset themes"
+    },
+    "userNeed": [
+      "More theme variety",
+      "Custom color themes",
+      "Font size adjustments",
+      "Accent color customization",
+      "Theme sharing/import"
+    ]
+  },
+
+  "proposedThemes": {
+    "newPresets": [
+      {
+        "name": "Solarized",
+        "description": "Classic Solarized color scheme (light/dark)",
+        "colors": "Warm beige/blue tones"
+      },
+      {
+        "name": "Dracula",
+        "description": "Popular dark theme for developers",
+        "colors": "Purple/pink accents on dark background"
+      },
+      {
+        "name": "Gruvbox",
+        "description": "Retro groove warm color scheme",
+        "colors": "Warm brown/orange/green tones"
+      },
+      {
+        "name": "Tokyo Night",
+        "description": "Modern dark theme inspired by Tokyo at night",
+        "colors": "Deep purple/blue with neon accents"
+      },
+      {
+        "name": "Catppuccin",
+        "description": "Pastel color scheme (multiple variants)",
+        "colors": "Soft pastels with good contrast"
+      }
+    ],
+    "totalAfter": "15+ preset themes"
+  },
+
+  "customizationFeatures": {
+    "customThemes": {
+      "description": "Allow users to create custom color themes",
+      "features": [
+        "Color picker for each theme color",
+        "Preview as you customize",
+        "Save custom themes",
+        "Export/import theme JSON",
+        "Share themes with other users"
+      ],
+      "priority": "medium"
+    },
+    "fontSizeControl": {
+      "description": "Adjust font sizes independently",
+      "options": [
+        "Small (90%)",
+        "Default (100%)",
+        "Large (110%)",
+        "Extra Large (120%)"
+      ],
+      "priority": "high"
+    },
+    "accentColorPicker": {
+      "description": "Change tint color while keeping theme",
+      "features": [
+        "Select accent color from palette",
+        "Applies to buttons, icons, links",
+        "Independent of theme selection"
+      ],
+      "priority": "low"
+    },
+    "fontFamilySelection": {
+      "description": "Choose from preset font families",
+      "options": [
+        "System Default",
+        "Sans-Serif (Inter, Roboto)",
+        "Serif (Merriweather, Georgia)",
+        "Monospace (Fira Code, Source Code Pro)"
+      ],
+      "priority": "low"
+    }
+  },
+
+  "technicalImplementation": {
+    "newThemes": {
+      "location": "constants/theme.ts",
+      "process": [
+        "Define 17-color palette for each new theme",
+        "Add theme metadata (displayName, description)",
+        "Test in light/dark modes",
+        "Verify contrast ratios (accessibility)"
+      ]
+    },
+    "customThemes": {
+      "storage": "AsyncStorage + Supabase (sync across devices)",
+      "schema": {
+        "id": "uuid",
+        "name": "string",
+        "colors": "Record<ColorKey, string>",
+        "user_id": "string",
+        "created_at": "timestamp"
+      },
+      "ui": "Custom theme editor modal"
+    },
+    "fontSizeControl": {
+      "implementation": "Global font scale multiplier in theme context",
+      "storage": "AsyncStorage (local preference)"
+    }
+  },
+
+  "implementationPlan": {
+    "phase1": {
+      "name": "Add 5 new preset themes",
+      "duration": "4-6 hours",
+      "themes": ["Solarized", "Dracula", "Gruvbox", "Tokyo Night", "Catppuccin"]
+    },
+    "phase2": {
+      "name": "Font size control",
+      "duration": "3-4 hours",
+      "tasks": [
+        "Add font size setting to settings page",
+        "Implement global font scale in theme context",
+        "Test across all components"
+      ]
+    },
+    "phase3": {
+      "name": "Custom theme creator",
+      "duration": "16-24 hours",
+      "tasks": [
+        "Build theme editor UI",
+        "Add color pickers for all theme colors",
+        "Implement live preview",
+        "Add save/load functionality",
+        "Sync custom themes to Supabase"
+      ]
+    },
+    "phase4": {
+      "name": "Theme sharing",
+      "duration": "8-12 hours",
+      "tasks": [
+        "Export theme as JSON",
+        "Import theme from JSON/URL",
+        "Community theme gallery (future)"
+      ]
+    }
+  },
+
+  "estimatedDuration": {
+    "newThemes": "4-6 hours",
+    "fontSizeControl": "3-4 hours",
+    "customThemes": "16-24 hours",
+    "themeSharing": "8-12 hours",
+    "total": "31-46 hours"
+  },
+
+  "accessibilityConsiderations": [
+    "All themes must meet WCAG 2.1 AA contrast ratios",
+    "Font size controls help users with vision impairments",
+    "Custom themes validated for accessibility",
+    "High contrast mode option (future)"
+  ],
+
+  "notes": [
+    "New preset themes are low-effort, high-value",
+    "Font size control is most requested customization",
+    "Custom theme creator is complex but enables creativity",
+    "Theme system architecture already supports expansion",
+    "Consider community theme submissions/voting"
+  ]
+}

@@ -1,0 +1,359 @@
+{
+  "title": "Search Bar Implementation for Notes",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "medium",
+
+  "overview": {
+    "description": "Add search functionality to notes page allowing users to quickly find notes by title or content",
+    "currentState": {
+      "notesPage": "app/(tabs)/index.tsx - displays all notes filtered by folder",
+      "filtering": "Only folder-based filtering exists (getNotesByFolder)",
+      "noSearch": "No search functionality implemented"
+    },
+    "userNeed": [
+      "Quickly find notes without scrolling through entire list",
+      "Search by title (primary) or content (secondary)",
+      "Clear visual feedback when searching",
+      "Easy to clear search and return to full list"
+    ]
+  },
+
+  "designDecisions": {
+    "searchLocation": {
+      "option": "Header integration",
+      "reasoning": [
+        "CommonHeader already manages refresh and folder icons",
+        "Search bar fits naturally in header row",
+        "Persistent across folder changes",
+        "Doesn't take space from notes list"
+      ],
+      "placement": "Between folder dropdown and new note button"
+    },
+    "searchBehavior": {
+      "type": "Client-side filtering",
+      "reasoning": [
+        "Notes already loaded in memory",
+        "Instant results (no API calls)",
+        "Works offline (PWA requirement)",
+        "Simple implementation with array.filter()"
+      ],
+      "alternative": "Server-side search via Supabase (future enhancement for large datasets)"
+    },
+    "searchScope": {
+      "primary": "Note title (case-insensitive)",
+      "secondary": "Note content (case-insensitive)",
+      "respectsFolders": "Search within current folder selection or 'All Notes'"
+    },
+    "uiDesign": {
+      "component": "TextInput with search icon",
+      "placeholder": "Search notes...",
+      "clearButton": "X icon when text present",
+      "styling": "Matches theme colors (border, background, text)",
+      "responsive": "Expands/collapses on mobile, always visible on desktop"
+    }
+  },
+
+  "technicalImplementation": {
+    "files": {
+      "modified": [
+        {
+          "file": "components/common-header.tsx",
+          "changes": [
+            "Add search icon button (desktop: always visible, mobile: toggles search bar)",
+            "Conditionally render search TextInput",
+            "Pass onSearchChange callback to parent",
+            "Handle search clear action"
+          ]
+        },
+        {
+          "file": "app/(tabs)/index.tsx",
+          "changes": [
+            "Add searchQuery state: useState<string>('')",
+            "Add filteredNotes computed state",
+            "Filter notes by searchQuery (title + content)",
+            "Pass onSearchChange to SharedPageLayout",
+            "Render filteredNotes instead of notes"
+          ]
+        },
+        {
+          "file": "components/shared-page-layout.tsx",
+          "changes": [
+            "Add onSearchChange?: (query: string) => void prop",
+            "Pass onSearchChange to CommonHeader"
+          ]
+        }
+      ],
+      "created": []
+    },
+    "searchLogic": {
+      "filterFunction": "const filteredNotes = notes.filter(note => {\n  const query = searchQuery.toLowerCase();\n  return note.title.toLowerCase().includes(query) || \n         note.content.toLowerCase().includes(query);\n});",
+      "debouncing": "Optional: debounce search input for performance (if >1000 notes)",
+      "emptyState": "Show 'No notes found' message when filteredNotes.length === 0 && searchQuery.length > 0"
+    }
+  },
+
+  "componentAPI": {
+    "commonHeader": {
+      "newProps": {
+        "onSearchChange": {
+          "type": "(query: string) => void",
+          "description": "Callback when search query changes"
+        },
+        "searchQuery": {
+          "type": "string",
+          "description": "Current search query (for controlled input)"
+        }
+      }
+    },
+    "sharedPageLayout": {
+      "newProps": {
+        "onSearchChange": {
+          "type": "(query: string) => void",
+          "description": "Pass-through to CommonHeader"
+        },
+        "searchQuery": {
+          "type": "string",
+          "description": "Pass-through to CommonHeader"
+        }
+      }
+    }
+  },
+
+  "implementationPlan": {
+    "phase1": {
+      "name": "Add Search UI to CommonHeader",
+      "tasks": [
+        {
+          "id": "1.1",
+          "task": "Add search state to CommonHeader",
+          "details": [
+            "Add isSearchOpen state (mobile toggle)",
+            "Add searchQuery state (controlled input)",
+            "Import MaterialIcons for search and close icons"
+          ]
+        },
+        {
+          "id": "1.2",
+          "task": "Add search icon button",
+          "details": [
+            "Desktop: search icon that toggles search bar",
+            "Mobile: search icon in header actions",
+            "Position: between folder dropdown and new note button",
+            "Style: match existing header icons"
+          ]
+        },
+        {
+          "id": "1.3",
+          "task": "Add search TextInput",
+          "details": [
+            "Conditional render: always visible on desktop, toggle on mobile",
+            "Placeholder: 'Search notes...'",
+            "Clear button (X icon) when text present",
+            "Auto-focus when opened on mobile",
+            "Style: border, borderRadius, padding match theme"
+          ]
+        },
+        {
+          "id": "1.4",
+          "task": "Wire up callbacks",
+          "details": [
+            "Call onSearchChange(query) when TextInput changes",
+            "Handle clear button: set query to '', call onSearchChange('')"
+          ]
+        }
+      ]
+    },
+    "phase2": {
+      "name": "Implement Search Logic in Notes Page",
+      "tasks": [
+        {
+          "id": "2.1",
+          "task": "Add search state to index.tsx",
+          "details": [
+            "Add useState<string>('') for searchQuery",
+            "Add useMemo for filteredNotes",
+            "Filter notes by searchQuery (case-insensitive title + content)"
+          ]
+        },
+        {
+          "id": "2.2",
+          "task": "Update render logic",
+          "details": [
+            "Map over filteredNotes instead of notes",
+            "Show empty state when filteredNotes.length === 0 && searchQuery",
+            "Keep existing empty state when notes.length === 0"
+          ]
+        },
+        {
+          "id": "2.3",
+          "task": "Pass search props to SharedPageLayout",
+          "details": [
+            "Pass searchQuery state",
+            "Pass handleSearchChange callback",
+            "SharedPageLayout forwards to CommonHeader"
+          ]
+        }
+      ]
+    },
+    "phase3": {
+      "name": "Polish and Edge Cases",
+      "tasks": [
+        {
+          "id": "3.1",
+          "task": "Handle search + folder interaction",
+          "details": [
+            "Search respects current folder selection",
+            "Changing folders preserves search query",
+            "Clear indication when searching within folder"
+          ]
+        },
+        {
+          "id": "3.2",
+          "task": "Add empty state messaging",
+          "details": [
+            "No notes: 'No notes yet. Create your first note!'",
+            "No search results: 'No notes found for \"{query}\"'",
+            "Different messaging for clarity"
+          ]
+        },
+        {
+          "id": "3.3",
+          "task": "Responsive design",
+          "details": [
+            "Desktop: search bar always visible, expands header slightly",
+            "Mobile: search icon toggles full-width search bar",
+            "Smooth transitions for show/hide"
+          ]
+        },
+        {
+          "id": "3.4",
+          "task": "Accessibility",
+          "details": [
+            "TextInput placeholder text",
+            "Clear button accessible label",
+            "Search icon accessible label",
+            "Keyboard shortcuts (optional: Cmd/Ctrl+F)"
+          ]
+        }
+      ]
+    },
+    "phase4": {
+      "name": "Testing and Documentation",
+      "tasks": [
+        {
+          "id": "4.1",
+          "task": "Test search functionality",
+          "details": [
+            "Search by title (exact, partial, case-insensitive)",
+            "Search by content",
+            "Search with folder filter",
+            "Clear search returns full list",
+            "Empty search shows all notes"
+          ]
+        },
+        {
+          "id": "4.2",
+          "task": "Cross-platform testing",
+          "details": [
+            "Desktop (web)",
+            "Mobile (iOS/Android)",
+            "PWA mode",
+            "Offline functionality"
+          ]
+        },
+        {
+          "id": "4.3",
+          "task": "Update CHANGELOG.md",
+          "details": [
+            "Document search bar feature",
+            "Note client-side filtering for instant results",
+            "Mention offline support"
+          ]
+        }
+      ]
+    }
+  },
+
+  "uiMockup": {
+    "header": {
+      "desktop": "[App Icon] [Refresh] [Folder ▼] [Search input..................] [🔍] [+]",
+      "mobile": "[App Icon] [🔍] [Folder ▼] [+]",
+      "mobileSearchOpen": "[← Back] [Search input.................] [✕]"
+    },
+    "searchBarStyle": {
+      "border": "1px solid colors.border",
+      "borderRadius": "8px",
+      "backgroundColor": "colors.surface",
+      "padding": "8px 12px",
+      "fontSize": "14px",
+      "color": "colors.text",
+      "placeholder": "colors.textSecondary"
+    }
+  },
+
+  "edgeCases": {
+    "emptySearch": "Empty string shows all notes (no filtering)",
+    "noResults": "Show friendly message: 'No notes found for \"{query}\"'",
+    "specialCharacters": "Handle quotes, apostrophes, unicode correctly",
+    "veryLongQuery": "TextInput should handle long search strings gracefully",
+    "performanceOver1000Notes": "Consider debouncing or virtualization (future enhancement)"
+  },
+
+  "futureEnhancements": {
+    "advancedSearch": [
+      "Search by date range",
+      "Search by folder (multi-select)",
+      "Regex support",
+      "Exclude terms (NOT operator)"
+    ],
+    "serverSideSearch": [
+      "Supabase full-text search for large datasets",
+      "Pagination of search results",
+      "Search result highlighting"
+    ],
+    "searchHistory": [
+      "Recent searches dropdown",
+      "Saved searches",
+      "Search suggestions as you type"
+    ],
+    "visualEnhancements": [
+      "Highlight search terms in results",
+      "Show snippet of matching content",
+      "Search result count badge"
+    ]
+  },
+
+  "estimatedDuration": "4-6 hours",
+
+  "successCriteria": {
+    "functional": [
+      "Search filters notes by title and content",
+      "Case-insensitive matching works",
+      "Search respects folder filter",
+      "Clear button resets search",
+      "Empty state shows appropriate message",
+      "Works offline (PWA)"
+    ],
+    "visual": [
+      "Search bar matches app theme",
+      "Smooth transitions on mobile toggle",
+      "Icons align with existing header elements",
+      "Responsive design works on all screen sizes"
+    ],
+    "ux": [
+      "Search results appear instantly",
+      "Clear feedback when no results found",
+      "Easy to clear search and return to full list",
+      "Search persists across folder changes"
+    ]
+  },
+
+  "notes": [
+    "Client-side filtering is sufficient for <1000 notes (instant results)",
+    "Search bar in header keeps notes list uncluttered",
+    "Mobile toggle pattern saves screen space",
+    "Future server-side search can replace filtering logic without UI changes",
+    "This feature complements folder organization, not replaces it"
+  ]
+}

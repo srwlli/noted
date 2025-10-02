@@ -1,0 +1,238 @@
+{
+  "title": "Sharing and Collaboration Features",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "medium",
+
+  "overview": {
+    "description": "Enable users to share notes with others and collaborate in real-time or asynchronously",
+    "currentState": {
+      "sharing": "None - notes are private to individual users",
+      "collaboration": "None - no multi-user editing"
+    },
+    "userNeed": [
+      "Share notes with colleagues/friends",
+      "Collaborate on shared notes",
+      "Public note links for sharing",
+      "Team workspaces",
+      "Comment on shared notes"
+    ]
+  },
+
+  "sharingModes": {
+    "publicLink": {
+      "description": "Generate public read-only link for a note",
+      "features": [
+        "Anyone with link can view",
+        "No login required",
+        "Optional password protection",
+        "Expiration dates",
+        "Revoke link anytime"
+      ],
+      "priority": "high",
+      "useCase": "Share meeting notes, documentation, recipes"
+    },
+    "directShare": {
+      "description": "Share note with specific Noted users",
+      "features": [
+        "Share by email/username",
+        "Permission levels (view, edit)",
+        "Shared notes appear in recipient's app",
+        "Notification when shared"
+      ],
+      "priority": "high",
+      "useCase": "Team collaboration, project notes"
+    },
+    "teamWorkspace": {
+      "description": "Shared folder/workspace for teams",
+      "features": [
+        "Multiple users access same folder",
+        "All notes in workspace are shared",
+        "Team member management",
+        "Workspace admin controls"
+      ],
+      "priority": "medium",
+      "useCase": "Company wikis, team projects"
+    }
+  },
+
+  "collaborationFeatures": {
+    "realTimeEditing": {
+      "description": "Multiple users edit same note simultaneously",
+      "technology": "Supabase Realtime + operational transformation",
+      "features": [
+        "See other users' cursors",
+        "Live updates as others type",
+        "Conflict resolution",
+        "User presence indicators"
+      ],
+      "priority": "low",
+      "complexity": "very high"
+    },
+    "comments": {
+      "description": "Add comments to shared notes",
+      "features": [
+        "Thread-based discussions",
+        "Mention other users (@username)",
+        "Resolve/unresolve comments",
+        "Comment notifications"
+      ],
+      "priority": "medium",
+      "complexity": "medium"
+    },
+    "versionHistory": {
+      "description": "Track changes and restore previous versions",
+      "features": [
+        "View edit history",
+        "See who made changes",
+        "Restore previous version",
+        "Compare versions (diff)"
+      ],
+      "priority": "medium",
+      "complexity": "medium"
+    }
+  },
+
+  "technicalImplementation": {
+    "database": {
+      "newTables": [
+        {
+          "name": "shared_notes",
+          "columns": {
+            "id": "uuid",
+            "note_id": "uuid (foreign key)",
+            "shared_with_user_id": "uuid (foreign key, nullable)",
+            "permission": "enum (view, edit)",
+            "public_link_token": "string (nullable)",
+            "password_hash": "string (nullable)",
+            "expires_at": "timestamp (nullable)",
+            "created_by": "uuid (foreign key)",
+            "created_at": "timestamp"
+          }
+        },
+        {
+          "name": "workspaces",
+          "columns": {
+            "id": "uuid",
+            "name": "string",
+            "created_by": "uuid",
+            "created_at": "timestamp"
+          }
+        },
+        {
+          "name": "workspace_members",
+          "columns": {
+            "workspace_id": "uuid",
+            "user_id": "uuid",
+            "role": "enum (admin, member, viewer)"
+          }
+        },
+        {
+          "name": "note_comments",
+          "columns": {
+            "id": "uuid",
+            "note_id": "uuid",
+            "user_id": "uuid",
+            "content": "text",
+            "resolved": "boolean",
+            "created_at": "timestamp"
+          }
+        }
+      ]
+    },
+    "rls": "Row-Level Security policies to enforce permissions",
+    "api": "Supabase Realtime for live updates and presence"
+  },
+
+  "implementationPlan": {
+    "phase1": {
+      "name": "Public Link Sharing",
+      "duration": "12-16 hours",
+      "tasks": [
+        "Create shared_notes table",
+        "Generate public link tokens",
+        "Public view page (no auth required)",
+        "Copy link button in note menu",
+        "Revoke link functionality"
+      ]
+    },
+    "phase2": {
+      "name": "Direct User Sharing",
+      "duration": "16-20 hours",
+      "tasks": [
+        "Share with user by email",
+        "Permission management (view/edit)",
+        "Shared notes section in app",
+        "Accept/decline share invitations",
+        "Unshare functionality"
+      ]
+    },
+    "phase3": {
+      "name": "Comments System",
+      "duration": "12-16 hours",
+      "tasks": [
+        "Create note_comments table",
+        "Comment UI component",
+        "Comment threads",
+        "Notifications for new comments",
+        "Resolve/unresolve comments"
+      ]
+    },
+    "phase4": {
+      "name": "Team Workspaces",
+      "duration": "20-24 hours",
+      "tasks": [
+        "Create workspaces and workspace_members tables",
+        "Workspace creation UI",
+        "Invite team members",
+        "Workspace admin controls",
+        "Move notes to workspace"
+      ]
+    },
+    "phase5": {
+      "name": "Real-Time Collaboration (Optional)",
+      "duration": "40-60 hours",
+      "tasks": [
+        "Implement operational transformation",
+        "User presence indicators",
+        "Cursor synchronization",
+        "Conflict resolution",
+        "Performance optimization"
+      ]
+    }
+  },
+
+  "estimatedDuration": {
+    "publicLinks": "12-16 hours",
+    "directSharing": "16-20 hours",
+    "comments": "12-16 hours",
+    "workspaces": "20-24 hours",
+    "realTime": "40-60 hours (optional)",
+    "totalMinimum": "60-76 hours",
+    "totalWithRealTime": "100-136 hours"
+  },
+
+  "securityConsiderations": [
+    "RLS policies prevent unauthorized access",
+    "Public link tokens are cryptographically secure",
+    "Password-protected links hashed with bcrypt",
+    "Audit log for share/unshare actions",
+    "Rate limiting on public link creation"
+  ],
+
+  "challenges": [
+    "Real-time collaboration is technically complex",
+    "Permission management UX must be intuitive",
+    "Notification system for share events",
+    "Preventing abuse of public links",
+    "Storage costs for shared workspaces"
+  ],
+
+  "notes": [
+    "Start with public links (simplest, high value)",
+    "Direct sharing enables team use cases",
+    "Real-time editing is nice-to-have, not essential",
+    "Comments add value without complexity of real-time",
+    "Consider freemium model: free personal, paid team features"
+  ]
+}

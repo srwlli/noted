@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Coming Soon Feature Synchronization** (2025-10-02)
+  - Created comprehensive planning docs for all Coming Soon features
+  - Added 5 new plan files: ide-integration.json, exports.json, n8n-automation.json, themes-and-styles.json, sharing-collaboration.json
+  - Added Search Bar and Advanced Filters to Coming Soon card (now showing 11 features total)
+  - Moved website-plan.json to improvements/business/ (not a user feature)
+  - Now all features in UI have corresponding detailed implementation plans
+  - Feature list includes: Rich Text Editor, Search Bar, Advanced Filters, Sharing and Collaboration, Exports, Private Notes, Data Abstraction, IDE Integration, n8n Automation, New Themes and Styles, AI Integrations
 - **Universal Card Component** (2025-10-02)
   - Created universal Card component (`components/common/card.tsx`) ensuring pixel-perfect consistency across all card types
   - Single source of truth for card structure: borderWidth 1, borderRadius 12, padding 16
