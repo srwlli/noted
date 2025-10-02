@@ -1,0 +1,344 @@
+{
+  "title": "5 New Theme Additions - Complete Color Spectrum",
+  "description": "Add Forest, Lavender, Amber, Midnight, and Rose themes to expand from 5 to 10 total themes, covering the full color spectrum",
+  "status": "pending",
+  "priority": "medium",
+  "total_themes_after": 10,
+
+  "existing_themes": [
+    {
+      "key": "monochrome",
+      "displayName": "Monochrome",
+      "description": "Clean monochrome design",
+      "temperature": "cool",
+      "base_tone": "pure grey"
+    },
+    {
+      "key": "graphite",
+      "displayName": "Graphite",
+      "description": "Warm graphite with earthy tones",
+      "temperature": "warm",
+      "base_tone": "brown-grey"
+    },
+    {
+      "key": "cream",
+      "displayName": "Cream",
+      "description": "Warm cream aesthetic for comfortable reading",
+      "temperature": "warm",
+      "base_tone": "beige-cream"
+    },
+    {
+      "key": "sepia",
+      "displayName": "Sepia",
+      "description": "Warm vintage aesthetic for comfortable reading",
+      "temperature": "very warm",
+      "base_tone": "brown-orange"
+    },
+    {
+      "key": "nord",
+      "displayName": "Nord",
+      "description": "Cool Arctic-inspired palette for focused work",
+      "temperature": "cool",
+      "base_tone": "blue-grey"
+    }
+  ],
+
+  "new_themes": [
+    {
+      "key": "forest",
+      "displayName": "Forest",
+      "description": "Natural green aesthetic for calm and focused work",
+      "temperature": "cool-neutral",
+      "base_tone": "green",
+      "light": {
+        "background": "#f0f4f0",
+        "surface": "#ffffff",
+        "text": "#1a2419",
+        "textSecondary": "#4a5d47",
+        "border": "#d4dfd4",
+        "tint": "#6b8e5e",
+        "icon": "#4a5d47",
+        "tabIconDefault": "#4a5d47",
+        "tabIconSelected": "#6b8e5e",
+        "elevatedSurface": "#f5f9f5",
+        "selectedSurface": "#e8f0e8",
+        "overlay": "rgba(26, 36, 25, 0.4)",
+        "hover": "#e8f0e8",
+        "pressed": "#d9e8d9",
+        "disabled": "#a5b5a3",
+        "highlight": "#d4f1d4",
+        "linkColor": "#6b8e5e",
+        "accentSecondary": "#8da87f"
+      },
+      "dark": {
+        "background": "#1a2419",
+        "surface": "#243023",
+        "text": "#e8f0e8",
+        "textSecondary": "#a5b5a3",
+        "border": "#3a4738",
+        "tint": "#8da87f",
+        "icon": "#a5b5a3",
+        "tabIconDefault": "#a5b5a3",
+        "tabIconSelected": "#8da87f",
+        "elevatedSurface": "#2d3a2c",
+        "selectedSurface": "#364433",
+        "overlay": "rgba(0, 0, 0, 0.7)",
+        "hover": "#2a3828",
+        "pressed": "#1f2a1e",
+        "disabled": "#5a6659",
+        "highlight": "#3a4738",
+        "linkColor": "#8da87f",
+        "accentSecondary": "#6b8e5e"
+      }
+    },
+    {
+      "key": "lavender",
+      "displayName": "Lavender",
+      "description": "Soft purple aesthetic for creative work",
+      "temperature": "cool",
+      "base_tone": "purple",
+      "light": {
+        "background": "#f5f3f8",
+        "surface": "#ffffff",
+        "text": "#1e1a24",
+        "textSecondary": "#5d5466",
+        "border": "#e0d9e8",
+        "tint": "#9b7fb5",
+        "icon": "#5d5466",
+        "tabIconDefault": "#5d5466",
+        "tabIconSelected": "#9b7fb5",
+        "elevatedSurface": "#f9f7fc",
+        "selectedSurface": "#ede8f4",
+        "overlay": "rgba(30, 26, 36, 0.4)",
+        "hover": "#ede8f4",
+        "pressed": "#dfd6ea",
+        "disabled": "#b3a5bf",
+        "highlight": "#e8d9f5",
+        "linkColor": "#9b7fb5",
+        "accentSecondary": "#b699cc"
+      },
+      "dark": {
+        "background": "#1e1a24",
+        "surface": "#2a2430",
+        "text": "#f0ecf5",
+        "textSecondary": "#b3a5bf",
+        "border": "#3d3447",
+        "tint": "#b699cc",
+        "icon": "#b3a5bf",
+        "tabIconDefault": "#b3a5bf",
+        "tabIconSelected": "#b699cc",
+        "elevatedSurface": "#342f3d",
+        "selectedSurface": "#3e3847",
+        "overlay": "rgba(0, 0, 0, 0.7)",
+        "hover": "#2f2838",
+        "pressed": "#241f2b",
+        "disabled": "#5a4f66",
+        "highlight": "#3d3447",
+        "linkColor": "#b699cc",
+        "accentSecondary": "#9b7fb5"
+      }
+    },
+    {
+      "key": "amber",
+      "displayName": "Amber",
+      "description": "Warm amber tones for energetic focus",
+      "temperature": "warm",
+      "base_tone": "orange",
+      "light": {
+        "background": "#fef5f0",
+        "surface": "#ffffff",
+        "text": "#2d1f14",
+        "textSecondary": "#6b5444",
+        "border": "#e8d9cc",
+        "tint": "#d87a3a",
+        "icon": "#6b5444",
+        "tabIconDefault": "#6b5444",
+        "tabIconSelected": "#d87a3a",
+        "elevatedSurface": "#fefaf7",
+        "selectedSurface": "#f7ede5",
+        "overlay": "rgba(45, 31, 20, 0.4)",
+        "hover": "#f7ede5",
+        "pressed": "#eddfd0",
+        "disabled": "#b8a594",
+        "highlight": "#ffe4cc",
+        "linkColor": "#d87a3a",
+        "accentSecondary": "#e69960"
+      },
+      "dark": {
+        "background": "#1f1810",
+        "surface": "#2b2219",
+        "text": "#f5ebe0",
+        "textSecondary": "#b8a594",
+        "border": "#3d3128",
+        "tint": "#e69960",
+        "icon": "#b8a594",
+        "tabIconDefault": "#b8a594",
+        "tabIconSelected": "#e69960",
+        "elevatedSurface": "#352a20",
+        "selectedSurface": "#3f3428",
+        "overlay": "rgba(0, 0, 0, 0.7)",
+        "hover": "#322722",
+        "pressed": "#261f18",
+        "disabled": "#6b5d50",
+        "highlight": "#3d3128",
+        "linkColor": "#e69960",
+        "accentSecondary": "#d87a3a"
+      }
+    },
+    {
+      "key": "midnight",
+      "displayName": "Midnight",
+      "description": "True black for OLED screens and maximum contrast",
+      "temperature": "cool",
+      "base_tone": "true black",
+      "light": {
+        "background": "#f5f5f7",
+        "surface": "#ffffff",
+        "text": "#1c1c1e",
+        "textSecondary": "#6e6e73",
+        "border": "#d1d1d6",
+        "tint": "#00d4ff",
+        "icon": "#6e6e73",
+        "tabIconDefault": "#6e6e73",
+        "tabIconSelected": "#00d4ff",
+        "elevatedSurface": "#fafafa",
+        "selectedSurface": "#ebebf0",
+        "overlay": "rgba(28, 28, 30, 0.4)",
+        "hover": "#ebebf0",
+        "pressed": "#d9d9de",
+        "disabled": "#aeaeb2",
+        "highlight": "#ccf5ff",
+        "linkColor": "#00d4ff",
+        "accentSecondary": "#5eb3ff"
+      },
+      "dark": {
+        "background": "#000000",
+        "surface": "#1c1c1e",
+        "text": "#ffffff",
+        "textSecondary": "#98989d",
+        "border": "#38383a",
+        "tint": "#00d4ff",
+        "icon": "#98989d",
+        "tabIconDefault": "#98989d",
+        "tabIconSelected": "#00d4ff",
+        "elevatedSurface": "#2c2c2e",
+        "selectedSurface": "#3a3a3c",
+        "overlay": "rgba(0, 0, 0, 0.9)",
+        "hover": "#2c2c2e",
+        "pressed": "#1c1c1e",
+        "disabled": "#48484a",
+        "highlight": "#003d4d",
+        "linkColor": "#00d4ff",
+        "accentSecondary": "#5eb3ff"
+      }
+    },
+    {
+      "key": "rose",
+      "displayName": "Rose",
+      "description": "Soft rose aesthetic for gentle, modern design",
+      "temperature": "warm",
+      "base_tone": "pink",
+      "light": {
+        "background": "#fef5f7",
+        "surface": "#ffffff",
+        "text": "#2d1a1f",
+        "textSecondary": "#6b4a54",
+        "border": "#e8d4d9",
+        "tint": "#c76b7a",
+        "icon": "#6b4a54",
+        "tabIconDefault": "#6b4a54",
+        "tabIconSelected": "#c76b7a",
+        "elevatedSurface": "#fefafa",
+        "selectedSurface": "#f7e8eb",
+        "overlay": "rgba(45, 26, 31, 0.4)",
+        "hover": "#f7e8eb",
+        "pressed": "#edd9de",
+        "disabled": "#b8a5a9",
+        "highlight": "#ffd9e0",
+        "linkColor": "#c76b7a",
+        "accentSecondary": "#d98c99"
+      },
+      "dark": {
+        "background": "#1f1719",
+        "surface": "#2b2022",
+        "text": "#f5e8eb",
+        "textSecondary": "#b8a5a9",
+        "border": "#3d3135",
+        "tint": "#d98c99",
+        "icon": "#b8a5a9",
+        "tabIconDefault": "#b8a5a9",
+        "tabIconSelected": "#d98c99",
+        "elevatedSurface": "#352a2d",
+        "selectedSurface": "#3f3336",
+        "overlay": "rgba(0, 0, 0, 0.7)",
+        "hover": "#322528",
+        "pressed": "#261d20",
+        "disabled": "#6b5a5e",
+        "highlight": "#3d3135",
+        "linkColor": "#d98c99",
+        "accentSecondary": "#c76b7a"
+      }
+    }
+  ],
+
+  "implementation_steps": [
+    {
+      "step": 1,
+      "file": "constants/theme.ts",
+      "action": "Update ThemeName type",
+      "code": "export type ThemeName = 'monochrome' | 'graphite' | 'cream' | 'sepia' | 'nord' | 'forest' | 'lavender' | 'amber' | 'midnight' | 'rose';"
+    },
+    {
+      "step": 2,
+      "file": "constants/theme.ts",
+      "action": "Add all 5 new theme objects to Themes record",
+      "note": "Copy color values from new_themes array above"
+    },
+    {
+      "step": 3,
+      "file": "constants/theme.ts",
+      "action": "Rename existing themes (if desired)",
+      "optional": true,
+      "changes": {
+        "greyscale": "monochrome",
+        "bearRedGraphite": "graphite",
+        "appleNotes": "cream"
+      }
+    }
+  ],
+
+  "theme_spectrum_coverage": {
+    "neutrals": ["monochrome", "graphite", "cream", "sepia"],
+    "cool_colors": ["nord", "lavender", "midnight"],
+    "warm_colors": ["graphite", "cream", "sepia", "amber", "rose"],
+    "nature": ["forest"],
+    "special": ["midnight (OLED black)"],
+    "color_families": {
+      "grey": "monochrome",
+      "brown": "graphite, sepia",
+      "beige": "cream",
+      "blue": "nord, midnight",
+      "green": "forest",
+      "purple": "lavender",
+      "orange": "amber",
+      "pink": "rose"
+    }
+  },
+
+  "benefits": {
+    "user_choice": "10 distinct themes covering full color spectrum",
+    "accessibility": "Midnight theme with true black for OLED and high contrast",
+    "aesthetics": "Each theme has unique visual identity and emotional tone",
+    "market_appeal": "Covers popular aesthetics (Rose Gold, Forest Green, Lavender, etc.)"
+  },
+
+  "testing_checklist": [
+    "Verify all 10 themes render correctly in light mode",
+    "Verify all 10 themes render correctly in dark mode",
+    "Test theme picker UI displays all 10 options",
+    "Check theme switching works for all combinations",
+    "Validate selectedSurface contrast in all themes",
+    "Test Midnight theme on OLED devices for true black",
+    "Ensure theme metadata (names/descriptions) are user-friendly"
+  ]
+}

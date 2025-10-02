@@ -1,0 +1,142 @@
+{
+  "title": "Add selectedSurface Color Property (Phase 2.1)",
+  "description": "Add a new selectedSurface color to distinguish selected/active states from elevated surfaces. This creates semantic clarity and fixes the sepia theme's poor contrast issue.",
+  "status": "pending",
+  "priority": "high",
+  "files_modified": [
+    "constants/theme.ts",
+    "components/note-item.tsx"
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "title": "Update ColorScheme Interface",
+      "file": "constants/theme.ts",
+      "location": "line 20-41",
+      "description": "Add selectedSurface property to ColorScheme interface",
+      "change": {
+        "type": "add_property",
+        "property": "selectedSurface: string;",
+        "position": "after elevatedSurface",
+        "comment": "NEW - for selected/active item states"
+      }
+    },
+    {
+      "step": 2,
+      "title": "Add selectedSurface to Greyscale Theme",
+      "file": "constants/theme.ts",
+      "theme": "greyscale",
+      "values": {
+        "light": {
+          "selectedSurface": "#e8e8e6",
+          "rationale": "Noticeably darker (midpoint between surface/hover)"
+        },
+        "dark": {
+          "selectedSurface": "#363636",
+          "rationale": "Clearly lighter (midpoint between elevated/hover)"
+        }
+      }
+    },
+    {
+      "step": 3,
+      "title": "Add selectedSurface to Apple Notes Theme",
+      "file": "constants/theme.ts",
+      "theme": "appleNotes",
+      "values": {
+        "light": {
+          "selectedSurface": "#f5f3f0",
+          "rationale": "Warm cream tint (matches background aesthetic)"
+        },
+        "dark": {
+          "selectedSurface": "#404042",
+          "rationale": "Noticeably lighter step"
+        }
+      }
+    },
+    {
+      "step": 4,
+      "title": "Add selectedSurface to Sepia Theme (PRIMARY FIX)",
+      "file": "constants/theme.ts",
+      "theme": "sepia",
+      "values": {
+        "light": {
+          "selectedSurface": "#f0e9dd",
+          "rationale": "Clear warm darker tone (between surface/hover)",
+          "contrast_improvement": "~18 unit difference vs current 0"
+        },
+        "dark": {
+          "selectedSurface": "#3d342c",
+          "rationale": "Noticeably lighter warm step",
+          "contrast_improvement": "Better visibility than current minimal difference"
+        }
+      }
+    },
+    {
+      "step": 5,
+      "title": "Add selectedSurface to Nord Theme",
+      "file": "constants/theme.ts",
+      "theme": "nord",
+      "values": {
+        "light": {
+          "selectedSurface": "#dde3eb",
+          "rationale": "Cool light grey (between background/surface)"
+        },
+        "dark": {
+          "selectedSurface": "#4c566a",
+          "rationale": "Lighter arctic grey step"
+        }
+      }
+    },
+    {
+      "step": 6,
+      "title": "Add selectedSurface to Bear Red Graphite Theme",
+      "file": "constants/theme.ts",
+      "theme": "bearRedGraphite",
+      "values": {
+        "light": {
+          "selectedSurface": "#e8e6e4",
+          "rationale": "Slightly darker graphite"
+        },
+        "dark": {
+          "selectedSurface": "#3d3d3d",
+          "rationale": "Lighter graphite step"
+        }
+      }
+    },
+    {
+      "step": 7,
+      "title": "Update Note Card Component",
+      "file": "components/note-item.tsx",
+      "location": "line 36",
+      "change": {
+        "from": "backgroundColor: isMenuOpen ? colors.elevatedSurface : colors.surface,",
+        "to": "backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,"
+      }
+    }
+  ],
+  "design_strategy": {
+    "light_mode": "Selected surfaces are darker than base surface (creates visual depth effect, matches user expectation)",
+    "dark_mode": "Selected surfaces are lighter than base surface (follows elevation principle, better visibility in low-light)"
+  },
+  "contrast_ratios": {
+    "greyscale": "~15 unit difference (visible)",
+    "appleNotes": "~10 unit difference (subtle but clear)",
+    "sepia": "~18 unit difference (MUCH better than current 0!)",
+    "nord": "~20 unit difference (crisp Arctic contrast)",
+    "bearRedGraphite": "~10 unit difference (elegant graphite shift)"
+  },
+  "testing_checklist": [
+    "Verify note card selection visibility in all 5 themes × 2 modes = 10 variations",
+    "Confirm sepia theme now has clear visual feedback",
+    "Ensure elevatedSurface still works for other UI (modals, dropdowns)"
+  ],
+  "semantic_improvement": {
+    "before": "elevatedSurface used for both z-axis elevation AND selection state (conflated concepts)",
+    "after": "elevatedSurface = z-axis depth, selectedSurface = interaction state (clean separation)"
+  },
+  "impact": {
+    "primary_fix": "Sepia theme selection now visible",
+    "architectural": "Better semantic color system for future components",
+    "maintenance": "Clear naming makes intent obvious to developers"
+  }
+}

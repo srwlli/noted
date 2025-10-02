@@ -1,0 +1,383 @@
+{
+  "title": "Modal Theme Picker Implementation",
+  "status": "PLANNED",
+  "date_created": "2025-09-30",
+  "priority": "HIGH",
+  "estimated_time": "3-4 hours",
+  "phase": "Enhancement to Phase 1",
+
+  "overview": {
+    "goal": "Replace theme card grid with modal-based theme picker for better scalability and customization",
+    "rationale": "Current card grid works for 5 themes but doesn't scale well. Modal provides dedicated space for theme exploration and future features (filters, search, favorites).",
+    "user_benefit": "More intuitive theme selection, better previews, ready for personalization features",
+    "files_to_create": [
+      "components/theme-picker-modal.tsx",
+      "components/theme-card.tsx"
+    ],
+    "files_to_modify": [
+      "app/(tabs)/settings.tsx",
+      "CHANGELOG.md"
+    ]
+  },
+
+  "current_state": {
+    "ui_pattern": "Horizontal card grid with flexWrap",
+    "issues": [
+      "Takes significant vertical space (5 cards)",
+      "Cards use flex: 1 which causes inconsistent sizing",
+      "Last row (5th card) stretches awkwardly",
+      "Doesn't scale well for Phase 2/3 when more themes are added",
+      "Small previews (60x40px)",
+      "Limited space for metadata display"
+    ]
+  },
+
+  "proposed_solution": {
+    "settings_page": {
+      "pattern": "Single row button showing current theme",
+      "components": [
+        "Color preview dots (background, surface, tint)",
+        "Theme display name",
+        "Theme description (1 line)",
+        "Chevron right indicator"
+      ],
+      "interaction": "Tap button opens full-screen modal"
+    },
+    "modal": {
+      "pattern": "Full-screen theme gallery",
+      "layout": "Fixed header + scrollable grid",
+      "components": [
+        "Header with title and close button",
+        "Preview mode toggle (Light/Dark)",
+        "Scrollable theme grid (2-3 columns)",
+        "Large theme cards with previews"
+      ]
+    }
+  },
+
+  "implementation_phases": {
+    "phase_1_basic_modal": {
+      "status": "PLANNED",
+      "estimated_time": "3-4 hours",
+      "description": "Core modal functionality with large previews",
+      "features": [
+        "Modal with slide-up animation",
+        "Theme grid (2 columns mobile, 3 columns desktop)",
+        "Large visual previews (120x80px)",
+        "Light/Dark preview toggle",
+        "Selected theme indicator",
+        "Settings page selector button"
+      ],
+      "deliverables": [
+        "ThemePickerModal component",
+        "ThemeCard component",
+        "Updated settings page",
+        "Styling for modal and cards"
+      ]
+    },
+    "phase_2_enhanced_features": {
+      "status": "FUTURE",
+      "estimated_time": "2-3 hours",
+      "description": "Add filtering, search, and personalization",
+      "features": [
+        "Mood/tag filtering (warm, cool, bold)",
+        "Search bar",
+        "Sort options (name, recent, popular)",
+        "Favorites/pinned themes",
+        "Live preview mode"
+      ],
+      "depends_on": "Phase 2/3 theme metadata (mood, usageNotes)"
+    }
+  },
+
+  "detailed_implementation": {
+    "step_1_create_theme_picker_modal": {
+      "order": 1,
+      "file": "components/theme-picker-modal.tsx (NEW)",
+      "task": "Create main modal component",
+      "estimated_lines": 200,
+      "structure": {
+        "interface": "ThemePickerModalProps { visible, currentTheme, onSelectTheme, onClose }",
+        "state": [
+          "previewMode: 'light' | 'dark'",
+          "Optional future: searchQuery, selectedMood, sortBy"
+        ],
+        "sections": [
+          "Modal container with page sheet presentation",
+          "Fixed header (title + close button)",
+          "Preview toggle (Light/Dark segmented buttons)",
+          "Scrollable theme grid",
+          "Theme cards mapped from Themes object"
+        ]
+      },
+      "code_template": "interface ThemePickerModalProps {\n  visible: boolean;\n  currentTheme: ThemeName;\n  onSelectTheme: (theme: ThemeName) => void;\n  onClose: () => void;\n}\n\nexport function ThemePickerModal({ visible, currentTheme, onSelectTheme, onClose }: ThemePickerModalProps) {\n  const { colors } = useThemeColors();\n  const [previewMode, setPreviewMode] = useState<'light' | 'dark'>('light');\n  \n  return (\n    <Modal\n      visible={visible}\n      animationType=\"slide\"\n      presentationStyle=\"pageSheet\"\n      onRequestClose={onClose}\n    >\n      {/* Implementation */}\n    </Modal>\n  );\n}"
+    },
+
+    "step_2_create_theme_card": {
+      "order": 2,
+      "file": "components/theme-card.tsx (NEW)",
+      "task": "Create individual theme card component",
+      "estimated_lines": 100,
+      "structure": {
+        "interface": "ThemeCardProps { themeKey, theme, isSelected, previewMode, onSelect }",
+        "preview_design": {
+          "size": "120x80px",
+          "elements": [
+            "Background color (full preview area)",
+            "Surface card (80% width, centered)",
+            "Text lines (2x: text + textSecondary colors)",
+            "Accent bar (tint color, bottom)"
+          ]
+        },
+        "card_info": [
+          "Display name (14px bold)",
+          "Description (12px secondary)",
+          "Selected badge (if current theme)"
+        ]
+      },
+      "styling": {
+        "card": "200px width, 250px height, rounded corners, border",
+        "selected_state": "3px border in tint color + selected badge",
+        "hover": "Optional hover effect (web)",
+        "pressed": "Opacity 0.7 on press"
+      }
+    },
+
+    "step_3_update_settings_page": {
+      "order": 3,
+      "file": "app/(tabs)/settings.tsx",
+      "task": "Replace theme cards grid with modal trigger button",
+      "changes": [
+        {
+          "action": "Add state",
+          "code": "const [showThemePicker, setShowThemePicker] = useState(false);"
+        },
+        {
+          "action": "Remove themeOptions View with 5 TouchableOpacity cards",
+          "line_range": "65-170"
+        },
+        {
+          "action": "Add theme selector button",
+          "location": "After 'Theme Style' label (line ~60)",
+          "code": "<TouchableOpacity\n  style={[styles.themeSelectorButton, { backgroundColor: colors.surface, borderColor: colors.border }]}\n  onPress={() => setShowThemePicker(true)}\n>\n  <View style={styles.currentThemePreview}>\n    <View style={[styles.previewDot, { backgroundColor: colors.background }]} />\n    <View style={[styles.previewDot, { backgroundColor: colors.surface }]} />\n    <View style={[styles.previewDot, { backgroundColor: colors.tint }]} />\n  </View>\n  \n  <View style={styles.themeSelectorInfo}>\n    <Text style={[styles.themeSelectorValue, { color: colors.text }]}>\n      {Themes[themeName].displayName}\n    </Text>\n    <Text style={[styles.themeSelectorDesc, { color: colors.textSecondary }]}>\n      {Themes[themeName].description}\n    </Text>\n  </View>\n  \n  <Icon name=\"chevron-right\" color={colors.textSecondary} size={20} />\n</TouchableOpacity>"
+        },
+        {
+          "action": "Add ThemePickerModal component",
+          "location": "Before closing SharedPageLayout tag",
+          "code": "<ThemePickerModal\n  visible={showThemePicker}\n  currentTheme={themeName}\n  onSelectTheme={(theme) => {\n    setTheme(theme);\n    setShowThemePicker(false);\n  }}\n  onClose={() => setShowThemePicker(false)}\n/>"
+        },
+        {
+          "action": "Remove old theme card styles",
+          "styles_to_remove": [
+            "themeOptions",
+            "themeOption",
+            "themePreview",
+            "themePreviewCard",
+            "themePreviewText",
+            "themeOptionText",
+            "themeOptionDesc"
+          ]
+        },
+        {
+          "action": "Add new selector button styles",
+          "styles_to_add": {
+            "themeSelectorButton": "{ flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 12, borderWidth: 1, marginVertical: 12 }",
+            "currentThemePreview": "{ flexDirection: 'row', gap: 4, marginRight: 12 }",
+            "previewDot": "{ width: 24, height: 24, borderRadius: 12, borderWidth: 1, borderColor: '#e0e0e0' }",
+            "themeSelectorInfo": "{ flex: 1 }",
+            "themeSelectorValue": "{ fontSize: 16, fontWeight: '600', marginBottom: 2 }",
+            "themeSelectorDesc": "{ fontSize: 14 }"
+          }
+        }
+      ]
+    },
+
+    "step_4_modal_styles": {
+      "order": 4,
+      "file": "components/theme-picker-modal.tsx",
+      "task": "Add comprehensive modal styling",
+      "styles": {
+        "modalContainer": "{ flex: 1, backgroundColor: colors.background }",
+        "modalHeader": "{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: colors.border }",
+        "modalTitle": "{ fontSize: 24, fontWeight: 'bold', color: colors.text }",
+        "previewToggle": "{ paddingHorizontal: 20, paddingVertical: 12 }",
+        "themeGrid": "{ flex: 1, paddingHorizontal: 16, paddingTop: 12 }",
+        "gridContainer": "{ flexDirection: 'row', flexWrap: 'wrap', gap: 16, paddingBottom: 40 }"
+      }
+    },
+
+    "step_5_theme_card_styles": {
+      "order": 5,
+      "file": "components/theme-card.tsx",
+      "task": "Add theme card styling",
+      "styles": {
+        "themeCard": "{ width: 180, marginBottom: 16, borderRadius: 16, borderWidth: 2, overflow: 'hidden' }",
+        "largePreview": "{ width: '100%', height: 120, position: 'relative', padding: 12 }",
+        "previewSurface": "{ width: '80%', height: 60, borderRadius: 8, padding: 8, marginHorizontal: 'auto' }",
+        "previewText": "{ height: 4, borderRadius: 2, marginBottom: 6 }",
+        "previewAccent": "{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 8 }",
+        "themeCardInfo": "{ padding: 12, backgroundColor: colors.surface }",
+        "themeCardName": "{ fontSize: 16, fontWeight: '600', marginBottom: 4, color: colors.text }",
+        "themeCardDesc": "{ fontSize: 12, color: colors.textSecondary, lineHeight: 16 }",
+        "selectedBadge": "{ flexDirection: 'row', alignItems: 'center', marginTop: 8, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 12, gap: 4 }",
+        "selectedText": "{ fontSize: 12, fontWeight: '600', color: 'white' }"
+      }
+    },
+
+    "step_6_add_imports": {
+      "order": 6,
+      "task": "Add necessary imports to settings.tsx",
+      "imports": [
+        "import { ThemePickerModal } from '@/components/theme-picker-modal';",
+        "import { Themes } from '@/constants/theme';"
+      ]
+    },
+
+    "step_7_testing": {
+      "order": 7,
+      "task": "Manual testing checklist",
+      "tests": [
+        "Settings button shows current theme name and description",
+        "Color preview dots display correct colors",
+        "Tapping button opens modal with slide animation",
+        "Modal shows all 5 themes in grid layout",
+        "Light/Dark toggle switches preview colors",
+        "Large previews show background, surface, text, and tint",
+        "Selected theme has bold border and 'Current' badge",
+        "Tapping theme card closes modal and applies theme",
+        "Close button dismisses modal without changing theme",
+        "Modal works on mobile (2 columns) and desktop (3 columns)",
+        "Theme persistence works after selecting from modal"
+      ]
+    },
+
+    "step_8_update_changelog": {
+      "order": 8,
+      "file": "CHANGELOG.md",
+      "task": "Document UI improvement",
+      "content": "### Changed\n- **Theme Selection UI Enhancement**\n  - Replaced horizontal card grid with modal-based theme picker\n  - Added large theme previews (120x80px) showing background, surface, text, and tint colors\n  - Added Light/Dark preview toggle to see themes before applying\n  - Compact settings page with single-row theme selector button\n  - Improved scalability for future theme additions"
+    },
+
+    "step_9_git_commit": {
+      "order": 9,
+      "task": "Create git commit",
+      "files_to_stage": [
+        "components/theme-picker-modal.tsx",
+        "components/theme-card.tsx",
+        "app/(tabs)/settings.tsx",
+        "CHANGELOG.md"
+      ],
+      "commit_message": "Replace theme card grid with modal picker UI\n\nEnhanced theme selection with modal-based picker for better scalability and user experience:\n\nNew Components:\n- ThemePickerModal: Full-screen modal with theme gallery\n- ThemeCard: Individual theme cards with large previews (120x80px)\n\nSettings Page:\n- Replaced 5-card grid with compact selector button\n- Button shows current theme with color preview dots\n- Tapping opens modal for theme selection\n\nModal Features:\n- Large visual previews showing bg, surface, text, tint\n- Light/Dark preview toggle\n- 2-column grid (mobile) / 3-column (desktop)\n- Selected theme indicator with badge\n- Smooth slide-up animation\n\nBenefits:\n- Scalable to 20+ themes (ready for Phase 2/3)\n- Better visual previews\n- Cleaner settings page\n- Ready for filters/search/favorites\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>"
+    }
+  },
+
+  "technical_details": {
+    "react_native_modal": {
+      "component": "Modal from 'react-native'",
+      "props": {
+        "visible": "boolean - controls modal visibility",
+        "animationType": "'slide' - smooth slide-up animation",
+        "presentationStyle": "'pageSheet' - iOS-style sheet (Android: fullScreen)",
+        "onRequestClose": "Handler for Android back button"
+      }
+    },
+    "preview_mode_toggle": {
+      "implementation": "SegmentedButtons or custom toggle",
+      "state": "useState<'light' | 'dark'>('light')",
+      "usage": "Pass to ThemeCard to show theme[previewMode] colors"
+    },
+    "theme_grid": {
+      "container": "ScrollView with flexWrap layout",
+      "responsive": "2 columns mobile (width ~45%), 3 columns desktop (width ~30%)",
+      "gap": "16px between cards"
+    }
+  },
+
+  "future_enhancements": {
+    "phase_2_filtering": {
+      "mood_tags": [
+        "warm (sepia, appleNotes light variants)",
+        "cool (nord, greyscale)",
+        "bold (bearRedGraphite)"
+      ],
+      "implementation": "Filter chips above theme grid",
+      "storage": "Add 'mood' field to ThemeMetadata (already planned in WORKING-PLAN.json)"
+    },
+    "phase_2_search": {
+      "search_fields": ["displayName", "description", "mood"],
+      "implementation": "TextInput with debounced filtering",
+      "placeholder": "Search themes..."
+    },
+    "phase_3_favorites": {
+      "storage": "AsyncStorage '@noted_favorite_themes'",
+      "ui": "Star icon on theme cards",
+      "filter": "'Favorites' tab or filter chip"
+    },
+    "phase_3_recent": {
+      "storage": "AsyncStorage '@noted_recent_themes' (last 3-5)",
+      "ui": "Show recent themes at top of modal",
+      "sort": "'Recently Used' sort option"
+    },
+    "phase_3_live_preview": {
+      "feature": "Apply theme immediately without closing modal",
+      "ui": "Toggle switch 'Live Preview'",
+      "ux": "Let users see theme in full app before committing"
+    }
+  },
+
+  "accessibility": {
+    "keyboard_navigation": "Ensure modal is dismissible with Escape key (web)",
+    "screen_readers": "Add accessibility labels to theme cards and buttons",
+    "focus_management": "Focus should trap within modal when open",
+    "touch_targets": "Minimum 44x44px touch targets for all interactive elements"
+  },
+
+  "testing_checklist": [
+    "Modal opens/closes smoothly with animation",
+    "Preview toggle switches between light and dark",
+    "All 5 themes render correctly in grid",
+    "Theme selection applies immediately and persists",
+    "Close button dismisses modal without changing theme",
+    "Color preview dots show correct colors on settings button",
+    "Grid is responsive (2 cols mobile, 3 cols desktop)",
+    "Selected theme shows border and badge",
+    "No TypeScript errors",
+    "No console errors or warnings",
+    "Works on iOS simulator",
+    "Works on Android emulator",
+    "Works in web browser",
+    "Theme persistence across app restarts"
+  ],
+
+  "success_criteria": [
+    "Settings page shows compact theme selector button",
+    "Modal opens with smooth slide animation",
+    "All 5 themes visible in scrollable grid",
+    "Large previews clearly show theme colors",
+    "Light/Dark toggle works correctly",
+    "Theme selection works and persists",
+    "UI scales well for future theme additions",
+    "Code is clean, typed, and documented",
+    "CHANGELOG.md updated",
+    "Changes committed to git"
+  ],
+
+  "estimated_file_sizes": {
+    "theme-picker-modal.tsx": "~200 lines (component + styles)",
+    "theme-card.tsx": "~100 lines (component + styles)",
+    "settings.tsx": "-70 lines (remove cards), +30 lines (add button + modal) = net -40 lines"
+  },
+
+  "dependencies": {
+    "required": [
+      "react-native Modal component",
+      "Existing Themes object with metadata",
+      "useThemeColors hook",
+      "setTheme function from useThemeController"
+    ],
+    "optional_future": [
+      "react-native-segmented-control for preview toggle",
+      "Custom Icon component for chevron/check/close icons"
+    ]
+  }
+}

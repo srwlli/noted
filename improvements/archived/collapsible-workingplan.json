@@ -1,0 +1,374 @@
+{
+  "title": "Replace Centered Modal with Dropdown Menu (react-native-popup-menu)",
+  "component": "NoteItem",
+  "file": "components/note-item.tsx",
+  "status": "planned",
+  "created": "2025-10-01",
+  "priority": "medium",
+  "category": "ux_improvement",
+  "estimated_time": "20 minutes",
+
+  "overview": {
+    "goal": "Convert centered modal menu to true dropdown menu that appears near (...) button",
+    "rationale": [
+      "Current modal appears in screen center - not contextual to trigger button",
+      "Dark overlay dims entire screen - feels heavy, not dropdown-like",
+      "No visual connection between (...) button and menu",
+      "Dropdown menus should appear adjacent to trigger for better UX"
+    ],
+    "user_benefit": "More intuitive, contextual menu that appears where user expects (near the ... button)",
+    "library": "react-native-popup-menu",
+    "files_to_modify": ["components/note-item.tsx", "package.json"],
+    "lines_changed": "~50 lines replaced with ~15 lines"
+  },
+
+  "current_problems": {
+    "ux_issues": [
+      "Menu appears in screen center, not near (...) button",
+      "Full-screen dark overlay (rgba(0, 0, 0, 0.5)) dims entire screen",
+      "No positional relationship to trigger button",
+      "Feels like modal dialog, not lightweight dropdown",
+      "User's eye has to jump from button to screen center"
+    ],
+    "technical_issues": [
+      "Manual Modal + TouchableOpacity overlay (~50 lines)",
+      "No animation from button location",
+      "No automatic edge detection (menu could overflow screen)",
+      "Centered positioning hardcoded in styles"
+    ]
+  },
+
+  "proposed_solution": {
+    "library": "react-native-popup-menu",
+    "github": "https://github.com/instea/react-native-popup-menu",
+    "npm": "https://www.npmjs.com/package/react-native-popup-menu",
+    "bundle_size": "~50KB",
+    "features": [
+      "Automatic positioning near trigger button",
+      "Smart edge detection (prevents overflow)",
+      "Built-in slide/fade animations",
+      "Lightweight (no dark overlay)",
+      "Cross-platform (iOS, Android, Web)",
+      "Accessibility support",
+      "Customizable styling"
+    ]
+  },
+
+  "library_comparison": {
+    "react-native-popup-menu": {
+      "bundle_size": "~50KB",
+      "maintenance": "Active (last update 2024)",
+      "stars": "1.5k+",
+      "platform_support": "iOS, Android, Web",
+      "pros": ["Lightweight", "Good web support", "Easy API"],
+      "cons": ["External dependency"],
+      "recommendation": "✅ Best for this use case"
+    },
+    "react-native-menu": {
+      "package": "@react-native-menu/menu",
+      "bundle_size": "~80KB",
+      "maintenance": "Very active (React Native Community)",
+      "platform_support": "iOS (native), Android (native), Web (polyfill)",
+      "pros": ["Native performance", "Better accessibility", "TypeScript support"],
+      "cons": ["Larger bundle", "Web support limited"],
+      "recommendation": "⚠️ Better for native-only apps"
+    },
+    "custom_implementation": {
+      "bundle_size": "0KB (no dependency)",
+      "complexity": "High (position calculation, edge detection)",
+      "maintenance": "Self-maintained",
+      "estimated_time": "2-3 hours",
+      "recommendation": "❌ Not worth the effort"
+    }
+  },
+
+  "implementation_steps": {
+    "step_1_install_library": {
+      "order": 1,
+      "task": "Install react-native-popup-menu",
+      "command": "npm install react-native-popup-menu",
+      "estimated_time": "2 minutes"
+    },
+
+    "step_2_add_imports": {
+      "order": 2,
+      "task": "Add library imports to note-item.tsx",
+      "location": "Top of file (after line 5)",
+      "code": "import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';",
+      "estimated_time": "1 minute"
+    },
+
+    "step_3_remove_menu_state": {
+      "order": 3,
+      "task": "Remove showMenu state (library handles this)",
+      "line_to_remove": "18: const [showMenu, setShowMenu] = useState(false);",
+      "reason": "Library manages menu open/close state internally",
+      "estimated_time": "1 minute"
+    },
+
+    "step_4_replace_modal_with_menu": {
+      "order": 4,
+      "task": "Replace Modal component with Menu/MenuTrigger/MenuOptions",
+      "lines_to_replace": "86-128: Entire Modal block",
+      "before": "<Modal transparent visible={showMenu}>...custom overlay and items...</Modal>",
+      "after": "<Menu>\n  <MenuTrigger>\n    <MaterialIcons name=\"more-vert\" />\n  </MenuTrigger>\n  <MenuOptions>\n    <MenuOption onSelect={onEdit} text=\"Edit\" />\n    ...\n  </MenuOptions>\n</Menu>",
+      "estimated_time": "5 minutes"
+    },
+
+    "step_5_update_trigger_button": {
+      "order": 5,
+      "task": "Replace TouchableOpacity with MenuTrigger",
+      "current_location": "Lines 64-72",
+      "before": "<TouchableOpacity\n  style={styles.iconButton}\n  onPress={(e) => {\n    e.stopPropagation();\n    setShowMenu(true);\n  }}\n>\n  <MaterialIcons name=\"more-vert\" size={20} color={colors.text} />\n</TouchableOpacity>",
+      "after": "<Menu>\n  <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>\n    <MaterialIcons name=\"more-vert\" size={20} color={colors.text} />\n  </MenuTrigger>\n  <MenuOptions customStyles={{\n    optionsContainer: {\n      backgroundColor: colors.surface,\n      borderColor: colors.border,\n      borderWidth: 1,\n      borderRadius: 12,\n      padding: 8,\n      minWidth: 150,\n    }\n  }}>\n    <MenuOption onSelect={() => onEdit?.()} customStyles={{\n      optionWrapper: styles.menuItem\n    }}>\n      <MaterialIcons name=\"edit\" size={20} color={colors.text} />\n      <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>\n    </MenuOption>\n    <MenuOption onSelect={handleCopy} customStyles={{\n      optionWrapper: styles.menuItem\n    }}>\n      <MaterialIcons name=\"content-copy\" size={20} color={colors.text} />\n      <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>\n    </MenuOption>\n    <MenuOption onSelect={() => onDelete?.()} customStyles={{\n      optionWrapper: styles.menuItem\n    }}>\n      <MaterialIcons name=\"delete\" size={20} color={colors.text} />\n      <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>\n    </MenuOption>\n  </MenuOptions>\n</Menu>",
+      "estimated_time": "5 minutes"
+    },
+
+    "step_6_remove_modal_styles": {
+      "order": 6,
+      "task": "Remove menuOverlay and menuContainer styles (no longer needed)",
+      "styles_to_remove": [
+        "menuOverlay (lines 181-186)",
+        "menuContainer (lines 187-197)"
+      ],
+      "styles_to_keep": [
+        "menuItem (for MenuOption wrapper)",
+        "menuText (for option text)"
+      ],
+      "estimated_time": "2 minutes"
+    },
+
+    "step_7_wrap_app_with_provider": {
+      "order": 7,
+      "task": "Wrap app with MenuProvider (required by library)",
+      "file": "app/_layout.tsx",
+      "location": "Root layout component",
+      "before": "<ThemeProvider>...app content...</ThemeProvider>",
+      "after": "<ThemeProvider>\n  <MenuProvider>...app content...</MenuProvider>\n</ThemeProvider>",
+      "import": "import { MenuProvider } from 'react-native-popup-menu';",
+      "estimated_time": "3 minutes"
+    },
+
+    "step_8_test_menu": {
+      "order": 8,
+      "task": "Manual testing",
+      "tests": [
+        "Tap (...) button - menu appears near button (not center)",
+        "Menu slides/fades from button location",
+        "Tap Edit - menu closes, modal opens",
+        "Tap Copy - menu closes, clipboard alert shows",
+        "Tap Delete - menu closes, confirmation modal shows",
+        "Tap outside menu - menu dismisses",
+        "Test on collapsed card state",
+        "Test on expanded card state",
+        "Test menu positioning near screen edges (auto-adjusts)",
+        "Test in all 5 themes (menu styled correctly)"
+      ],
+      "estimated_time": "5 minutes"
+    }
+  },
+
+  "code_examples": {
+    "full_menu_implementation": {
+      "description": "Complete Menu component replacing Modal",
+      "code": "<Menu>\n  <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>\n    <MaterialIcons name=\"more-vert\" size={20} color={colors.text} />\n  </MenuTrigger>\n  <MenuOptions customStyles={{\n    optionsContainer: {\n      backgroundColor: colors.surface,\n      borderColor: colors.border,\n      borderWidth: 1,\n      borderRadius: 12,\n      padding: 8,\n      minWidth: 150,\n      shadowColor: '#000',\n      shadowOffset: { width: 0, height: 2 },\n      shadowOpacity: 0.25,\n      shadowRadius: 8,\n      elevation: 5,\n    }\n  }}>\n    <MenuOption\n      onSelect={() => onEdit?.()}\n      customStyles={{ optionWrapper: styles.menuItem }}\n    >\n      <MaterialIcons name=\"edit\" size={20} color={colors.text} />\n      <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>\n    </MenuOption>\n    \n    <MenuOption\n      onSelect={handleCopy}\n      customStyles={{ optionWrapper: styles.menuItem }}\n    >\n      <MaterialIcons name=\"content-copy\" size={20} color={colors.text} />\n      <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>\n    </MenuOption>\n    \n    <MenuOption\n      onSelect={() => onDelete?.()}\n      customStyles={{ optionWrapper: styles.menuItem }}\n    >\n      <MaterialIcons name=\"delete\" size={20} color={colors.text} />\n      <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>\n    </MenuOption>\n  </MenuOptions>\n</Menu>"
+    },
+    "app_layout_provider": {
+      "description": "MenuProvider wrapper in app/_layout.tsx",
+      "code": "import { MenuProvider } from 'react-native-popup-menu';\n\nexport default function RootLayout() {\n  return (\n    <ThemeProvider>\n      <MenuProvider>\n        <Stack>\n          {/* app content */}\n        </Stack>\n      </MenuProvider>\n    </ThemeProvider>\n  );\n}"
+    }
+  },
+
+  "visual_comparison": {
+    "before_centered_modal": {
+      "description": "Current implementation",
+      "behavior": "User taps (...) → Screen dims with dark overlay → Menu appears in center → User selects → Menu closes",
+      "positioning": "justifyContent: 'center', alignItems: 'center'",
+      "overlay": "Full-screen rgba(0, 0, 0, 0.5)",
+      "animation": "None (instant)",
+      "ux_rating": "⭐⭐ (2/5) - Works but not contextual"
+    },
+    "after_dropdown_menu": {
+      "description": "With react-native-popup-menu",
+      "behavior": "User taps (...) → Menu slides out from button → User selects → Menu closes",
+      "positioning": "Automatic positioning near trigger button",
+      "overlay": "None (or very light)",
+      "animation": "Slide/fade from button location",
+      "ux_rating": "⭐⭐⭐⭐⭐ (5/5) - Contextual and intuitive"
+    }
+  },
+
+  "benefits": {
+    "ux_improvements": [
+      "Menu appears contextually near (...) button",
+      "No dark overlay - lighter, less intrusive",
+      "Visual connection between trigger and menu",
+      "Smooth animation from button location",
+      "Automatic edge detection prevents overflow",
+      "Feels like native dropdown menu"
+    ],
+    "code_improvements": [
+      "~35 lines less code (50 → 15)",
+      "No manual position calculations",
+      "No manual state management for menu visibility",
+      "No custom overlay styling",
+      "Library handles edge cases (screen bounds, orientation)",
+      "Better accessibility out of the box"
+    ],
+    "maintenance_benefits": [
+      "Well-maintained library (regular updates)",
+      "Community support (1.5k+ stars)",
+      "Bug fixes handled by library maintainers",
+      "Cross-platform consistency"
+    ]
+  },
+
+  "tradeoffs": {
+    "pros": [
+      "✅ Better UX (contextual positioning)",
+      "✅ Less code to maintain",
+      "✅ Automatic positioning logic",
+      "✅ Built-in animations",
+      "✅ Cross-platform support",
+      "✅ Accessibility features"
+    ],
+    "cons": [
+      "⚠️ External dependency (~50KB bundle increase)",
+      "⚠️ Relies on third-party maintenance",
+      "⚠️ Slight learning curve for library API",
+      "⚠️ Need to wrap app with MenuProvider"
+    ],
+    "verdict": "✅ Pros outweigh cons - significant UX improvement for minimal cost"
+  },
+
+  "testing_checklist": {
+    "functional_tests": [
+      {
+        "test": "Menu positioning",
+        "steps": ["Tap (...) button", "Verify menu appears adjacent to button (not center)"],
+        "expected": "Menu slides out from button location"
+      },
+      {
+        "test": "Menu dismiss",
+        "steps": ["Open menu", "Tap outside menu area"],
+        "expected": "Menu closes smoothly"
+      },
+      {
+        "test": "Edit action",
+        "steps": ["Open menu", "Tap Edit"],
+        "expected": "Menu closes, modal editor opens"
+      },
+      {
+        "test": "Copy action",
+        "steps": ["Open menu", "Tap Copy"],
+        "expected": "Menu closes, clipboard alert shows"
+      },
+      {
+        "test": "Delete action",
+        "steps": ["Open menu", "Tap Delete"],
+        "expected": "Menu closes, confirmation modal appears"
+      },
+      {
+        "test": "Edge detection",
+        "steps": ["Scroll to top/bottom of note list", "Open menu from edge cards"],
+        "expected": "Menu auto-adjusts position to stay on screen"
+      }
+    ],
+    "ui_tests": [
+      {
+        "test": "Theme consistency",
+        "steps": ["Switch between all 5 themes", "Open menu in each theme"],
+        "expected": "Menu background, border, text match current theme colors"
+      },
+      {
+        "test": "No dark overlay",
+        "steps": ["Open menu", "Check background"],
+        "expected": "No full-screen dark overlay (or very light)"
+      },
+      {
+        "test": "Animation smoothness",
+        "steps": ["Open and close menu multiple times"],
+        "expected": "Smooth slide/fade animation from button"
+      }
+    ],
+    "cross_platform_tests": [
+      {
+        "test": "iOS",
+        "expected": "Menu appears correctly, no layout issues"
+      },
+      {
+        "test": "Android",
+        "expected": "Menu appears correctly, no layout issues"
+      },
+      {
+        "test": "Web",
+        "expected": "Menu appears correctly, works with mouse/touch"
+      }
+    ]
+  },
+
+  "rollback_plan": {
+    "if_library_issues": [
+      "Option 1: Revert git commit (restore Modal implementation)",
+      "Option 2: Try alternative library (@react-native-menu/menu)",
+      "Option 3: Implement custom positioned menu (2-3 hours)"
+    ],
+    "rollback_command": "git revert HEAD",
+    "time_to_rollback": "2 minutes"
+  },
+
+  "success_criteria": [
+    "Library installed successfully (npm install completes)",
+    "MenuProvider wraps app without errors",
+    "Menu appears near (...) button (not center)",
+    "No dark overlay or lighter overlay",
+    "Menu animation slides from button location",
+    "All 3 menu actions work (Edit, Copy, Delete)",
+    "Menu themed correctly in all 5 themes",
+    "Menu auto-adjusts near screen edges",
+    "No TypeScript errors",
+    "No console warnings",
+    "Bundle size increase acceptable (~50KB)",
+    "All tests pass"
+  ],
+
+  "file_changes_summary": {
+    "components/note-item.tsx": {
+      "lines_removed": "~50 (Modal + overlay + manual state)",
+      "lines_added": "~20 (Menu + MenuTrigger + MenuOptions)",
+      "net_change": "~30 lines shorter",
+      "complexity": "Reduced (no manual positioning)"
+    },
+    "app/_layout.tsx": {
+      "lines_added": "~3 (MenuProvider import + wrapper)",
+      "net_change": "+3 lines"
+    },
+    "package.json": {
+      "dependencies_added": "react-native-popup-menu: ^3.4.0",
+      "bundle_increase": "~50KB"
+    },
+    "total_net_change": "~27 lines shorter overall"
+  },
+
+  "related_documentation": {
+    "library_docs": "https://github.com/instea/react-native-popup-menu#readme",
+    "api_reference": "https://github.com/instea/react-native-popup-menu/blob/master/doc/api.md",
+    "examples": "https://github.com/instea/react-native-popup-menu/tree/master/examples"
+  },
+
+  "next_steps_after_completion": [
+    {
+      "task": "Update CHANGELOG.md",
+      "section": "### Changed",
+      "content": "- **Note Card Menu UX**\n  - Replaced centered modal menu with contextual dropdown menu\n  - Menu now appears adjacent to (...) button (not screen center)\n  - Removed dark overlay for lighter, less intrusive UX\n  - Added smooth slide animation from button location\n  - Integrated react-native-popup-menu library\n  - Automatic edge detection prevents menu overflow"
+    },
+    {
+      "task": "Git commit",
+      "message": "Replace centered modal with dropdown menu\n\nImproved menu UX by replacing centered modal with contextual dropdown using react-native-popup-menu library."
+    },
+    {
+      "task": "Monitor bundle size",
+      "action": "Check production build size increase (~50KB expected)"
+    }
+  ]
+}

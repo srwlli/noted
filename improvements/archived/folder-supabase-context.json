@@ -1,0 +1,206 @@
+{
+  "issue": "Folders feature not working - API returns 'Could not find the table public.folders in the schema cache'",
+  "timestamp": "2025-10-02T05:30:00Z",
+  "currentState": {
+    "databaseStatus": "VERIFIED WORKING",
+    "tableExists": true,
+    "rlsEnabled": true,
+    "rlsPolicies": [
+      "Users can view own folders",
+      "Users can create own folders",
+      "Users can update own folders",
+      "Users can delete own folders"
+    ],
+    "migration": {
+      "file": "supabase/migrations/20251002120000_add_folders.sql",
+      "applied": true,
+      "timestamp": "2025-10-02T04:55:00Z"
+    },
+    "apiStatus": {
+      "postgrestRunning": true,
+      "schemaLoaded": "3 Relations (folders, notes, projects)",
+      "directAPITest": "SUCCESS - returns empty array []",
+      "appAPITest": "FAILING - schema cache error"
+    }
+  },
+  "verificationCommands": {
+    "tableExists": "docker exec supabase_db_noted psql -U postgres -d postgres -c \"\\dt public.folders\"",
+    "result": "Table exists: public.folders",
+    "rlsCheck": "docker exec supabase_db_noted psql -U postgres -d postgres -c \"SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('notes', 'folders');\"",
+    "rlsResult": "folders | t (RLS enabled)",
+    "policiesCheck": "docker exec supabase_db_noted psql -U postgres -d postgres -c \"SELECT schemaname, tablename, policyname FROM pg_policies WHERE tablename = 'folders';\"",
+    "policiesResult": "4 policies found",
+    "apiDirectTest": "curl -s \"http://127.0.0.1:54321/rest/v1/folders\" -H \"apikey: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH\"",
+    "apiResult": "[] (SUCCESS - empty array, no auth errors)"
+  },
+  "attemptedFixes": [
+    {
+      "attempt": 1,
+      "action": "npx supabase db reset",
+      "result": "SUCCESS - Migration applied, table created",
+      "timestamp": "2025-10-02T04:09:00Z"
+    },
+    {
+      "attempt": 2,
+      "action": "Restart PostgREST container (docker restart supabase_rest_noted)",
+      "result": "Container restarted, schema reloaded",
+      "timestamp": "2025-10-02T05:11:00Z"
+    },
+    {
+      "attempt": 3,
+      "action": "Send NOTIFY to PostgREST (NOTIFY pgrst, 'reload schema')",
+      "result": "Schema reloaded, still showing 3 Relations",
+      "timestamp": "2025-10-02T05:15:00Z"
+    },
+    {
+      "attempt": 4,
+      "action": "Kill Metro bundler and clear cache (npm start with --clear)",
+      "result": "Cache cleared, but issue persists in app",
+      "timestamp": "2025-10-02T05:30:00Z"
+    }
+  ],
+  "rootCauseDiagnosis": {
+    "hypothesis": "Client-side Supabase SDK cache or stale connection",
+    "evidence": [
+      "Direct curl to API works (returns [])",
+      "PostgREST sees the table (3 Relations loaded)",
+      "Database has correct schema and RLS",
+      "App shows 'schema cache' error despite API working"
+    ],
+    "likelyIssue": "The Supabase client in the React Native app is using a cached schema from before the migration was applied. Metro bundler cache clear didn't help."
+  },
+  "possibleSolutions": [
+    {
+      "solution": "Full app reload",
+      "action": "Close app completely, restart Expo dev server, reload app in browser/device",
+      "likelihood": "HIGH - most common fix for Supabase schema cache issues"
+    },
+    {
+      "solution": "Clear all caches",
+      "commands": [
+        "rm -rf node_modules/.cache",
+        "npx expo start -c",
+        "Clear browser cache / reload app"
+      ],
+      "likelihood": "MEDIUM"
+    },
+    {
+      "solution": "Restart Supabase completely",
+      "commands": [
+        "npx supabase stop",
+        "npx supabase start",
+        "Reload app"
+      ],
+      "likelihood": "MEDIUM - nuclear option"
+    },
+    {
+      "solution": "Check environment variables",
+      "action": "Verify .env file has correct EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY pointing to local instance (http://127.0.0.1:54321)",
+      "likelihood": "LOW - but worth checking"
+    }
+  ],
+  "implementationDetails": {
+    "migration": {
+      "file": "supabase/migrations/20251002120000_add_folders.sql",
+      "creates": "folders table with id, name, user_id, parent_folder_id, created_at, updated_at",
+      "alters": "notes table - adds folder_id column",
+      "constraints": "folders_name_not_empty CHECK (LENGTH(TRIM(name)) > 0)",
+      "indexes": [
+        "idx_folders_user_id",
+        "idx_folders_parent_id",
+        "idx_notes_folder_id"
+      ]
+    },
+    "services": {
+      "folders": "services/folders.ts - getFolders(), createFolder(), updateFolder(), deleteFolder(), moveNoteToFolder()",
+      "notes": "services/notes.ts - updated with folder_id in Note interface, getNotesByFolder() method"
+    },
+    "components": {
+      "folderModal": "components/folder-modal.tsx - create/rename folders",
+      "commonHeader": "components/common-header.tsx - folder icon with dropdown menu",
+      "noteItem": "components/note-item.tsx - Move to Folder submenu in (...) menu",
+      "sharedPageLayout": "components/shared-page-layout.tsx - passes folder callbacks",
+      "notesScreen": "app/(tabs)/index.tsx - folder filtering logic"
+    }
+  },
+  "supabaseConfig": {
+    "localInstance": {
+      "apiUrl": "http://127.0.0.1:54321",
+      "databaseUrl": "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
+      "studioUrl": "http://127.0.0.1:54323",
+      "publishableKey": "sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH"
+    },
+    "containers": {
+      "db": "supabase_db_noted",
+      "rest": "supabase_rest_noted (PostgREST)",
+      "studio": "supabase_studio_noted"
+    }
+  },
+  "nextSteps": [
+    "1. Verify .env file has correct local Supabase URL",
+    "2. Kill all Expo processes and restart fresh",
+    "3. Hard refresh browser / restart app on device",
+    "4. If still failing, restart Supabase completely (supabase stop/start)",
+    "5. Check browser console for detailed error messages",
+    "6. Test folder creation in Supabase Studio to verify API works independently"
+  ],
+  "recommendedFix": {
+    "action": "Full PC restart",
+    "reasoning": "The error is client-side cache. PC restart will kill all processes, clear Docker states, reset network connections, and flush all in-memory caches",
+    "postRestartSteps": [
+      {
+        "step": 1,
+        "action": "Start Supabase",
+        "command": "npx supabase start",
+        "expectedOutput": "API URL: http://127.0.0.1:54321"
+      },
+      {
+        "step": 2,
+        "action": "Verify folders table is accessible via API",
+        "command": "curl \"http://127.0.0.1:54321/rest/v1/folders\" -H \"apikey: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH\"",
+        "expectedOutput": "[]",
+        "note": "Empty array confirms API can see the table"
+      },
+      {
+        "step": 3,
+        "action": "Start development server fresh",
+        "command": "npm start",
+        "note": "Do NOT use --clear flag, just normal start"
+      },
+      {
+        "step": 4,
+        "action": "Hard refresh browser or restart app",
+        "browser": "Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac)",
+        "mobile": "Force close app and reopen",
+        "note": "This ensures no browser cache is used"
+      },
+      {
+        "step": 5,
+        "action": "Test folder creation",
+        "test": "Click folder icon in header, click 'New Folder', enter a name, save",
+        "expectedBehavior": "Folder should be created without errors"
+      }
+    ],
+    "whatThisFixes": [
+      "Kills all Node/Metro processes holding cached schema",
+      "Forces Docker containers to reinitialize fresh",
+      "Clears stale WebSocket/HTTP connections between app and Supabase",
+      "Flushes all in-memory caches (PostgREST, Supabase client, Metro bundler)",
+      "Resets network stack and port bindings"
+    ],
+    "ifStillFailing": {
+      "check1": "Verify .env file has EXPO_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321",
+      "check2": "Check browser console for specific error details",
+      "check3": "Test in Supabase Studio: http://127.0.0.1:54323 -> Table Editor -> folders",
+      "check4": "Check PostgREST logs: docker logs supabase_rest_noted --tail 50",
+      "check5": "Verify migration was applied: docker exec supabase_db_noted psql -U postgres -d postgres -c \"SELECT * FROM folders;\""
+    }
+  },
+  "debuggingChecklist": {
+    "databaseLevel": "✅ PASS - Table exists, RLS enabled, policies correct",
+    "apiLevel": "✅ PASS - Direct API call works, returns empty array",
+    "postgrestLevel": "✅ PASS - Schema loaded, 3 relations visible",
+    "clientLevel": "❌ FAIL - App shows schema cache error",
+    "conclusion": "Issue is client-side caching or stale connection in React Native app"
+  }
+}

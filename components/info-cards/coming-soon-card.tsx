@@ -39,6 +39,7 @@ export function ComingSoonCard({ isExpanded, onToggle }: ComingSoonCardProps) {
             <Text style={[styles.featureItem, { color: colors.text }]}>• Data Abstraction</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• n8n Automation</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• New Themes and Styles</Text>
+            <Text style={[styles.featureItem, { color: colors.text }]}>• AI Integrations</Text>
           </View>
         </View>
       )}

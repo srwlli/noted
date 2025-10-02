@@ -1,0 +1,897 @@
+{
+  "title": "AI Integration Opportunities for Noted App",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "high",
+
+  "overview": {
+    "description": "Comprehensive plan for integrating AI capabilities into the Noted app to enhance user experience, reduce manual effort, and provide intelligent features for note management and discovery.",
+    "currentStack": {
+      "frontend": "React Native with Expo",
+      "backend": "Supabase (PostgreSQL + Auth + RLS)",
+      "deployment": "Vercel (PWA)",
+      "notes": "Cross-platform mobile/web app with folders, themes, offline support"
+    },
+    "constraints": {
+      "maxNoteContentLength": 50000,
+      "maxNoteTitleLength": 200,
+      "authentication": "Required for all features",
+      "privacy": "User data must remain secure, consider on-device processing where possible"
+    }
+  },
+
+  "aiFeatures": [
+    {
+      "id": 1,
+      "name": "Smart Note Titles",
+      "category": "content-generation",
+      "priority": "high",
+      "effort": "low",
+      "value": "high",
+      "description": "Auto-generate descriptive titles from note content when user creates untitled notes or wants to improve existing titles",
+      "useCases": [
+        "User creates note without title - AI suggests one",
+        "User clicks '✨ Generate Title' button in edit modal",
+        "Convert 'Untitled Note 37' → 'Q4 Marketing Strategy Discussion'"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Add '✨ Generate Title' button in note edit modal (NoteModal component)",
+          "Show loading state while generating",
+          "Pre-fill title field with generated text, allow user to edit before saving"
+        ],
+        "apiIntegration": {
+          "provider": "OpenAI GPT-4o-mini (recommended)",
+          "endpoint": "chat completions",
+          "prompt": "Generate a concise, descriptive title (max 50 characters) for this note:\n\n{content}",
+          "maxTokens": 20,
+          "estimatedCost": "$0.000003 per request (extremely cheap)"
+        },
+        "caching": "Optional - cache generated titles to avoid regenerating",
+        "errorHandling": "Fallback to 'Untitled Note' if API fails"
+      },
+      "technicalDetails": {
+        "newFiles": [
+          "services/ai.ts - AI service wrapper",
+          "lib/openai.ts - OpenAI client configuration"
+        ],
+        "modifiedFiles": [
+          "components/note-modal.tsx - Add generate title button",
+          "app.json - Add OpenAI API key to env vars"
+        ],
+        "environment": {
+          "OPENAI_API_KEY": "Required - store in Supabase secrets or Vercel env vars"
+        }
+      },
+      "estimatedTimeline": "2-4 hours"
+    },
+    {
+      "id": 2,
+      "name": "Auto-Summarization",
+      "category": "content-understanding",
+      "priority": "high",
+      "effort": "medium",
+      "value": "high",
+      "description": "Automatically generate concise summaries of long notes for quick preview in collapsed note cards",
+      "useCases": [
+        "Show AI summary instead of raw content truncation in note preview",
+        "Quickly scan through many notes without expanding each one",
+        "Generate summaries on-demand or in background"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Replace raw content preview with AI summary in NoteItem component",
+          "Add '⚡ AI Summary' badge to indicate AI-generated content",
+          "Option to toggle between raw content and AI summary",
+          "Generate button in note card menu"
+        ],
+        "apiIntegration": {
+          "provider": "OpenAI GPT-4o-mini",
+          "endpoint": "chat completions",
+          "prompt": "Summarize this note in 1-2 sentences (max 100 characters):\n\n{content}",
+          "maxTokens": 50,
+          "estimatedCost": "$0.00001 per note"
+        },
+        "databaseChanges": {
+          "table": "notes",
+          "newColumns": [
+            "ai_summary TEXT - cached summary to avoid regenerating",
+            "summary_generated_at TIMESTAMP - track when summary was created"
+          ],
+          "migration": "20251002_add_ai_summary.sql"
+        },
+        "caching": "Store summaries in database, regenerate only when content changes significantly",
+        "backgroundProcessing": "Consider generating summaries for all notes on user's first login"
+      },
+      "technicalDetails": {
+        "modifiedFiles": [
+          "components/note-item.tsx - Display AI summary instead of raw preview",
+          "services/notes.ts - Add getSummary() method",
+          "services/ai.ts - Add summarizeNote() method",
+          "supabase/migrations/20251002_add_ai_summary.sql"
+        ],
+        "performanceConsiderations": [
+          "Cache summaries aggressively",
+          "Only regenerate if content_length changes by >20%",
+          "Consider batch processing for multiple notes"
+        ]
+      },
+      "estimatedTimeline": "4-6 hours"
+    },
+    {
+      "id": 3,
+      "name": "Intelligent Semantic Search",
+      "category": "search-discovery",
+      "priority": "high",
+      "effort": "high",
+      "value": "very-high",
+      "description": "Search notes by meaning and intent, not just keywords. Understand natural language queries like 'meeting notes from last week about budget'",
+      "useCases": [
+        "Find notes by concept, not exact words",
+        "Search: 'ideas about the redesign' → finds notes mentioning 'UI refresh', 'website overhaul'",
+        "Temporal queries: 'notes from last month'",
+        "Related note discovery"
+      ],
+      "implementation": {
+        "approach": "Vector embeddings + semantic similarity",
+        "uiChanges": [
+          "Add search icon to header (or enhance existing search)",
+          "Search modal with natural language input",
+          "Show results ranked by relevance, not just date",
+          "Highlight relevant excerpts in results"
+        ],
+        "apiIntegration": {
+          "provider": "OpenAI text-embedding-3-small",
+          "endpoint": "embeddings",
+          "process": [
+            "1. Generate embeddings for all note content (background job)",
+            "2. Store embeddings in database",
+            "3. On search: generate embedding for query",
+            "4. Find top-k most similar notes using cosine similarity"
+          ],
+          "estimatedCost": "$0.00002 per note (one-time), $0.00002 per search"
+        },
+        "databaseChanges": {
+          "extension": "pgvector - PostgreSQL extension for vector similarity",
+          "table": "notes",
+          "newColumns": [
+            "content_embedding VECTOR(1536) - OpenAI embedding dimension",
+            "embedding_generated_at TIMESTAMP"
+          ],
+          "indexes": [
+            "CREATE INDEX ON notes USING ivfflat (content_embedding vector_cosine_ops)"
+          ],
+          "migration": "20251002_add_vector_search.sql"
+        },
+        "supabaseSupport": "Supabase supports pgvector natively - no additional setup needed",
+        "fallback": "If vector search not available, fall back to PostgreSQL full-text search"
+      },
+      "technicalDetails": {
+        "newFiles": [
+          "services/embeddings.ts - Manage embeddings generation",
+          "services/search.ts - Semantic search logic"
+        ],
+        "modifiedFiles": [
+          "components/common-header.tsx - Add search functionality",
+          "services/ai.ts - Add embedding generation methods"
+        ],
+        "backgroundJobs": [
+          "Generate embeddings for existing notes on first setup",
+          "Auto-generate embeddings when notes are created/updated"
+        ],
+        "performanceConsiderations": [
+          "Batch embed multiple notes at once (up to 2048 per request)",
+          "Use IVFFlat index for fast similarity search at scale",
+          "Consider caching popular search queries"
+        ]
+      },
+      "estimatedTimeline": "8-12 hours",
+      "dependencies": [
+        "Requires Supabase pgvector extension",
+        "Requires OpenAI API access"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Auto-Tagging & Smart Categorization",
+      "category": "organization",
+      "priority": "medium",
+      "effort": "medium",
+      "value": "high",
+      "description": "Automatically suggest tags, labels, and folder locations based on note content. Reduce manual organization effort.",
+      "useCases": [
+        "Auto-detect note type: meeting, idea, todo, journal, reference",
+        "Suggest relevant folders when creating or moving notes",
+        "Extract topics and generate tags",
+        "Smart folder recommendations"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Show suggested tags in note edit modal",
+          "Auto-suggest folder when creating note",
+          "Add 'Suggested' section in folder move menu",
+          "One-tap to accept/reject suggestions"
+        ],
+        "apiIntegration": {
+          "provider": "OpenAI GPT-4o-mini",
+          "endpoint": "chat completions with structured output",
+          "prompt": "Analyze this note and return: 1) note type (meeting/idea/todo/journal/reference), 2) 3-5 relevant tags, 3) main topics\n\n{content}",
+          "responseFormat": "JSON schema for structured output",
+          "estimatedCost": "$0.00001 per note"
+        },
+        "databaseChanges": {
+          "newTables": [
+            {
+              "name": "tags",
+              "columns": [
+                "id UUID PRIMARY KEY",
+                "user_id UUID REFERENCES auth.users",
+                "name TEXT UNIQUE",
+                "created_at TIMESTAMP"
+              ]
+            },
+            {
+              "name": "note_tags",
+              "columns": [
+                "note_id UUID REFERENCES notes",
+                "tag_id UUID REFERENCES tags",
+                "PRIMARY KEY (note_id, tag_id)"
+              ]
+            }
+          ],
+          "migration": "20251002_add_tags.sql"
+        },
+        "machinelearning": "Track user's accept/reject decisions to improve suggestions over time"
+      },
+      "technicalDetails": {
+        "newFiles": [
+          "services/tags.ts - Tag management service",
+          "components/tag-selector.tsx - UI for tag selection"
+        ],
+        "modifiedFiles": [
+          "components/note-modal.tsx - Add tag selector",
+          "services/ai.ts - Add categorization methods"
+        ]
+      },
+      "estimatedTimeline": "6-8 hours"
+    },
+    {
+      "id": 5,
+      "name": "Content Enhancement Tools",
+      "category": "writing-assistance",
+      "priority": "medium",
+      "effort": "medium",
+      "value": "medium",
+      "description": "AI-powered tools to improve note quality: grammar correction, tone adjustment, expansion, simplification",
+      "useCases": [
+        "Quick grammar and spelling check",
+        "Make note more formal for professional sharing",
+        "Expand bullet points into full paragraphs",
+        "Simplify complex technical content",
+        "Translate to other languages"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Add '✨ Enhance' toolbar button in note edit modal",
+          "Dropdown menu with options: Fix Grammar, Expand, Simplify, Change Tone",
+          "Show before/after comparison",
+          "Accept/reject enhanced version"
+        ],
+        "apiIntegration": {
+          "provider": "OpenAI GPT-4o-mini",
+          "endpoint": "chat completions",
+          "prompts": {
+            "grammar": "Fix grammar and spelling errors in this text. Preserve the original meaning and tone:\n\n{content}",
+            "expand": "Expand these notes into full paragraphs with more detail:\n\n{content}",
+            "simplify": "Simplify this text to be more clear and concise:\n\n{content}",
+            "tone": "Rewrite this text to be more {formal/casual/professional}:\n\n{content}"
+          },
+          "estimatedCost": "$0.00002-0.00005 per enhancement"
+        }
+      },
+      "technicalDetails": {
+        "modifiedFiles": [
+          "components/note-modal.tsx - Add enhancement toolbar",
+          "services/ai.ts - Add enhancement methods"
+        ],
+        "uxConsiderations": [
+          "Show word count before/after",
+          "Allow undo",
+          "Save original version in edit history"
+        ]
+      },
+      "estimatedTimeline": "4-6 hours"
+    },
+    {
+      "id": 6,
+      "name": "Ask Your Notes (RAG - Retrieval Augmented Generation)",
+      "category": "knowledge-assistant",
+      "priority": "high",
+      "effort": "high",
+      "value": "very-high",
+      "description": "Chat interface to query across all notes. Your personal AI assistant that knows everything in your notes.",
+      "useCases": [
+        "Ask: 'What did I decide about the redesign?' → pulls relevant excerpts",
+        "Ask: 'Summarize all my meeting notes from March'",
+        "Ask: 'What are my main project ideas?'",
+        "Natural language Q&A over personal knowledge base"
+      ],
+      "implementation": {
+        "approach": "RAG (Retrieval Augmented Generation)",
+        "uiChanges": [
+          "New '💬 Ask' tab or floating chat button",
+          "Chat interface with message history",
+          "Show source notes for each answer (with links)",
+          "Conversation context maintained across queries"
+        ],
+        "workflow": [
+          "1. User asks question",
+          "2. Generate embedding for question",
+          "3. Find top 5-10 most relevant notes using vector search",
+          "4. Pass question + relevant notes to LLM",
+          "5. LLM generates answer citing specific notes",
+          "6. Show answer with source links"
+        ],
+        "apiIntegration": {
+          "embeddingProvider": "OpenAI text-embedding-3-small",
+          "llmProvider": "OpenAI GPT-4o or GPT-4o-mini",
+          "systemPrompt": "You are a helpful assistant that answers questions based on the user's notes. Always cite which notes you're referencing. If you don't know something, say so.",
+          "estimatedCost": "$0.0001-0.0005 per query"
+        },
+        "databaseChanges": {
+          "newTables": [
+            {
+              "name": "chat_conversations",
+              "columns": [
+                "id UUID PRIMARY KEY",
+                "user_id UUID REFERENCES auth.users",
+                "title TEXT",
+                "created_at TIMESTAMP"
+              ]
+            },
+            {
+              "name": "chat_messages",
+              "columns": [
+                "id UUID PRIMARY KEY",
+                "conversation_id UUID REFERENCES chat_conversations",
+                "role TEXT (user/assistant)",
+                "content TEXT",
+                "source_note_ids UUID[]",
+                "created_at TIMESTAMP"
+              ]
+            }
+          ],
+          "migration": "20251002_add_chat.sql"
+        },
+        "dependencies": [
+          "Requires semantic search (Feature #3) to be implemented first",
+          "Requires embeddings for all notes"
+        ]
+      },
+      "technicalDetails": {
+        "newFiles": [
+          "app/(tabs)/chat.tsx - Chat interface tab",
+          "components/chat/chat-message.tsx",
+          "components/chat/chat-input.tsx",
+          "services/chat.ts - Chat service with RAG logic"
+        ],
+        "modifiedFiles": [
+          "app/(tabs)/_layout.tsx - Add chat tab",
+          "services/ai.ts - Add RAG query methods"
+        ],
+        "performanceConsiderations": [
+          "Limit context window to top 10 notes to control costs",
+          "Stream responses for better UX",
+          "Cache conversation history"
+        ],
+        "privacyConsiderations": [
+          "All queries happen server-side or via secure API",
+          "Note content never stored with OpenAI (zero retention policy)",
+          "Consider adding 'Private' note flag that excludes from AI features"
+        ]
+      },
+      "estimatedTimeline": "12-16 hours",
+      "futureEnhancements": [
+        "Multi-turn conversations with context",
+        "Voice input for questions",
+        "Export conversations as notes"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Cross-Note Intelligence",
+      "category": "insights-discovery",
+      "priority": "low",
+      "effort": "high",
+      "value": "medium",
+      "description": "Find duplicate notes, suggest merging related content, detect conflicts, show related notes",
+      "useCases": [
+        "Alert: 'You have 3 notes about Q4 planning - merge them?'",
+        "Show 'Related Notes' section at bottom of each note",
+        "Detect contradictions: 'You said X in note A but Y in note B'",
+        "Prevent duplicate content"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Add 'Related Notes' card at bottom of expanded notes",
+          "Notification banner for duplicate detection",
+          "Merge notes wizard"
+        ],
+        "apiIntegration": {
+          "approach": "Use embeddings to find similar notes",
+          "threshold": "Cosine similarity > 0.85 = potential duplicate",
+          "batch": "Run analysis periodically, not real-time"
+        }
+      },
+      "estimatedTimeline": "8-10 hours"
+    },
+    {
+      "id": 8,
+      "name": "Voice-to-Note with AI Processing",
+      "category": "input-method",
+      "priority": "low",
+      "effort": "high",
+      "value": "high",
+      "description": "Transcribe voice memos to notes with AI cleanup and structuring",
+      "useCases": [
+        "Record voice memo on the go",
+        "AI transcribes and cleans up filler words",
+        "Auto-structure rambling thoughts into organized bullets",
+        "Generate title from voice content"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Add 🎤 voice button in header or note creation",
+          "Recording interface with waveform",
+          "Show transcription in real-time or after completion",
+          "Edit transcription before saving"
+        ],
+        "apiIntegration": {
+          "speechToText": "OpenAI Whisper API",
+          "postProcessing": "GPT-4o-mini to structure and clean transcription",
+          "estimatedCost": "$0.006 per minute of audio + $0.00002 for cleanup"
+        },
+        "permissions": {
+          "ios": "NSMicrophoneUsageDescription in app.json",
+          "android": "RECORD_AUDIO permission",
+          "web": "navigator.mediaDevices.getUserMedia()"
+        }
+      },
+      "technicalDetails": {
+        "newPackages": [
+          "expo-av or react-native-audio-recorder"
+        ],
+        "newFiles": [
+          "components/voice-recorder.tsx",
+          "services/speech.ts"
+        ]
+      },
+      "estimatedTimeline": "10-12 hours"
+    },
+    {
+      "id": 9,
+      "name": "Smart Reminders & Follow-ups",
+      "category": "productivity",
+      "priority": "low",
+      "effort": "medium",
+      "value": "medium",
+      "description": "AI detects action items and deadlines in notes, suggests reminders automatically",
+      "useCases": [
+        "Note mentions 'meeting on Friday' → suggest calendar reminder",
+        "Detect: 'TODO: send report' → offer to create reminder",
+        "Proactive: 'You haven't reviewed Q4 goals note in 2 weeks'",
+        "Extract due dates and action items automatically"
+      ],
+      "implementation": {
+        "uiChanges": [
+          "Smart banner in note view: '📅 Found a deadline - set reminder?'",
+          "Extracted action items shown as checklist",
+          "Notification system for follow-ups"
+        ],
+        "apiIntegration": {
+          "provider": "OpenAI GPT-4o-mini with structured output",
+          "prompt": "Extract action items, deadlines, and dates from this note. Return as JSON:\n\n{content}",
+          "responseFormat": "{\"actionItems\": [], \"deadlines\": [], \"dates\": []}"
+        },
+        "databaseChanges": {
+          "newTables": [
+            {
+              "name": "reminders",
+              "columns": [
+                "id UUID PRIMARY KEY",
+                "note_id UUID REFERENCES notes",
+                "user_id UUID REFERENCES auth.users",
+                "reminder_text TEXT",
+                "reminder_date TIMESTAMP",
+                "completed BOOLEAN DEFAULT FALSE",
+                "created_at TIMESTAMP"
+              ]
+            }
+          ]
+        },
+        "notifications": "Use Expo Notifications API for local/push notifications"
+      },
+      "estimatedTimeline": "8-10 hours"
+    }
+  ],
+
+  "implementationStrategy": {
+    "phaseApproach": {
+      "phase1": {
+        "name": "Quick Wins & Foundation",
+        "duration": "1-2 weeks",
+        "features": [1, 2],
+        "goals": [
+          "Establish AI service infrastructure",
+          "Prove value with visible features",
+          "Set up OpenAI API integration",
+          "Add basic error handling and rate limiting"
+        ],
+        "deliverables": [
+          "Smart Note Titles working in production",
+          "Auto-Summarization with database caching",
+          "services/ai.ts completed",
+          "Environment variables configured"
+        ]
+      },
+      "phase2": {
+        "name": "Search & Discovery",
+        "duration": "2-3 weeks",
+        "features": [3, 4],
+        "goals": [
+          "Implement vector embeddings",
+          "Enable semantic search",
+          "Add tagging system",
+          "Background embedding generation"
+        ],
+        "deliverables": [
+          "Semantic search fully functional",
+          "pgvector extension enabled",
+          "Auto-tagging operational",
+          "Tag management UI"
+        ]
+      },
+      "phase3": {
+        "name": "Advanced Intelligence",
+        "duration": "3-4 weeks",
+        "features": [5, 6, 7],
+        "goals": [
+          "Launch RAG chat interface",
+          "Content enhancement tools",
+          "Cross-note intelligence",
+          "Chat history persistence"
+        ],
+        "deliverables": [
+          "Ask Your Notes chat tab",
+          "Enhancement toolbar in editor",
+          "Related notes feature",
+          "Duplicate detection"
+        ]
+      },
+      "phase4": {
+        "name": "Extended Features",
+        "duration": "2-3 weeks",
+        "features": [8, 9],
+        "goals": [
+          "Voice input capability",
+          "Smart reminders system",
+          "Notification integration"
+        ],
+        "deliverables": [
+          "Voice recording and transcription",
+          "Automated reminder detection",
+          "Push notification system"
+        ]
+      }
+    },
+    "totalEstimatedTimeline": "8-12 weeks for all phases",
+    "minimumViableProduct": "Phase 1 features only (Smart Titles + Summarization)"
+  },
+
+  "technicalArchitecture": {
+    "serviceLayer": {
+      "newServices": [
+        {
+          "file": "services/ai.ts",
+          "purpose": "Central AI service wrapper",
+          "methods": [
+            "generateTitle(content: string): Promise<string>",
+            "summarizeNote(content: string): Promise<string>",
+            "generateEmbedding(text: string): Promise<number[]>",
+            "enhanceText(text: string, mode: EnhanceMode): Promise<string>",
+            "categorizeNote(content: string): Promise<NoteCategory>",
+            "extractActionItems(content: string): Promise<ActionItem[]>",
+            "askQuestion(question: string, notes: Note[]): Promise<string>"
+          ]
+        },
+        {
+          "file": "services/embeddings.ts",
+          "purpose": "Manage vector embeddings",
+          "methods": [
+            "generateEmbeddingForNote(noteId: string): Promise<void>",
+            "batchGenerateEmbeddings(noteIds: string[]): Promise<void>",
+            "findSimilarNotes(noteId: string, limit: number): Promise<Note[]>",
+            "searchByQuery(query: string, limit: number): Promise<Note[]>"
+          ]
+        },
+        {
+          "file": "services/search.ts",
+          "purpose": "Semantic search implementation",
+          "methods": [
+            "semanticSearch(query: string): Promise<Note[]>",
+            "hybridSearch(query: string): Promise<Note[]> // combines semantic + keyword"
+          ]
+        },
+        {
+          "file": "services/chat.ts",
+          "purpose": "RAG chat implementation",
+          "methods": [
+            "askQuestion(question: string, conversationId?: string): Promise<ChatResponse>",
+            "getConversationHistory(conversationId: string): Promise<ChatMessage[]>",
+            "createConversation(): Promise<string>"
+          ]
+        }
+      ]
+    },
+    "databaseMigrations": [
+      {
+        "file": "supabase/migrations/20251002_add_ai_summary.sql",
+        "changes": [
+          "ALTER TABLE notes ADD COLUMN ai_summary TEXT",
+          "ALTER TABLE notes ADD COLUMN summary_generated_at TIMESTAMP"
+        ]
+      },
+      {
+        "file": "supabase/migrations/20251002_add_vector_search.sql",
+        "changes": [
+          "CREATE EXTENSION IF NOT EXISTS vector",
+          "ALTER TABLE notes ADD COLUMN content_embedding VECTOR(1536)",
+          "CREATE INDEX ON notes USING ivfflat (content_embedding vector_cosine_ops)"
+        ]
+      },
+      {
+        "file": "supabase/migrations/20251002_add_tags.sql",
+        "changes": [
+          "CREATE TABLE tags (...)",
+          "CREATE TABLE note_tags (...)",
+          "Add RLS policies"
+        ]
+      },
+      {
+        "file": "supabase/migrations/20251002_add_chat.sql",
+        "changes": [
+          "CREATE TABLE chat_conversations (...)",
+          "CREATE TABLE chat_messages (...)",
+          "Add RLS policies"
+        ]
+      },
+      {
+        "file": "supabase/migrations/20251002_add_reminders.sql",
+        "changes": [
+          "CREATE TABLE reminders (...)",
+          "Add RLS policies"
+        ]
+      }
+    ],
+    "environmentVariables": {
+      "OPENAI_API_KEY": {
+        "required": true,
+        "description": "OpenAI API key for all AI features",
+        "storage": "Vercel environment variables or Supabase secrets"
+      },
+      "OPENAI_ORGANIZATION": {
+        "required": false,
+        "description": "OpenAI organization ID (optional)"
+      },
+      "AI_RATE_LIMIT_PER_USER_PER_HOUR": {
+        "required": false,
+        "default": 100,
+        "description": "Rate limit for AI requests per user"
+      },
+      "ENABLE_AI_FEATURES": {
+        "required": false,
+        "default": true,
+        "description": "Feature flag to disable AI if needed"
+      }
+    },
+    "securityConsiderations": [
+      "Never expose OpenAI API key to client",
+      "All AI calls should go through Supabase Edge Functions or secure backend",
+      "Implement rate limiting per user",
+      "Add cost monitoring and budget alerts",
+      "Consider adding 'Private' flag to notes to exclude from AI processing",
+      "Log all AI requests for debugging and cost tracking",
+      "Implement request queue to handle spikes",
+      "Add input validation to prevent prompt injection"
+    ],
+    "costManagement": {
+      "estimatedMonthlyPerUser": {
+        "lightUser": "$0.10-0.50",
+        "mediumUser": "$1-3",
+        "heavyUser": "$5-10"
+      },
+      "strategies": [
+        "Cache summaries and embeddings aggressively",
+        "Use GPT-4o-mini for most features (20x cheaper than GPT-4)",
+        "Batch embedding generation",
+        "Implement free tier limits (e.g., 50 AI requests/month)",
+        "Premium tier for unlimited AI features",
+        "Monitor costs per user with alerts"
+      ],
+      "budgetAlerts": "Set up OpenAI usage alerts at $10, $50, $100 thresholds"
+    }
+  },
+
+  "uiuxDesign": {
+    "designPrinciples": [
+      "AI features should be helpful, not intrusive",
+      "Always show when AI is working (loading states)",
+      "Give users control - never auto-apply AI changes without review",
+      "Graceful degradation if AI fails",
+      "Clear labeling: '✨ AI Generated' badges",
+      "Privacy transparency: explain what data is sent to AI"
+    ],
+    "newComponents": [
+      "components/ai/ai-button.tsx - Reusable AI action button",
+      "components/ai/ai-summary-badge.tsx - Badge for AI-generated content",
+      "components/ai/ai-loading.tsx - Loading state for AI operations",
+      "components/chat/chat-interface.tsx - Chat UI for RAG",
+      "components/chat/chat-message.tsx - Individual chat messages",
+      "components/chat/source-citation.tsx - Show source notes in chat",
+      "components/voice-recorder.tsx - Voice recording UI",
+      "components/tag-selector.tsx - Tag selection and management",
+      "components/enhancement-toolbar.tsx - Text enhancement options"
+    ],
+    "existingComponentChanges": [
+      "components/note-modal.tsx - Add AI buttons and features",
+      "components/note-item.tsx - Display AI summaries",
+      "components/common-header.tsx - Add search and chat icons",
+      "app/(tabs)/_layout.tsx - Add chat tab"
+    ]
+  },
+
+  "testingStrategy": {
+    "unitTests": [
+      "Test AI service methods with mocked OpenAI responses",
+      "Test embedding generation and storage",
+      "Test search ranking algorithms"
+    ],
+    "integrationTests": [
+      "Test full RAG workflow",
+      "Test voice recording and transcription",
+      "Test tag suggestion acceptance/rejection"
+    ],
+    "performanceTests": [
+      "Load test with 1000+ notes",
+      "Measure embedding generation time",
+      "Test search response times"
+    ],
+    "costTests": [
+      "Track actual API costs per feature",
+      "Measure cost per user per month",
+      "Verify caching effectiveness"
+    ]
+  },
+
+  "rolloutStrategy": {
+    "betaTesting": {
+      "approach": "Feature flags for gradual rollout",
+      "initialUsers": "10-20 internal testers",
+      "duration": "2 weeks per phase",
+      "metrics": [
+        "Feature usage rates",
+        "User satisfaction (NPS surveys)",
+        "Cost per user",
+        "Error rates",
+        "Performance impact"
+      ]
+    },
+    "publicLaunch": {
+      "announcement": "Add to 'Coming Soon' card, then move to main features",
+      "documentation": "Update Quick Start card with AI features",
+      "pricing": "Consider AI features as premium tier",
+      "monitoring": "Set up alerts for costs, errors, and usage spikes"
+    }
+  },
+
+  "alternativeProviders": {
+    "anthropic": {
+      "models": ["claude-3-5-haiku-20241022", "claude-3-5-sonnet-20241022"],
+      "pros": ["Excellent structured outputs", "Very fast Haiku model", "Strong reasoning"],
+      "cons": ["Slightly more expensive", "No embeddings model (need separate provider)"],
+      "costComparison": "~25% more expensive than OpenAI for same tasks"
+    },
+    "openRouter": {
+      "description": "Unified API for multiple LLM providers",
+      "pros": ["Access to many models", "Fallback options", "Competitive pricing"],
+      "cons": ["Another abstraction layer", "Less control over specific features"]
+    },
+    "localModels": {
+      "options": ["Llama 3.1 via Replicate", "Mistral via Hugging Face"],
+      "pros": ["Lower cost at scale", "More privacy"],
+      "cons": ["Lower quality for complex tasks", "More latency"]
+    },
+    "recommendation": "Start with OpenAI for best quality, consider alternatives for specific features later"
+  },
+
+  "futureEnhancements": {
+    "nextLevel": [
+      "Multi-modal notes (images, audio, video) with AI analysis",
+      "Collaborative notes with AI meeting summaries",
+      "Knowledge graph visualization of note relationships",
+      "Automatic note generation from calendar events",
+      "Email-to-note with AI parsing",
+      "Integration with other tools (Notion, Obsidian, etc.)",
+      "Personal AI writing style that learns from user",
+      "Predictive text based on past notes"
+    ]
+  },
+
+  "risks": {
+    "technical": [
+      {
+        "risk": "OpenAI API rate limits or outages",
+        "mitigation": "Implement retry logic, fallbacks, graceful degradation"
+      },
+      {
+        "risk": "Unexpected costs from heavy usage",
+        "mitigation": "Rate limiting, cost monitoring, usage alerts"
+      },
+      {
+        "risk": "Poor quality AI outputs",
+        "mitigation": "Thorough testing, allow users to regenerate, collect feedback"
+      },
+      {
+        "risk": "Privacy concerns with user data",
+        "mitigation": "Use OpenAI zero-retention policy, clear privacy docs, optional private notes"
+      }
+    ],
+    "business": [
+      {
+        "risk": "Users don't value AI features",
+        "mitigation": "Beta test with real users, measure engagement, iterate based on feedback"
+      },
+      {
+        "risk": "AI costs make the app unprofitable",
+        "mitigation": "Implement tiered pricing, monitor costs closely, optimize for efficiency"
+      }
+    ]
+  },
+
+  "successMetrics": {
+    "adoption": [
+      "% of users who try AI features within first week",
+      "% of notes with AI-generated titles",
+      "% of notes with AI summaries",
+      "Daily active users of chat feature"
+    ],
+    "engagement": [
+      "Average AI requests per user per week",
+      "Time spent in chat interface",
+      "Acceptance rate of AI suggestions (titles, tags, etc.)"
+    ],
+    "quality": [
+      "User satisfaction ratings for AI features",
+      "AI-generated content approval rate",
+      "Support tickets related to AI features"
+    ],
+    "business": [
+      "Cost per user per month",
+      "Revenue from AI premium tier (if applicable)",
+      "Retention rate improvement with AI features"
+    ]
+  },
+
+  "resources": {
+    "documentation": [
+      "OpenAI API Documentation: https://platform.openai.com/docs",
+      "Supabase pgvector Guide: https://supabase.com/docs/guides/ai",
+      "RAG Best Practices: https://www.pinecone.io/learn/retrieval-augmented-generation/",
+      "Prompt Engineering Guide: https://platform.openai.com/docs/guides/prompt-engineering"
+    ],
+    "examples": [
+      "OpenAI Cookbook: https://cookbook.openai.com/",
+      "Supabase AI Examples: https://github.com/supabase/supabase/tree/master/examples"
+    ]
+  }
+}
