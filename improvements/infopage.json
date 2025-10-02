@@ -1,0 +1,189 @@
+{
+  "title": "Info Page - Accordion Cards Implementation (Simplified)",
+  "description": "Cards with built-in accordion behavior - no separate wrapper needed",
+  "pattern": "Self-contained accordion cards that info page simply imports and renders",
+
+  "architecture": {
+    "info_page": {
+      "file": "app/(tabs)/info.tsx",
+      "role": "Simple orchestrator - just imports and renders cards",
+      "contains": [
+        "SharedPageLayout wrapper",
+        "PWADetector component",
+        "State to manage which card is expanded (expandedCard)",
+        "Simple card imports - just <DownloadCard />, <QuickStartCard />, etc."
+      ],
+      "state_management": {
+        "expandedCard": "Tracks which card is currently open ('download', 'quickstart', null, etc.)",
+        "passed_to_cards": "Each card receives expandedCard state and setExpandedCard function",
+        "coordination": "Ensures only one card is expanded at a time"
+      }
+    },
+    "accordion_cards": {
+      "folder": "components/info-cards/",
+      "pattern": "Self-contained cards with built-in accordion behavior",
+      "files": [
+        "quick-start-card.tsx",
+        "download-card.tsx",
+        "about-card.tsx",
+        "documents-card.tsx",
+        "contact-card.tsx"
+      ],
+      "each_card_has": [
+        "Own title and icon",
+        "Clickable header with chevron",
+        "Expand/collapse logic",
+        "Content area that shows/hides",
+        "Theme-aware styling"
+      ],
+      "props": {
+        "isExpanded": "Boolean - whether this card is expanded",
+        "onToggle": "Function - called when card header is clicked"
+      }
+    }
+  },
+
+  "usage_in_info_page": {
+    "example": "info.tsx becomes very simple",
+    "code_pattern": [
+      "const [expandedCard, setExpandedCard] = useState<string | null>(null);",
+      "",
+      "<DownloadCard ",
+      "  isExpanded={expandedCard === 'download'}",
+      "  onToggle={() => setExpandedCard(expandedCard === 'download' ? null : 'download')}",
+      "/>",
+      "",
+      "<QuickStartCard ",
+      "  isExpanded={expandedCard === 'quickstart'}",
+      "  onToggle={() => setExpandedCard(expandedCard === 'quickstart' ? null : 'quickstart')}",
+      "/>"
+    ],
+    "benefits": [
+      "No separate wrapper component needed",
+      "Cards are self-contained and ready to use",
+      "Info page stays clean - just state + renders",
+      "Easy to add/remove cards"
+    ]
+  },
+
+  "phase_1": {
+    "description": "Initial implementation with 2 cards",
+    "tasks": [
+      {
+        "step": 1,
+        "action": "Create DownloadCard with built-in accordion",
+        "file": "components/info-cards/download-card.tsx",
+        "structure": [
+          "Props: isExpanded, onToggle",
+          "Clickable header with title 'Download' and chevron",
+          "Collapsible content area",
+          "Import and render PWAInstallCardDesktop",
+          "Import and render PWAInstallCardMobile",
+          "Brief intro text about PWA installation"
+        ]
+      },
+      {
+        "step": 2,
+        "action": "Create QuickStartCard with built-in accordion",
+        "file": "components/info-cards/quick-start-card.tsx",
+        "structure": [
+          "Props: isExpanded, onToggle",
+          "Clickable header with title 'Quick Start' and chevron",
+          "Collapsible content area",
+          "Welcome message",
+          "Key features overview",
+          "Getting started steps",
+          "Tips for new users"
+        ]
+      },
+      {
+        "step": 3,
+        "action": "Update info.tsx to use cards",
+        "file": "app/(tabs)/info.tsx",
+        "changes": [
+          "Add state: const [expandedCard, setExpandedCard] = useState<string | null>(null)",
+          "Import DownloadCard and QuickStartCard",
+          "Render cards with isExpanded and onToggle props",
+          "Keep Supabase status for now (move to About card in phase 2)"
+        ]
+      }
+    ]
+  },
+
+  "phase_2": {
+    "description": "Add remaining cards with same pattern",
+    "cards": [
+      {
+        "name": "AboutCard",
+        "file": "components/info-cards/about-card.tsx",
+        "props": "isExpanded, onToggle",
+        "contents": [
+          "App description and purpose",
+          "Technical stack info",
+          "Version/build information",
+          "Supabase connection status (moved from info.tsx)"
+        ]
+      },
+      {
+        "name": "DocumentsCard",
+        "file": "components/info-cards/documents-card.tsx",
+        "props": "isExpanded, onToggle",
+        "contents": [
+          "User guide placeholder/links",
+          "API documentation placeholder/links",
+          "FAQ placeholder/links"
+        ]
+      },
+      {
+        "name": "ContactCard",
+        "file": "components/info-cards/contact-card.tsx",
+        "props": "isExpanded, onToggle",
+        "contents": [
+          "GitHub issues link",
+          "Support email/contact info",
+          "Community links"
+        ]
+      }
+    ],
+    "special_card": {
+      "name": "Git",
+      "type": "Regular TouchableOpacity card (no accordion)",
+      "implementation": "Simple card that opens GitHub in browser when tapped",
+      "note": "This card doesn't need accordion since it's just an external link"
+    }
+  },
+
+  "accordion_behavior": {
+    "single_expansion": "Only one card can be expanded at a time (managed by expandedCard state in info.tsx)",
+    "toggle": "Tapping expanded card collapses it (sets expandedCard to null)",
+    "visual": "Chevron right (▶) when collapsed, chevron down (▼) when expanded",
+    "animation": "Optional smooth expand/collapse transition"
+  },
+
+  "card_component_structure": {
+    "template": "Each card follows this pattern",
+    "props_interface": {
+      "isExpanded": "boolean",
+      "onToggle": "() => void"
+    },
+    "render_structure": [
+      "TouchableOpacity header (title + chevron icon)",
+      "Conditional content area (only renders when isExpanded)",
+      "Styled with theme colors from useThemeColors()"
+    ]
+  },
+
+  "file_structure_result": {
+    "app/(tabs)/info.tsx": "Simple orchestrator with expandedCard state and card renders",
+    "components/info-cards/": "Self-contained accordion cards",
+    "benefits": [
+      "No separate wrapper component needed",
+      "Cards are self-contained and reusable",
+      "Info page is clean and simple",
+      "Easy to add/remove/reorder cards",
+      "Each card handles its own UI and logic"
+    ]
+  },
+
+  "execution_plan": "Start with Phase 1 (Download + Quick Start cards), test accordion behavior, then add Phase 2 cards"
+}

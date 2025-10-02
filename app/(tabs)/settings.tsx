@@ -5,8 +5,6 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { ConfirmationModal } from '@/components/confirmation-modal';
-import { PWAInstallCardDesktop } from '@/components/PWAInstallCardDesktop';
-import { PWAInstallCardMobile } from '@/components/PWAInstallCardMobile';
 import { ThemePickerModal } from '@/components/theme-picker-modal';
 import { router } from 'expo-router';
 import { Themes } from '@/constants/theme';
@@ -95,9 +93,6 @@ export default function SettingsScreen() {
           />
         </View>
       </View>
-
-      <PWAInstallCardDesktop />
-      <PWAInstallCardMobile />
 
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Profile</Text>

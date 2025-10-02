@@ -1,0 +1,79 @@
+{
+  "title": "Settings Page Refactor - Component Extraction",
+  "description": "Refactor settings page to use imported components instead of inline implementation",
+  "pattern": "Same pattern as info page - extract sections into dedicated components",
+
+  "current_structure": {
+    "file": "app/(tabs)/settings.tsx",
+    "sections": [
+      "Theme section (theme picker + dark mode toggle)",
+      "Profile section (email display)",
+      "Account section (sign out button)"
+    ],
+    "inline": "All logic and UI is inline in settings.tsx"
+  },
+
+  "proposed_structure": {
+    "components_folder": "components/settings-cards/",
+    "files": [
+      {
+        "name": "theme-settings-card.tsx",
+        "contains": [
+          "Theme picker button with preview dots",
+          "Dark mode toggle switch",
+          "Theme error banner",
+          "ThemePickerModal integration"
+        ],
+        "props": "Self-contained, uses useThemeController and useThemeColors hooks"
+      },
+      {
+        "name": "profile-settings-card.tsx",
+        "contains": [
+          "User email display",
+          "Profile information"
+        ],
+        "props": "Uses useAuth hook for user data"
+      },
+      {
+        "name": "account-settings-card.tsx",
+        "contains": [
+          "Sign out button",
+          "Sign out confirmation modal",
+          "Sign out logic"
+        ],
+        "props": "Uses useAuth hook for signOut function"
+      }
+    ],
+    "settings_page": {
+      "file": "app/(tabs)/settings.tsx",
+      "becomes": "Layout orchestrator that imports and arranges card components",
+      "imports": [
+        "ThemeSettingsCard",
+        "ProfileSettingsCard",
+        "AccountSettingsCard"
+      ],
+      "structure": "SharedPageLayout wrapper with card components"
+    }
+  },
+
+  "card_type": "Regular cards (NOT accordion)",
+  "reasoning": [
+    "Settings need to be quickly accessible",
+    "Each section is already compact",
+    "Users need to see all options at once",
+    "No need for expand/collapse - just clean separation"
+  ],
+
+  "benefits": [
+    "Each settings section is self-contained and reusable",
+    "Easier to add/remove settings sections",
+    "Settings page becomes simple layout orchestrator",
+    "Consistent with info page pattern",
+    "Better separation of concerns",
+    "Easier testing and maintenance"
+  ],
+
+  "implementation_order": "Complete info page accordion cards first, then apply same pattern to settings",
+
+  "notes": "Unlike info page which uses accordion cards, settings uses regular card components since all settings should be visible at once"
+}

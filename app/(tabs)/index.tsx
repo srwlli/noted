@@ -9,6 +9,7 @@ import { ConfirmationModal } from '@/components/confirmation-modal';
 import { FolderModal } from '@/components/folder-modal';
 import { PWADetector } from '@/components/PWADetector';
 import { notesService, Note } from '@/services/notes';
+import { foldersService, Folder } from '@/services/folders';
 
 export default function NotesScreen() {
   const { colors } = useThemeColors();
@@ -22,6 +23,8 @@ export default function NotesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [showFolderModal, setShowFolderModal] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
+  const [deleteFolder, setDeleteFolder] = useState<string | null>(null);
 
   // Load notes on mount and when folder changes
   useEffect(() => {
@@ -101,17 +104,48 @@ export default function NotesScreen() {
   };
 
   const handleNewFolder = () => {
+    setEditingFolder(null);
     setShowFolderModal(true);
+  };
+
+  const handleRenameFolder = (folder: Folder) => {
+    setEditingFolder(folder);
+    setShowFolderModal(true);
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    setDeleteFolder(folderId);
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!deleteFolder) return;
+
+    try {
+      await foldersService.deleteFolder(deleteFolder);
+
+      // If we deleted the currently selected folder, reset to "All Notes"
+      if (selectedFolderId === deleteFolder) {
+        setSelectedFolderId(null);
+      }
+
+      setDeleteFolder(null);
+      loadNotes();
+    } catch (err) {
+      console.error('Failed to delete folder:', err);
+      Alert.alert('Error', 'Failed to delete folder');
+    }
   };
 
   const handleFolderModalSuccess = () => {
     setShowFolderModal(false);
+    setEditingFolder(null);
     // Reload notes to update the folder dropdown in header
     loadNotes();
   };
 
   const handleFolderModalClose = () => {
     setShowFolderModal(false);
+    setEditingFolder(null);
   };
 
   if (loading) {
@@ -131,6 +165,8 @@ export default function NotesScreen() {
       refreshing={refreshing}
       onFolderSelect={handleFolderSelect}
       onNewFolder={handleNewFolder}
+      onRenameFolder={handleRenameFolder}
+      onDeleteFolder={handleDeleteFolder}
       selectedFolderId={selectedFolderId}
     >
       <PWADetector />
@@ -203,6 +239,20 @@ export default function NotesScreen() {
         visible={showFolderModal}
         onClose={handleFolderModalClose}
         onSuccess={handleFolderModalSuccess}
+        onDelete={editingFolder ? () => handleDeleteFolder(editingFolder.id) : undefined}
+        initialFolder={editingFolder ? { id: editingFolder.id, name: editingFolder.name } : undefined}
+      />
+
+      {/* Delete Folder Confirmation Modal */}
+      <ConfirmationModal
+        visible={!!deleteFolder}
+        title="Delete Folder"
+        message="Are you sure you want to delete this folder? Notes in this folder will not be deleted."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmStyle="destructive"
+        onConfirm={confirmDeleteFolder}
+        onCancel={() => setDeleteFolder(null)}
       />
     </SharedPageLayout>
   );

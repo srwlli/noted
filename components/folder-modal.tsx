@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Modal, View, TouchableOpacity, StyleSheet, Animated, Dimensions, Easing, TextInput, Text, Alert } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { foldersService } from '@/services/folders';
 
@@ -7,13 +8,14 @@ interface FolderModalProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onDelete?: () => void;
   initialFolder?: {
     id?: string;
     name: string;
   };
 }
 
-export function FolderModal({ visible, onClose, onSuccess, initialFolder }: FolderModalProps) {
+export function FolderModal({ visible, onClose, onSuccess, onDelete, initialFolder }: FolderModalProps) {
   const { colors } = useThemeColors();
   const [folderName, setFolderName] = useState(initialFolder?.name || '');
   const [saving, setSaving] = useState(false);
@@ -85,6 +87,11 @@ export function FolderModal({ visible, onClose, onSuccess, initialFolder }: Fold
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDelete = () => {
+    slideOut();
+    onDelete?.();
   };
 
   return (
@@ -166,6 +173,19 @@ export function FolderModal({ visible, onClose, onSuccess, initialFolder }: Fold
                       {saving ? 'Saving...' : 'Save'}
                     </Text>
                   </TouchableOpacity>
+
+                  {initialFolder?.id && (
+                    <TouchableOpacity
+                      style={[
+                        styles.iconButton,
+                        { borderColor: colors.border }
+                      ]}
+                      onPress={handleDelete}
+                      disabled={saving}
+                    >
+                      <MaterialIcons name="delete" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             </TouchableOpacity>
@@ -218,12 +238,24 @@ const styles = StyleSheet.create({
   buttonRow: {
     flexDirection: 'row',
     gap: 12,
+    alignItems: 'stretch',
+  },
+  iconButton: {
+    width: 48,
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   button: {
     flex: 1,
-    padding: 16,
+    minHeight: 48,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
     borderWidth: 1,

@@ -40,10 +40,10 @@ export default function TabLayout() {
           },
         }}>
         <Tabs.Screen
-          name="docs"
-          key="docs-tab"
+          name="info"
+          key="info-tab"
           options={{
-            title: 'About',
+            title: 'Info',
             tabBarIcon: ({ color }) => <MaterialIcons size={24} name="info" color={color} />,
           }}
         />

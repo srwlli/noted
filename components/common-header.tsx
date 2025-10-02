@@ -13,10 +13,12 @@ interface CommonHeaderProps {
   refreshing?: boolean;
   onFolderSelect?: (folderId: string | null) => void;
   onNewFolder?: () => void;
+  onRenameFolder?: (folder: Folder) => void;
+  onDeleteFolder?: (folderId: string) => void;
   selectedFolderId?: string | null;
 }
 
-export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect, onNewFolder, selectedFolderId }: CommonHeaderProps) {
+export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect, onNewFolder, onRenameFolder, onDeleteFolder, selectedFolderId }: CommonHeaderProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
@@ -79,6 +81,22 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
     ]}>
       <Text style={[styles.branding, { color: colors.text }]}>noted</Text>
       <View style={styles.buttonContainer}>
+        {onRefresh && (
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                opacity: refreshing ? 0.6 : 1
+              }
+            ]}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            <Text style={[styles.buttonText, { color: colors.text }]}>⟳</Text>
+          </TouchableOpacity>
+        )}
         {onFolderSelect && (
           <Menu>
             <MenuTrigger customStyles={{ triggerWrapper: styles.actionButton }}>
@@ -119,16 +137,23 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
               )}
 
               {folders.map((folder) => (
-                <MenuOption
-                  key={folder.id}
-                  onSelect={() => handleFolderSelect(folder.id)}
-                  customStyles={{ optionWrapper: styles.menuItem }}
-                >
-                  <MaterialIcons name="folder" size={20} color={colors.text} />
-                  <Text style={[styles.menuText, { color: colors.text, fontWeight: selectedFolderId === folder.id ? '600' : '400' }]}>
-                    {folder.name}
-                  </Text>
-                </MenuOption>
+                <View key={folder.id} style={styles.folderRow}>
+                  <TouchableOpacity
+                    style={styles.folderSelectArea}
+                    onPress={() => handleFolderSelect(folder.id)}
+                  >
+                    <MaterialIcons name="folder" size={20} color={colors.text} />
+                    <Text style={[styles.menuText, { color: colors.text, fontWeight: selectedFolderId === folder.id ? '600' : '400' }]}>
+                      {folder.name}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.folderMoreButton}
+                    onPress={() => onRenameFolder?.(folder)}
+                  >
+                    <MaterialIcons name="more-vert" size={18} color={colors.textSecondary} />
+                  </TouchableOpacity>
+                </View>
               ))}
 
               <View style={[styles.divider, { borderBottomColor: colors.border }]} />
@@ -142,22 +167,6 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
               </MenuOption>
             </MenuOptions>
           </Menu>
-        )}
-        {onRefresh && (
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
-                opacity: refreshing ? 0.6 : 1
-              }
-            ]}
-            onPress={onRefresh}
-            disabled={refreshing}
-          >
-            <Text style={[styles.buttonText, { color: colors.text }]}>⟳</Text>
-          </TouchableOpacity>
         )}
         <TouchableOpacity
           style={[styles.actionButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -211,5 +220,21 @@ const styles = StyleSheet.create({
   divider: {
     borderBottomWidth: 1,
     marginVertical: 4,
+  },
+  folderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  folderSelectArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    gap: 12,
+    flex: 1,
+  },
+  folderMoreButton: {
+    padding: 8,
   },
 });

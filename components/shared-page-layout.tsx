@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ScrollView, StyleSheet, Platform } from 'react-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { CommonHeader } from '@/components/common-header';
+import { Folder } from '@/services/folders';
 
 interface SharedPageLayoutProps {
   children: React.ReactNode;
@@ -11,10 +12,12 @@ interface SharedPageLayoutProps {
   scrollable?: boolean;
   onFolderSelect?: (folderId: string | null) => void;
   onNewFolder?: () => void;
+  onRenameFolder?: (folder: Folder) => void;
+  onDeleteFolder?: (folderId: string) => void;
   selectedFolderId?: string | null;
 }
 
-export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true, onFolderSelect, onNewFolder, selectedFolderId }: SharedPageLayoutProps) {
+export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true, onFolderSelect, onNewFolder, onRenameFolder, onDeleteFolder, selectedFolderId }: SharedPageLayoutProps) {
   const { colors } = useThemeColors();
   const isWeb = Platform.OS === 'web';
 
@@ -63,6 +66,8 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
         refreshing={refreshing}
         onFolderSelect={onFolderSelect}
         onNewFolder={onNewFolder}
+        onRenameFolder={onRenameFolder}
+        onDeleteFolder={onDeleteFolder}
         selectedFolderId={selectedFolderId}
       />
       {content}
