@@ -37,15 +37,12 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
         onPress={onToggle}
         activeOpacity={0.7}
       >
-        <View style={styles.headerContent}>
-          <MaterialIcons name="download" size={20} color={colors.text} />
-          <Text style={[styles.title, { color: colors.text }]}>Download</Text>
-        </View>
         <MaterialIcons
           name={isExpanded ? 'keyboard-arrow-down' : 'keyboard-arrow-right'}
           size={24}
           color={colors.textSecondary}
         />
+        <Text style={[styles.title, { color: colors.text }]}>Download</Text>
       </TouchableOpacity>
 
       {/* Content Area - Only shown when expanded */}
@@ -201,13 +198,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 12,
+    padding: 16,
   },
   title: {
     fontSize: 18,

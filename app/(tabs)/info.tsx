@@ -4,10 +4,13 @@ import { SharedPageLayout } from '@/components/shared-page-layout';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PWADetector } from '@/components/PWADetector';
 import { supabase } from '@/lib/supabase';
+import { DownloadCard } from '@/components/info-cards/download-card';
+import { QuickStartCard } from '@/components/info-cards/quick-start-card';
 
 export default function InfoScreen() {
   const { colors } = useThemeColors();
   const [connectionStatus, setConnectionStatus] = useState<string>('Testing...');
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   useEffect(() => {
     testConnection();
@@ -29,6 +32,16 @@ export default function InfoScreen() {
   return (
     <SharedPageLayout>
       <PWADetector />
+
+      <DownloadCard
+        isExpanded={expandedCard === 'download'}
+        onToggle={() => setExpandedCard(expandedCard === 'download' ? null : 'download')}
+      />
+
+      <QuickStartCard
+        isExpanded={expandedCard === 'quickstart'}
+        onToggle={() => setExpandedCard(expandedCard === 'quickstart' ? null : 'quickstart')}
+      />
 
       <Text style={[styles.statusText, { color: colors.textSecondary }]}>
         Supabase: {connectionStatus}
