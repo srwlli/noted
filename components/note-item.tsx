@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Note } from '@/services/notes';
 
@@ -15,7 +16,7 @@ interface NoteItemProps {
 export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 
   const handleCopy = async () => {
@@ -32,7 +33,7 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
       style={[
         styles.container,
         {
-          backgroundColor: colors.surface,
+          backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,
           borderColor: colors.border,
         }
       ]}
@@ -60,15 +61,42 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
             {note.title}
           </Text>
           <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                setShowMenu(true);
-              }}
+            <Menu
+              onOpen={() => setIsMenuOpen(true)}
+              onClose={() => setIsMenuOpen(false)}
             >
-              <MaterialIcons name="more-vert" size={20} color={colors.text} />
-            </TouchableOpacity>
+              <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>
+                <MaterialIcons name="more-vert" size={20} color={colors.text} />
+              </MenuTrigger>
+              <MenuOptions customStyles={{
+                optionsContainer: {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  padding: 8,
+                  minWidth: 150,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 8,
+                  elevation: 5,
+                }
+              }}>
+                <MenuOption onSelect={() => onEdit?.()} customStyles={{ optionWrapper: styles.menuItem }}>
+                  <MaterialIcons name="edit" size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
+                </MenuOption>
+                <MenuOption onSelect={handleCopy} customStyles={{ optionWrapper: styles.menuItem }}>
+                  <MaterialIcons name="content-copy" size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
+                </MenuOption>
+                <MenuOption onSelect={() => onDelete?.()} customStyles={{ optionWrapper: styles.menuItem }}>
+                  <MaterialIcons name="delete" size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
+                </MenuOption>
+              </MenuOptions>
+            </Menu>
           </View>
         </View>
         {isExpanded && note.content && (
@@ -81,51 +109,6 @@ export function NoteItem({ note, onPress, onEdit, onDelete }: NoteItemProps) {
         )}
       </View>
       </TouchableOpacity>
-
-      {showMenu && (
-        <Modal transparent visible={showMenu} onRequestClose={() => setShowMenu(false)}>
-          <TouchableOpacity
-            style={styles.menuOverlay}
-            activeOpacity={1}
-            onPress={() => setShowMenu(false)}
-          >
-            <View style={[styles.menuContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowMenu(false);
-                  onEdit?.();
-                }}
-              >
-                <MaterialIcons name="edit" size={20} color={colors.text} />
-                <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowMenu(false);
-                  handleCopy();
-                }}
-              >
-                <MaterialIcons name="content-copy" size={20} color={colors.text} />
-                <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuItem}
-                onPress={() => {
-                  setShowMenu(false);
-                  onDelete?.();
-                }}
-              >
-                <MaterialIcons name="delete" size={20} color={colors.text} />
-                <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </Modal>
-      )}
     </View>
   );
 }
@@ -177,23 +160,6 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  menuOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  menuContainer: {
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 8,
-    minWidth: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 5,
   },
   menuItem: {
     flexDirection: 'row',

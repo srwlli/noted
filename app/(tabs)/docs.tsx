@@ -41,21 +41,11 @@ export default function DocsScreen() {
       <PWADetector />
       <TouchableOpacity
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => handleCardPress('git')}
+        onPress={() => handleCardPress('quickstart')}
       >
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Git</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Quick Start</Text>
         <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
-          Version control and collaboration workflow
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => handleCardPress('readme')}
-      >
-        <Text style={[styles.cardTitle, { color: colors.text }]}>README</Text>
-        <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
-          Project documentation and setup instructions
+          Get started with Noted - learn the basics
         </Text>
       </TouchableOpacity>
 
@@ -71,11 +61,21 @@ export default function DocsScreen() {
 
       <TouchableOpacity
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        onPress={() => handleCardPress('integrations')}
+        onPress={() => handleCardPress('git')}
       >
-        <Text style={[styles.cardTitle, { color: colors.text }]}>Integrations</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Git</Text>
         <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
-          Third-party services and API connections
+          View source code on GitHub
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+        onPress={() => handleCardPress('contact')}
+      >
+        <Text style={[styles.cardTitle, { color: colors.text }]}>Contact</Text>
+        <Text style={[styles.cardDescription, { color: colors.textSecondary }]}>
+          Get in touch with support
         </Text>
       </TouchableOpacity>
 

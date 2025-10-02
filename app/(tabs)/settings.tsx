@@ -54,16 +54,6 @@ export default function SettingsScreen() {
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Theme</Text>
 
-        {/* Theme Selection */}
-        <View style={styles.settingRow}>
-          <View style={styles.settingInfo}>
-            <Text style={[styles.settingLabel, { color: colors.text }]}>Theme Style</Text>
-            <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-              Choose your visual theme
-            </Text>
-          </View>
-        </View>
-
         <TouchableOpacity
           style={[styles.themeSelectorButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
           onPress={() => setShowThemePicker(true)}
@@ -110,30 +100,10 @@ export default function SettingsScreen() {
       <PWAInstallCardMobile />
 
       <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Debug</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>Profile</Text>
 
         <View style={styles.debugRow}>
-          <Text style={[styles.debugLabel, { color: colors.text }]}>Theme:</Text>
-          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{themeName}</Text>
-        </View>
-
-        <View style={styles.debugRow}>
-          <Text style={[styles.debugLabel, { color: colors.text }]}>Color Scheme:</Text>
-          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colorScheme}</Text>
-        </View>
-
-        <View style={styles.debugRow}>
-          <Text style={[styles.debugLabel, { color: colors.text }]}>Resolved:</Text>
-          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{resolvedScheme}</Text>
-        </View>
-
-        <View style={styles.debugRow}>
-          <Text style={[styles.debugLabel, { color: colors.text }]}>Background:</Text>
-          <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{colors.background}</Text>
-        </View>
-
-        <View style={styles.debugRow}>
-          <Text style={[styles.debugLabel, { color: colors.text }]}>User Email:</Text>
+          <Text style={[styles.debugLabel, { color: colors.text }]}>Email:</Text>
           <Text style={[styles.debugValue, { color: colors.textSecondary }]}>{user?.email || 'None'}</Text>
         </View>
       </View>

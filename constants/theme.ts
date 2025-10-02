@@ -29,8 +29,9 @@ interface ColorScheme {
   tabIconDefault: string;
   tabIconSelected: string;
 
-  // New 8 fields (ADDED - Phase 2)
+  // New 9 fields (ADDED - Phase 2)
   elevatedSurface: string;
+  selectedSurface: string;  // For selected/active item states
   overlay: string;
   hover: string;
   pressed: string;
@@ -55,6 +56,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6a6a6a',
       tabIconSelected: '#4a4a4a',
       elevatedSurface: '#f2f2f0',
+      selectedSurface: '#e8e8e6',
       overlay: 'rgba(18, 18, 18, 0.5)',
       hover: '#ececec',
       pressed: '#e0e0e0',
@@ -74,6 +76,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b0b0b0',
       tabIconSelected: '#d0d0d0',
       elevatedSurface: '#2a2a2a',
+      selectedSurface: '#363636',
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#1a1a1a',
       pressed: '#0d0d0d',
@@ -97,6 +100,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#8e8e93',
       tabIconSelected: '#007aff',
       elevatedSurface: '#ffffff',
+      selectedSurface: '#f5f3f0',
       overlay: 'rgba(28, 28, 30, 0.4)',
       hover: '#f5f3f0',
       pressed: '#ebe9e6',
@@ -116,6 +120,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#8e8e93',
       tabIconSelected: '#0a84ff',
       elevatedSurface: '#363638',
+      selectedSurface: '#404042',
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#2c2c2e',
       pressed: '#1c1c1e',
@@ -139,6 +144,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6d5d4d',
       tabIconSelected: '#8b6f47',
       elevatedSurface: '#fdfcf7',
+      selectedSurface: '#f0e9dd',
       overlay: 'rgba(26, 22, 18, 0.4)',
       hover: '#ece6dc',
       pressed: '#e0d7ca',
@@ -158,6 +164,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#a89a88',
       tabIconSelected: '#c4a576',
       elevatedSurface: '#322a23',
+      selectedSurface: '#3d342c',
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#2f2924',
       pressed: '#251f1a',
@@ -181,6 +188,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#4c566a',
       tabIconSelected: '#5e81ac',
       elevatedSurface: '#ffffff',
+      selectedSurface: '#dde3eb',
       overlay: 'rgba(46, 52, 64, 0.4)',
       hover: '#dde3eb',
       pressed: '#cbd5e1',
@@ -200,6 +208,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#d8dee9',
       tabIconSelected: '#88c0d0',
       elevatedSurface: '#434c5e',
+      selectedSurface: '#4c566a',
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#454d60',
       pressed: '#3a4150',
@@ -223,6 +232,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6a6a6a',
       tabIconSelected: '#d4534f',
       elevatedSurface: '#f2f2f0',
+      selectedSurface: '#e8e6e4',
       overlay: 'rgba(29, 29, 29, 0.4)',
       hover: '#f0efed',
       pressed: '#e0dfdd',
@@ -242,6 +252,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b0b0b0',
       tabIconSelected: '#d4534f',
       elevatedSurface: '#333333',
+      selectedSurface: '#3d3d3d',
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#363636',
       pressed: '#2c2c2c',
