@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Info Page Accordion Cards** (2025-10-02)
+  - Created Download Card with iOS/Android/PC tabs and auto-detection
+  - Platform-specific installation instructions for PWA setup
+  - Quick Start Card with app actions organized by location (Header, Folder, Card, Tab Bar)
+  - Tech Stack Card displaying technologies used (Frontend, Backend, UI/UX, PWA Features)
+  - Coming Soon Card listing planned features
+  - Contact Card with email contact information
+  - Accordion UI pattern with single-card expansion state management
+  - Horizontal divider lines between sections for improved visual separation
+  - All cards use theme colors for consistent styling
 - **Folders for Note Organization** (2025-10-02)
   - Created `folders` table with RLS policies for user-specific folder access
   - Added `folder_id` column to notes table (nullable, ON DELETE SET NULL)
@@ -92,6 +102,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Info Page Structure**
+  - Renamed "docs" tab to "info" tab
+  - Reordered header icons: refresh, folder, new note (left to right)
+  - Replaced static content cards with interactive accordion cards
+  - Single-card expansion ensures focused content consumption
 - **Theme Names Modernized**
   - Renamed greyscale → Monochrome (pure cool neutrals)
   - Renamed bearRedGraphite → Crimson (rich red aesthetic)

@@ -6,6 +6,9 @@ import { PWADetector } from '@/components/PWADetector';
 import { supabase } from '@/lib/supabase';
 import { DownloadCard } from '@/components/info-cards/download-card';
 import { QuickStartCard } from '@/components/info-cards/quick-start-card';
+import { TechStackCard } from '@/components/info-cards/tech-stack-card';
+import { ComingSoonCard } from '@/components/info-cards/coming-soon-card';
+import { ContactCard } from '@/components/info-cards/contact-card';
 
 export default function InfoScreen() {
   const { colors } = useThemeColors();
@@ -41,6 +44,21 @@ export default function InfoScreen() {
       <QuickStartCard
         isExpanded={expandedCard === 'quickstart'}
         onToggle={() => setExpandedCard(expandedCard === 'quickstart' ? null : 'quickstart')}
+      />
+
+      <TechStackCard
+        isExpanded={expandedCard === 'techstack'}
+        onToggle={() => setExpandedCard(expandedCard === 'techstack' ? null : 'techstack')}
+      />
+
+      <ComingSoonCard
+        isExpanded={expandedCard === 'comingsoon'}
+        onToggle={() => setExpandedCard(expandedCard === 'comingsoon' ? null : 'comingsoon')}
+      />
+
+      <ContactCard
+        isExpanded={expandedCard === 'contact'}
+        onToggle={() => setExpandedCard(expandedCard === 'contact' ? null : 'contact')}
       />
 
       <Text style={[styles.statusText, { color: colors.textSecondary }]}>

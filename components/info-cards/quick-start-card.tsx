@@ -65,7 +65,8 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
           </View>
 
           {/* Folder Actions */}
-          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>Folder Actions</Text>
+          <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Folder Actions</Text>
           <View style={styles.iconList}>
             <View style={styles.iconRow}>
               <Text style={[styles.icon, { color: colors.text }]}>⋮</Text>
@@ -79,7 +80,8 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
           </View>
 
           {/* Card Actions */}
-          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>Card Actions</Text>
+          <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Card Actions</Text>
           <View style={styles.iconList}>
             <View style={styles.iconRow}>
               <Text style={[styles.icon, { color: colors.text }]}>⋮</Text>
@@ -113,7 +115,8 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
           </View>
 
           {/* Tab Bar Navigation */}
-          <Text style={[styles.sectionTitle, { color: colors.text, marginTop: 20 }]}>Tab Bar Navigation</Text>
+          <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Tab Bar Navigation</Text>
           <View style={styles.iconList}>
             <View style={styles.iconRow}>
               <MaterialIcons name="info" size={20} color={colors.text} style={styles.iconMaterial} />
@@ -206,5 +209,10 @@ const styles = StyleSheet.create({
   iconDescription: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    marginTop: 24,
+    marginBottom: 16,
   },
 });
