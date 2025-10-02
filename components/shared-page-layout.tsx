@@ -9,9 +9,12 @@ interface SharedPageLayoutProps {
   onRefresh?: () => void;
   refreshing?: boolean;
   scrollable?: boolean;
+  onFolderSelect?: (folderId: string | null) => void;
+  onNewFolder?: () => void;
+  selectedFolderId?: string | null;
 }
 
-export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true }: SharedPageLayoutProps) {
+export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true, onFolderSelect, onNewFolder, selectedFolderId }: SharedPageLayoutProps) {
   const { colors } = useThemeColors();
   const isWeb = Platform.OS === 'web';
 
@@ -54,7 +57,14 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
       // Full height container with proper overflow handling for PWA
       isWeb && styles.webWrapper
     ]}>
-      <CommonHeader onNewNote={onNewNote} onRefresh={onRefresh} refreshing={refreshing} />
+      <CommonHeader
+        onNewNote={onNewNote}
+        onRefresh={onRefresh}
+        refreshing={refreshing}
+        onFolderSelect={onFolderSelect}
+        onNewFolder={onNewFolder}
+        selectedFolderId={selectedFolderId}
+      />
       {content}
     </View>
   );

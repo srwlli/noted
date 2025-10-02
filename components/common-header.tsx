@@ -1,19 +1,45 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Menu, MenuOptions, MenuOption, MenuTrigger, MenuOptionCustomStyle } from 'react-native-popup-menu';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { router } from 'expo-router';
+import { foldersService, Folder } from '@/services/folders';
 
 interface CommonHeaderProps {
   onNewNote?: () => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onFolderSelect?: (folderId: string | null) => void;
+  onNewFolder?: () => void;
+  selectedFolderId?: string | null;
 }
 
-export function CommonHeader({ onNewNote, onRefresh, refreshing }: CommonHeaderProps) {
+export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect, onNewFolder, selectedFolderId }: CommonHeaderProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+
+  useEffect(() => {
+    if (onFolderSelect) {
+      loadFolders();
+    }
+  }, [onFolderSelect]);
+
+  const loadFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const data = await foldersService.getFolders();
+      setFolders(data);
+    } catch (err) {
+      console.error('Failed to load folders:', err);
+    } finally {
+      setLoadingFolders(false);
+    }
+  };
 
   const handleNewNote = () => {
     if (onNewNote) {
@@ -21,6 +47,14 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing }: CommonHeaderP
     } else {
       router.push('/?openModal=true');
     }
+  };
+
+  const handleFolderSelect = (folderId: string | null) => {
+    onFolderSelect?.(folderId);
+  };
+
+  const handleNewFolder = () => {
+    onNewFolder?.();
   };
 
   return (
@@ -45,6 +79,70 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing }: CommonHeaderP
     ]}>
       <Text style={[styles.branding, { color: colors.text }]}>noted</Text>
       <View style={styles.buttonContainer}>
+        {onFolderSelect && (
+          <Menu>
+            <MenuTrigger customStyles={{ triggerWrapper: styles.actionButton }}>
+              <View style={[
+                styles.actionButton,
+                { backgroundColor: colors.surface, borderColor: colors.border }
+              ]}>
+                <MaterialIcons name="folder" size={16} color={colors.text} />
+              </View>
+            </MenuTrigger>
+            <MenuOptions customStyles={{
+              optionsContainer: {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                borderWidth: 1,
+                borderRadius: 12,
+                padding: 8,
+                minWidth: 180,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 8,
+                elevation: 5,
+              }
+            }}>
+              <MenuOption
+                onSelect={() => handleFolderSelect(null)}
+                customStyles={{ optionWrapper: styles.menuItem }}
+              >
+                <MaterialIcons name="folder-open" size={20} color={colors.text} />
+                <Text style={[styles.menuText, { color: colors.text, fontWeight: selectedFolderId === null ? '600' : '400' }]}>
+                  All Notes
+                </Text>
+              </MenuOption>
+
+              {folders.length > 0 && (
+                <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+              )}
+
+              {folders.map((folder) => (
+                <MenuOption
+                  key={folder.id}
+                  onSelect={() => handleFolderSelect(folder.id)}
+                  customStyles={{ optionWrapper: styles.menuItem }}
+                >
+                  <MaterialIcons name="folder" size={20} color={colors.text} />
+                  <Text style={[styles.menuText, { color: colors.text, fontWeight: selectedFolderId === folder.id ? '600' : '400' }]}>
+                    {folder.name}
+                  </Text>
+                </MenuOption>
+              ))}
+
+              <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+
+              <MenuOption
+                onSelect={handleNewFolder}
+                customStyles={{ optionWrapper: styles.menuItem }}
+              >
+                <MaterialIcons name="create-new-folder" size={20} color={colors.tint} />
+                <Text style={[styles.menuText, { color: colors.tint }]}>New Folder</Text>
+              </MenuOption>
+            </MenuOptions>
+          </Menu>
+        )}
         {onRefresh && (
           <TouchableOpacity
             style={[
@@ -100,5 +198,18 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 12,
+  },
+  menuText: {
+    fontSize: 16,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    marginVertical: 4,
   },
 });

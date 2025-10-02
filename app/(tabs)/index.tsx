@@ -6,6 +6,7 @@ import { SharedPageLayout } from '@/components/shared-page-layout';
 import { NoteModal } from '@/components/note-modal';
 import { NoteItem } from '@/components/note-item';
 import { ConfirmationModal } from '@/components/confirmation-modal';
+import { FolderModal } from '@/components/folder-modal';
 import { PWADetector } from '@/components/PWADetector';
 import { notesService, Note } from '@/services/notes';
 
@@ -19,11 +20,13 @@ export default function NotesScreen() {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [deleteNote, setDeleteNote] = useState<Note | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [showFolderModal, setShowFolderModal] = useState(false);
 
-  // Load notes on mount
+  // Load notes on mount and when folder changes
   useEffect(() => {
     loadNotes();
-  }, []);
+  }, [selectedFolderId]);
 
   // Open modal if navigation param is set
   useEffect(() => {
@@ -35,7 +38,7 @@ export default function NotesScreen() {
   const loadNotes = async () => {
     try {
       setError(null);
-      const data = await notesService.getNotes();
+      const data = await notesService.getNotesByFolder(selectedFolderId);
       setNotes(data);
     } catch (err) {
       console.error('Failed to load notes:', err);
@@ -93,6 +96,24 @@ export default function NotesScreen() {
     }
   };
 
+  const handleFolderSelect = (folderId: string | null) => {
+    setSelectedFolderId(folderId);
+  };
+
+  const handleNewFolder = () => {
+    setShowFolderModal(true);
+  };
+
+  const handleFolderModalSuccess = () => {
+    setShowFolderModal(false);
+    // Reload notes to update the folder dropdown in header
+    loadNotes();
+  };
+
+  const handleFolderModalClose = () => {
+    setShowFolderModal(false);
+  };
+
   if (loading) {
     return (
       <SharedPageLayout>
@@ -104,7 +125,14 @@ export default function NotesScreen() {
   }
 
   return (
-    <SharedPageLayout onNewNote={handleNewNote} onRefresh={handleRefresh} refreshing={refreshing}>
+    <SharedPageLayout
+      onNewNote={handleNewNote}
+      onRefresh={handleRefresh}
+      refreshing={refreshing}
+      onFolderSelect={handleFolderSelect}
+      onNewFolder={handleNewFolder}
+      selectedFolderId={selectedFolderId}
+    >
       <PWADetector />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -140,6 +168,7 @@ export default function NotesScreen() {
               note={note}
               onEdit={() => handleEditNote(note)}
               onDelete={() => setDeleteNote(note)}
+              onMoveToFolder={loadNotes}
             />
           ))
         )}
@@ -167,6 +196,13 @@ export default function NotesScreen() {
         confirmStyle="destructive"
         onConfirm={confirmDeleteNote}
         onCancel={() => setDeleteNote(null)}
+      />
+
+      {/* Folder Modal */}
+      <FolderModal
+        visible={showFolderModal}
+        onClose={handleFolderModalClose}
+        onSuccess={handleFolderModalSuccess}
       />
     </SharedPageLayout>
   );

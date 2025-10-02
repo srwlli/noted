@@ -5,6 +5,7 @@ export interface Note {
   user_id: string;
   title: string;
   content: string;
+  folder_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -34,7 +35,7 @@ export const notesService = {
   },
 
   // Create a new note
-  async createNote(title: string, content: string) {
+  async createNote(title: string, content: string, folder_id?: string | null) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) throw new Error('User not authenticated');
@@ -44,7 +45,8 @@ export const notesService = {
       .insert({
         title,
         content,
-        user_id: user.id
+        user_id: user.id,
+        folder_id: folder_id || null
       })
       .select()
       .single();
@@ -54,12 +56,13 @@ export const notesService = {
   },
 
   // Update an existing note
-  async updateNote(id: string, title: string, content: string) {
+  async updateNote(id: string, title: string, content: string, folder_id?: string | null) {
     const { data, error } = await supabase
       .from('notes')
       .update({
         title,
         content,
+        folder_id: folder_id !== undefined ? folder_id : undefined,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -78,5 +81,25 @@ export const notesService = {
       .eq('id', id);
 
     if (error) throw error;
+  },
+
+  // Get notes by folder
+  async getNotesByFolder(folderId: string | null) {
+    let query = supabase
+      .from('notes')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (folderId === null) {
+      // Return all notes when folderId is null
+      const { data, error } = await query;
+      if (error) throw error;
+      return data as Note[];
+    } else {
+      // Filter by specific folder
+      const { data, error } = await query.eq('folder_id', folderId);
+      if (error) throw error;
+      return data as Note[];
+    }
   }
 };
