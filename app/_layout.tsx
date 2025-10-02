@@ -4,13 +4,15 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Toaster } from 'sonner';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { Toaster } from 'sonner-native';
+import { MenuProvider } from 'react-native-popup-menu';
 import 'react-native-reanimated';
 import '../global.css';
 
 import { ThemeControllerProvider, useThemeController } from '@/contexts/theme-controller';
 import { AuthProvider } from '@/contexts/auth-context';
-import { Colors } from '@/constants/theme';
+import { Themes } from '@/constants/theme';
 
 // Removed anchor setting to prevent tab state conflicts
 // This allows tabs to unmount/remount normally, clearing modal states
@@ -18,36 +20,39 @@ import { Colors } from '@/constants/theme';
 //   anchor: '(tabs)',
 // };
 
-// Custom themes that use our greyscale colors
-const NotedLightTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    primary: Colors.primary,
-    background: Colors.light.background,
-    card: Colors.light.surface,
-    text: Colors.light.text,
-    border: Colors.light.border,
-    notification: Colors.light.text,
-  },
-};
-
-const NotedDarkTheme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: Colors.primary,
-    background: Colors.dark.background,
-    card: Colors.dark.surface,
-    text: Colors.dark.text,
-    border: Colors.dark.border,
-    notification: Colors.dark.text,
-  },
-};
-
 function AppLayout() {
-  const { resolvedScheme } = useThemeController();
-  const backgroundColor = resolvedScheme === 'dark' ? Colors.dark.background : Colors.light.background;
+  const { resolvedScheme, themeName } = useThemeController();
+
+  // Get colors from the selected theme
+  const themeColors = Themes[themeName];
+  const backgroundColor = resolvedScheme === 'dark' ? themeColors.dark.background : themeColors.light.background;
+
+  // Create dynamic navigation themes based on selected theme
+  const NotedLightTheme = {
+    ...DefaultTheme,
+    colors: {
+      ...DefaultTheme.colors,
+      primary: themeColors.light.tint,
+      background: themeColors.light.background,
+      card: themeColors.light.surface,
+      text: themeColors.light.text,
+      border: themeColors.light.border,
+      notification: themeColors.light.text,
+    },
+  };
+
+  const NotedDarkTheme = {
+    ...DarkTheme,
+    colors: {
+      ...DarkTheme.colors,
+      primary: themeColors.dark.tint,
+      background: themeColors.dark.background,
+      card: themeColors.dark.surface,
+      text: themeColors.dark.text,
+      border: themeColors.dark.border,
+      notification: themeColors.dark.text,
+    },
+  };
 
   // Enhanced PWA detection aligned with PC behavior
   React.useEffect(() => {
@@ -125,33 +130,36 @@ function AppLayout() {
         width: '100%'
       })
     }}>
-      <ThemeProvider value={resolvedScheme === 'dark' ? NotedDarkTheme : NotedLightTheme}>
-        <Stack key={resolvedScheme}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="auth" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
-        <Toaster
-          theme={resolvedScheme === 'dark' ? 'dark' : 'light'}
-          position="top-center"
-          expand={true}
-          richColors={true}
-          closeButton={true}
-        />
-      </ThemeProvider>
+      <MenuProvider>
+        <ThemeProvider value={resolvedScheme === 'dark' ? NotedDarkTheme : NotedLightTheme}>
+          <Stack key={resolvedScheme}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+          <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
+          <Toaster
+            theme={resolvedScheme === 'dark' ? 'dark' : 'light'}
+            position="top-center"
+            richColors={true}
+            closeButton={true}
+          />
+        </ThemeProvider>
+      </MenuProvider>
     </View>
   );
 }
 
 export default function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <ThemeControllerProvider>
-        <AuthProvider>
-          <AppLayout />
-        </AuthProvider>
-      </ThemeControllerProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <ThemeControllerProvider>
+          <AuthProvider>
+            <AppLayout />
+          </AuthProvider>
+        </ThemeControllerProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
