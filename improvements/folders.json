@@ -1,0 +1,234 @@
+{
+  "feature": "Folders for Notes Organization",
+  "reviewedAt": "2025-10-02T00:00:00Z",
+  "updatedAt": "2025-10-02T00:00:00Z",
+  "currentImplementation": {
+    "storage": "Supabase PostgreSQL",
+    "structure": "Flat list of notes",
+    "schema": {
+      "table": "notes",
+      "columns": [
+        "id UUID PRIMARY KEY",
+        "title VARCHAR(500) NOT NULL",
+        "content TEXT",
+        "user_id UUID REFERENCES users(id)",
+        "created_at TIMESTAMP",
+        "updated_at TIMESTAMP"
+      ]
+    },
+    "ordering": "created_at DESC (newest first)",
+    "service": "services/notes.ts",
+    "ui": "app/(tabs)/index.tsx - simple list view"
+  },
+  "proposedImplementation": {
+    "databaseChanges": {
+      "newTable": {
+        "name": "folders",
+        "schema": "CREATE TABLE folders (\n  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),\n  name VARCHAR(255) NOT NULL,\n  user_id UUID REFERENCES users(id) ON DELETE CASCADE,\n  parent_folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,\n  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),\n  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()\n);",
+        "constraints": [
+          "ALTER TABLE folders ADD CONSTRAINT folders_name_not_empty CHECK (LENGTH(TRIM(name)) > 0);"
+        ],
+        "indexes": [
+          "CREATE INDEX idx_folders_user_id ON folders(user_id);",
+          "CREATE INDEX idx_folders_parent_id ON folders(parent_folder_id);",
+          "CREATE INDEX idx_notes_folder_id ON notes(folder_id);"
+        ],
+        "rlsPolicies": [
+          "CREATE POLICY \"Users can view own folders\" ON folders FOR SELECT USING (auth.uid() = user_id);",
+          "CREATE POLICY \"Users can create own folders\" ON folders FOR INSERT WITH CHECK (auth.uid() = user_id);",
+          "CREATE POLICY \"Users can update own folders\" ON folders FOR UPDATE USING (auth.uid() = user_id);",
+          "CREATE POLICY \"Users can delete own folders\" ON folders FOR DELETE USING (auth.uid() = user_id);"
+        ]
+      },
+      "alterNotesTable": "ALTER TABLE notes ADD COLUMN folder_id UUID REFERENCES folders(id) ON DELETE SET NULL;"
+    },
+    "typeScriptInterfaces": {
+      "Folder": {
+        "id": "string",
+        "name": "string",
+        "user_id": "string",
+        "parent_folder_id": "string | null",
+        "created_at": "string",
+        "updated_at": "string"
+      },
+      "Note": {
+        "id": "string",
+        "user_id": "string",
+        "title": "string",
+        "content": "string",
+        "folder_id": "string | null (NEW)",
+        "created_at": "string",
+        "updated_at": "string"
+      }
+    },
+    "serviceLayer": {
+      "newFile": "services/folders.ts",
+      "methods": [
+        "getFolders() - Fetch all user folders",
+        "createFolder(name, parent_folder_id?) - Create new folder",
+        "updateFolder(id, name) - Rename folder",
+        "deleteFolder(id) - Delete folder",
+        "moveNoteToFolder(noteId, folderId) - Assign note to folder"
+      ],
+      "notesServiceUpdates": [
+        "Add folder_id parameter to createNote(title, content, folder_id?)",
+        "Add folder_id parameter to updateNote(id, title, content, folder_id?)",
+        "Add getNotesByFolder(folderId) - Get notes in specific folder (null for all notes)"
+      ]
+    },
+    "selectedUiApproach": {
+      "option": "D: Header Dropdown Menu + Note Menu Integration (SELECTED)",
+      "description": "Folder icon in header with react-native-popup-menu dropdown, plus 'Move to Folder' option in each note's (...) menu",
+      "iconLibrary": "MaterialIcons (already used in app)",
+      "iconName": "folder",
+      "placement": "Header, left of refresh and + buttons",
+      "menuLibrary": "react-native-popup-menu (Menu/MenuTrigger/MenuOptions)",
+      "headerMenuItems": [
+        "All Notes (default view, shows all notes)",
+        "--- Divider ---",
+        "User's folders (dynamically loaded, clickable to filter)",
+        "--- Divider ---",
+        "+ New Folder (opens folder creation modal)"
+      ],
+      "noteItemMenuAddition": {
+        "location": "components/note-item.tsx (...) menu",
+        "newOption": "Move to Folder",
+        "icon": "folder",
+        "behavior": "Opens submenu or modal with folder list, allows selecting destination folder",
+        "position": "After 'Copy', before 'Delete'"
+      },
+      "defaultBehavior": "Show 'All Notes' (not quick notes/unfiled)",
+      "pros": ["Minimal changes to existing UI", "Uses existing menu library", "Mobile-friendly", "Always accessible", "Can move notes directly from list view"],
+      "cons": ["One extra tap to access folders", "Menu items could get long with many folders", "Submenu might be complex on mobile"]
+    },
+    "alternativeUiOptions": [
+      {
+        "option": "A: Sidebar Navigation",
+        "description": "Folder sidebar with 'All Notes', 'Unfiled', and user folders",
+        "bestFor": "Web/tablet",
+        "pros": ["Always visible", "Easy navigation", "Professional look"],
+        "cons": ["Takes screen space", "Complex on mobile"]
+      },
+      {
+        "option": "B: Drawer Navigation",
+        "description": "Slide-out drawer for folder selection",
+        "bestFor": "Mobile devices",
+        "pros": ["Mobile-friendly", "Familiar pattern", "Space-efficient"],
+        "cons": ["Extra tap to access", "Hidden by default"]
+      },
+      {
+        "option": "C: Dropdown Selector",
+        "description": "Simple dropdown at top of notes list",
+        "bestFor": "Minimal UI changes",
+        "pros": ["Simple implementation", "Works everywhere", "Compact"],
+        "cons": ["Less discoverable", "Limited visual hierarchy"]
+      }
+    ],
+    "fileChanges": [
+      {
+        "file": "supabase/migrations/[timestamp]_add_folders.sql",
+        "action": "create",
+        "description": "Database migration for folders table, constraints, indexes, and RLS policies"
+      },
+      {
+        "file": "services/folders.ts",
+        "action": "create",
+        "description": "New service with Folder interface and CRUD operations (getFolders, createFolder, updateFolder, deleteFolder, moveNoteToFolder)"
+      },
+      {
+        "file": "services/notes.ts",
+        "action": "update",
+        "description": "Add folder_id to Note interface, update createNote/updateNote signatures, add getNotesByFolder method"
+      },
+      {
+        "file": "components/common-header.tsx",
+        "action": "update",
+        "description": "Add folder icon button (MaterialIcons 'folder') with Menu dropdown for folder selection and 'New Folder' option"
+      },
+      {
+        "file": "components/folder-modal.tsx",
+        "action": "create",
+        "description": "Modal for creating/renaming folders with text input and save/cancel buttons"
+      },
+      {
+        "file": "components/note-form.tsx",
+        "action": "update",
+        "description": "Add folder dropdown selector to note creation/editing form"
+      },
+      {
+        "file": "components/note-item.tsx",
+        "action": "update",
+        "description": "Add 'Move to Folder' option to existing (...) menu, include submenu with folder list, add folder badge/indicator (optional)"
+      },
+      {
+        "file": "components/shared-page-layout.tsx",
+        "action": "update",
+        "description": "Pass onFolderSelect callback to CommonHeader"
+      },
+      {
+        "file": "app/(tabs)/index.tsx",
+        "action": "update",
+        "description": "Add selectedFolderId state, implement folder filtering logic, pass onFolderSelect to layout"
+      }
+    ]
+  },
+  "migrationConsiderations": {
+    "existingNotes": "Will have folder_id = NULL (unfiled)",
+    "backwardCompatibility": "Queries work with NULL folder_id",
+    "cascadeDeletes": "Deleting folder sets notes to NULL (notes preserved)",
+    "optionalNesting": "parent_folder_id allows subfolders in future"
+  },
+  "implementationPhases": {
+    "phase1": {
+      "name": "Core Folder Functionality",
+      "tasks": [
+        "Create database migration (folders table + notes.folder_id)",
+        "Add services/folders.ts with CRUD operations",
+        "Update Note interface to include folder_id",
+        "Add basic folder selector UI",
+        "Update note creation/editing to assign folder"
+      ]
+    },
+    "phase2": {
+      "name": "Enhanced UX",
+      "tasks": [
+        "Add folder icons/colors",
+        "Implement drag-and-drop note organization",
+        "Add folder rename/delete functionality",
+        "Show note count per folder"
+      ]
+    },
+    "phase3": {
+      "name": "Advanced Features",
+      "tasks": [
+        "Nested folders (using parent_folder_id)",
+        "Smart folders (filters, tags)",
+        "Folder sharing/collaboration",
+        "Bulk move notes between folders"
+      ]
+    }
+  },
+  "recommendedStartingPoint": {
+    "approach": "Start with Phase 1 - Header Dropdown Menu (Option D)",
+    "reasoning": "Uses existing UI patterns (MaterialIcons, react-native-popup-menu), minimal changes to codebase, mobile-friendly, easy to extend later",
+    "implementationOrder": [
+      "1. Create and apply database migration (folders table, constraints, indexes, RLS)",
+      "2. Create services/folders.ts with Folder interface and CRUD methods",
+      "3. Update services/notes.ts to add folder_id to Note interface and update methods",
+      "4. Create components/folder-modal.tsx for folder creation",
+      "5. Update components/common-header.tsx to add folder icon with dropdown menu",
+      "6. Update components/shared-page-layout.tsx to pass folder selection callback",
+      "7. Update app/(tabs)/index.tsx to add folder filtering logic",
+      "8. Update components/note-item.tsx to add 'Move to Folder' option in (...) menu",
+      "9. Update components/note-form.tsx to add folder selector (optional for MVP)",
+      "10. Test folder creation, selection, note filtering, and moving notes to folders"
+    ],
+    "technicalDetails": {
+      "iconLibrary": "MaterialIcons",
+      "iconName": "folder",
+      "menuLibrary": "react-native-popup-menu (already in package.json, used in note-item.tsx)",
+      "defaultView": "All Notes (selectedFolderId = null)",
+      "filteringLogic": "Use getNotesByFolder(selectedFolderId) or filter client-side based on folder_id"
+    }
+  }
+}
