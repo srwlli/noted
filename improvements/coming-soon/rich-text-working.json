@@ -1,0 +1,438 @@
+{
+  "feature": "Phase 2 Roadmap: Toolbar, Export, Migration",
+  "version": "1.0",
+  "dateCreated": "2025-10-03",
+  "status": "in-progress",
+  "currentCheckpoint": "checkpoint2",
+
+  "overview": {
+    "goal": "Add formatting toolbar and integrate markdown editor as default (with safe fallback)",
+    "approach": "Incremental checkpoints with testing at each step",
+    "safetyPrinciple": "Zero modifications to existing modal system - only add navigation switch"
+  },
+
+  "progressTracking": {
+    "checkpointsCompleted": 1,
+    "checkpointsTotal": 5,
+    "tasksCompleted": 4,
+    "tasksTotal": 17,
+    "lastUpdated": "2025-10-03T15:05:00Z"
+  },
+
+  "checkpoints": {
+    "checkpoint1": {
+      "name": "Basic Formatting Toolbar",
+      "status": "complete",
+      "goal": "Create toolbar with basic formatting buttons",
+      "dependencies": [],
+      "completedDate": "2025-10-03T15:05:00Z",
+      "tasks": [
+        {
+          "id": "c1-t1",
+          "task": "Create components/markdown/markdown-toolbar.tsx",
+          "details": [
+            "Create toolbar component with 6 basic buttons",
+            "Buttons: Bold (B), Italic (I), Heading (H1), Heading (H2), List (•), Code (`)",
+            "Position: Fixed at bottom (above keyboard on mobile)",
+            "Styling: Match theme colors, use MaterialIcons",
+            "Props: onInsert(before: string, after: string) callback"
+          ],
+          "status": "complete",
+          "verification": [
+            "Toolbar renders at bottom of editor",
+            "All 6 buttons visible and styled correctly",
+            "Buttons are touchable/clickable"
+          ]
+        },
+        {
+          "id": "c1-t2",
+          "task": "Implement text insertion logic in markdown-editor.tsx",
+          "details": [
+            "Add handleInsert(before, after) method",
+            "If text selected: wrap with before/after",
+            "If no selection: insert before+after at cursor",
+            "Update cursor position after insert",
+            "Pass method to toolbar via props"
+          ],
+          "status": "complete",
+          "verification": [
+            "Bold button with selection: **selected text**",
+            "Bold button without selection: **|** (cursor between)",
+            "Italic button works same way",
+            "Heading buttons insert '# ' or '## ' at line start",
+            "List button inserts '- ' at line start",
+            "Code button wraps with backticks"
+          ]
+        },
+        {
+          "id": "c1-t3",
+          "task": "Integrate toolbar into test route",
+          "details": [
+            "Add MarkdownToolbar to app/note-editor/test.tsx",
+            "Use KeyboardAvoidingView to keep toolbar above keyboard",
+            "Test on web and mobile behavior"
+          ],
+          "status": "complete",
+          "verification": [
+            "Toolbar visible in test route",
+            "Toolbar stays above keyboard when typing",
+            "All formatting buttons work as expected"
+          ]
+        },
+        {
+          "id": "c1-t4",
+          "task": "Add toolbar to new.tsx and [id].tsx routes",
+          "details": [
+            "Import and add MarkdownToolbar to both editor routes",
+            "Wire up handleInsert callback",
+            "Ensure consistent behavior across all routes"
+          ],
+          "status": "pending",
+          "note": "Toolbar built into markdown-editor.tsx with showToolbar prop - just need to enable it in routes",
+          "verification": [
+            "Toolbar works in /note-editor/new",
+            "Toolbar works in /note-editor/[id]",
+            "Formatting preserved during auto-save"
+          ]
+        }
+      ],
+      "completionCriteria": [
+        "Toolbar renders correctly on all routes",
+        "All 6 basic formatting buttons work",
+        "Text insertion handles selection and cursor correctly",
+        "Keyboard avoiding works on mobile"
+      ],
+      "deliverable": "Functional formatting toolbar with 6 basic buttons"
+    },
+
+    "checkpoint2": {
+      "name": "Advanced Toolbar Features",
+      "status": "ready",
+      "goal": "Add table generator, link dialog, and export",
+      "dependencies": ["checkpoint1"],
+      "note": "Checkpoint 1 complete - ready to start",
+      "tasks": [
+        {
+          "id": "c2-t1",
+          "task": "Create components/markdown/link-dialog-modal.tsx",
+          "details": [
+            "Modal with two inputs: Link Text, URL",
+            "Cancel and Insert buttons",
+            "Insert generates: [text](url)",
+            "If text selected, pre-fill Link Text field"
+          ],
+          "status": "pending",
+          "verification": [
+            "Modal opens when link button pressed",
+            "Can enter text and URL",
+            "Insert button creates valid markdown link",
+            "Cancel closes modal without changes"
+          ]
+        },
+        {
+          "id": "c2-t2",
+          "task": "Create components/markdown/table-generator-modal.tsx",
+          "details": [
+            "Visual grid picker (rows 2-10, cols 2-8)",
+            "Generate button creates markdown table",
+            "Default: 2x2 table with headers",
+            "Format: | Col1 | Col2 |\\n|---|---|\\n| | |"
+          ],
+          "status": "pending",
+          "verification": [
+            "Modal opens when table button pressed",
+            "Can select rows and columns",
+            "Generate creates valid markdown table",
+            "Table renders correctly in preview"
+          ]
+        },
+        {
+          "id": "c2-t3",
+          "task": "Add Link and Table buttons to toolbar",
+          "details": [
+            "Add Link button (🔗 icon) to toolbar",
+            "Add Table button (⊞ icon) to toolbar",
+            "Buttons open respective modals",
+            "Wire up modal callbacks to insert markdown"
+          ],
+          "status": "pending",
+          "verification": [
+            "Link button opens link dialog",
+            "Table button opens table generator",
+            "Both insert correct markdown when confirmed"
+          ]
+        },
+        {
+          "id": "c2-t4",
+          "task": "Implement HTML export feature",
+          "details": [
+            "Add Export button to preview mode header",
+            "Use markdown-service.renderToDocument()",
+            "Web: download as .html file",
+            "Mobile: share sheet with HTML content",
+            "Show success toast after export"
+          ],
+          "status": "pending",
+          "verification": [
+            "Export button visible in preview mode only",
+            "Web: downloads valid HTML file",
+            "Mobile: opens share sheet",
+            "Exported HTML has proper styling"
+          ]
+        }
+      ],
+      "completionCriteria": [
+        "Link dialog creates valid markdown links",
+        "Table generator creates valid markdown tables",
+        "HTML export works on web and mobile",
+        "All toolbar features tested end-to-end"
+      ],
+      "deliverable": "Complete toolbar with all formatting features and export"
+    },
+
+    "checkpoint3": {
+      "name": "Feature Flag & Configuration",
+      "status": "pending",
+      "goal": "Create switch mechanism without modifying existing code",
+      "dependencies": ["checkpoint2"],
+      "tasks": [
+        {
+          "id": "c3-t1",
+          "task": "Create config/features.ts",
+          "details": [
+            "Export const USE_MARKDOWN_EDITOR = false",
+            "Add comment explaining toggle",
+            "This is the ONLY file to change for switching editors"
+          ],
+          "status": "pending",
+          "verification": [
+            "File exists at config/features.ts",
+            "Exports boolean constant",
+            "Has clear documentation comment"
+          ]
+        },
+        {
+          "id": "c3-t2",
+          "task": "Create error boundary: components/markdown/markdown-error-boundary.tsx",
+          "details": [
+            "React error boundary component",
+            "Catches errors in markdown editor",
+            "Shows toast: 'Editor error, using backup'",
+            "Fallback: render old modal instead",
+            "Log error to console for debugging"
+          ],
+          "status": "pending",
+          "verification": [
+            "Error boundary component created",
+            "Can simulate error to test fallback",
+            "Toast appears on error",
+            "Old modal renders as fallback"
+          ]
+        },
+        {
+          "id": "c3-t3",
+          "task": "Wrap new editor routes with error boundary",
+          "details": [
+            "Wrap new.tsx editor in MarkdownErrorBoundary",
+            "Wrap [id].tsx editor in MarkdownErrorBoundary",
+            "DO NOT wrap test.tsx (keep for debugging)"
+          ],
+          "status": "pending",
+          "verification": [
+            "new.tsx and [id].tsx wrapped",
+            "Simulated error triggers fallback",
+            "test.tsx still shows raw errors"
+          ]
+        }
+      ],
+      "completionCriteria": [
+        "Feature flag file created and documented",
+        "Error boundary catches crashes gracefully",
+        "Old modal appears as fallback on error",
+        "Toast notification shows on error"
+      ],
+      "deliverable": "Safety mechanisms ready for integration"
+    },
+
+    "checkpoint4": {
+      "name": "Navigation Integration",
+      "status": "pending",
+      "goal": "Add navigation switch (zero modifications to old modal)",
+      "dependencies": ["checkpoint3"],
+      "tasks": [
+        {
+          "id": "c4-t1",
+          "task": "Update app/(tabs)/index.tsx - New Note button",
+          "details": [
+            "Import USE_MARKDOWN_EDITOR from config/features",
+            "Modify handleNewNote (or equivalent):",
+            "  if (USE_MARKDOWN_EDITOR) { router.push('/note-editor/new'); }",
+            "  else { setShowModal(true); // existing code }",
+            "DO NOT remove old modal code",
+            "DO NOT modify modal state management"
+          ],
+          "status": "pending",
+          "verification": [
+            "USE_MARKDOWN_EDITOR=false → old modal opens",
+            "USE_MARKDOWN_EDITOR=true → new editor opens",
+            "Old modal still fully functional",
+            "Switch works without app restart"
+          ]
+        },
+        {
+          "id": "c4-t2",
+          "task": "Update components/note-item.tsx - Edit note",
+          "details": [
+            "Import USE_MARKDOWN_EDITOR from config/features",
+            "Modify handleEdit (or onEdit callback):",
+            "  if (USE_MARKDOWN_EDITOR) { router.push(`/note-editor/${note.id}`); }",
+            "  else { onEdit?.(); // existing code }",
+            "DO NOT remove old modal references",
+            "Keep all existing Edit menu behavior"
+          ],
+          "status": "pending",
+          "verification": [
+            "USE_MARKDOWN_EDITOR=false → old modal opens",
+            "USE_MARKDOWN_EDITOR=true → new editor opens",
+            "Edit menu still works",
+            "Note data loads correctly in both modes"
+          ]
+        },
+        {
+          "id": "c4-t3",
+          "task": "Test full workflow with feature flag",
+          "details": [
+            "Test with USE_MARKDOWN_EDITOR=false (old system)",
+            "Test with USE_MARKDOWN_EDITOR=true (new system)",
+            "Verify both systems work independently",
+            "Test creating, editing, saving notes in both modes"
+          ],
+          "status": "pending",
+          "verification": [
+            "Old modal works perfectly with flag=false",
+            "New editor works perfectly with flag=true",
+            "Can toggle flag and switch between systems",
+            "No conflicts or errors in either mode"
+          ]
+        }
+      ],
+      "completionCriteria": [
+        "Navigation switches based on feature flag",
+        "Old modal untouched and fully functional",
+        "New editor accessible when flag enabled",
+        "Zero breaking changes to existing code"
+      ],
+      "deliverable": "Working navigation switch between old and new editor"
+    },
+
+    "checkpoint5": {
+      "name": "Final Polish & Documentation",
+      "status": "pending",
+      "goal": "Enable new editor by default and document",
+      "dependencies": ["checkpoint4"],
+      "tasks": [
+        {
+          "id": "c5-t1",
+          "task": "Add transition animations",
+          "details": [
+            "Add slide-in animation to /note-editor routes",
+            "Use expo-router presentation: 'card'",
+            "Smooth transition from list to editor",
+            "Match native app feel"
+          ],
+          "status": "pending",
+          "verification": [
+            "Smooth slide-in when opening editor",
+            "Smooth slide-out when closing",
+            "Works on iOS, Android, Web"
+          ]
+        },
+        {
+          "id": "c5-t2",
+          "task": "Update config/features.ts - Enable by default",
+          "details": [
+            "Change USE_MARKDOWN_EDITOR = true",
+            "Add comment: Old modal available if issues occur",
+            "Document how to revert if needed"
+          ],
+          "status": "pending",
+          "verification": [
+            "New editor is default",
+            "App works end-to-end with new editor",
+            "Old modal still accessible via flag"
+          ]
+        },
+        {
+          "id": "c5-t3",
+          "task": "Create implementation summary document",
+          "details": [
+            "Document what was built",
+            "Document how to toggle editors",
+            "Document error fallback behavior",
+            "List future Phase 3 enhancements (if any)"
+          ],
+          "status": "pending",
+          "verification": [
+            "Documentation file created",
+            "Clear instructions for switching editors",
+            "Troubleshooting section included"
+          ]
+        },
+        {
+          "id": "c5-t4",
+          "task": "Final end-to-end testing",
+          "details": [
+            "Test new note creation flow",
+            "Test editing existing notes",
+            "Test all formatting buttons",
+            "Test export on web and mobile",
+            "Test auto-save functionality",
+            "Test error boundary fallback",
+            "Verify old modal still works with flag=false"
+          ],
+          "status": "pending",
+          "verification": [
+            "All features work correctly",
+            "No regressions in old modal",
+            "Error handling robust",
+            "Ready for production use"
+          ]
+        }
+      ],
+      "completionCriteria": [
+        "New editor enabled by default",
+        "Animations smooth and native-feeling",
+        "Documentation complete and accurate",
+        "All end-to-end tests passing"
+      ],
+      "deliverable": "Production-ready markdown editor with full feature parity"
+    }
+  },
+
+  "rollbackPlan": {
+    "title": "How to Revert to Old Modal",
+    "steps": [
+      "1. Open config/features.ts",
+      "2. Change USE_MARKDOWN_EDITOR = true to false",
+      "3. App immediately uses old modal system",
+      "4. No other changes needed"
+    ],
+    "timeToRollback": "< 30 seconds"
+  },
+
+  "futureEnhancements": {
+    "phase3": {
+      "name": "Advanced Features (Optional)",
+      "items": [
+        "Live markdown (syntax visible but styled)",
+        "Image upload and embedding",
+        "Collaborative editing",
+        "Version history",
+        "Markdown templates",
+        "Custom keyboard shortcuts",
+        "Syntax highlighting in code blocks"
+      ],
+      "note": "These can be added incrementally without breaking changes"
+    }
+  }
+}

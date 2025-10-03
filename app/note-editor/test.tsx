@@ -1,42 +1,46 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { SharedPageLayout } from '@/components/shared-page-layout';
+import React, { useState } from 'react';
+import { View, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { Stack } from 'expo-router';
+import { MarkdownEditor } from '@/components/markdown/markdown-editor';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 
+/**
+ * Test route for markdown editor
+ * Isolated from main app - for testing only
+ */
 export default function MarkdownEditorTest() {
+  const [content, setContent] = useState('# Markdown Editor Test\n\nTry editing this text and toggle to **Preview** mode!\n\n## Features\n- **Bold** and *italic* text\n- Lists and headings\n- `Code blocks`\n- And more!\n\n> This is a quote\n\n```\nCode block example\n```');
   const { colors } = useThemeColors();
 
   return (
-    <SharedPageLayout scrollable={true}>
-      <View style={styles.container}>
-        <Text style={[styles.title, { color: colors.text }]}>
-          Markdown Editor Test Route
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          This is a placeholder for the markdown editor implementation.
-        </Text>
-        <Text style={[styles.info, { color: colors.textSecondary }]}>
-          Phase 0: Development environment isolated successfully.
-        </Text>
-      </View>
-    </SharedPageLayout>
+    <>
+      <Stack.Screen
+        options={{
+          title: 'Markdown Editor Test',
+          headerStyle: {
+            backgroundColor: colors.surface,
+          },
+          headerTintColor: colors.text,
+        }}
+      />
+      <KeyboardAvoidingView
+        style={[styles.container, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          autoFocus={false}
+          placeholder="Start typing..."
+          showToolbar={true}
+        />
+      </KeyboardAvoidingView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    gap: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 16,
-  },
-  info: {
-    fontSize: 14,
-    fontStyle: 'italic',
+    flex: 1,
   },
 });

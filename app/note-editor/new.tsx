@@ -77,6 +77,7 @@ export default function NewNoteScreen() {
           onSelectionChange={setSelection}
           autoFocus={true}
           placeholder="# New Note\n\nStart typing..."
+          showToolbar={true}
         />
       </KeyboardAvoidingView>
     </>

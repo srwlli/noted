@@ -142,6 +142,7 @@ export default function EditNoteScreen() {
           onSelectionChange={setSelection}
           autoFocus={false}
           placeholder="Start typing..."
+          showToolbar={true}
         />
       </KeyboardAvoidingView>
     </>
