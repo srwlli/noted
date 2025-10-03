@@ -3,7 +3,7 @@
   "version": "1.0",
   "dateCreated": "2025-10-03",
   "status": "in-progress",
-  "currentCheckpoint": "checkpoint4",
+  "currentCheckpoint": "checkpoint5",
 
   "overview": {
     "goal": "Add formatting toolbar and integrate markdown editor as default (with safe fallback)",
@@ -12,15 +12,16 @@
   },
 
   "progressTracking": {
-    "checkpointsCompleted": 3,
+    "checkpointsCompleted": 4,
     "checkpointsTotal": 5,
-    "tasksCompleted": 11,
+    "tasksCompleted": 14,
     "tasksTotal": 17,
-    "lastUpdated": "2025-10-03T18:30:00Z",
+    "lastUpdated": "2025-10-03T19:00:00Z",
     "commits": [
       "71b7224 - Checkpoint 1: Basic Formatting Toolbar",
       "0804a17 - Checkpoint 2: Advanced Toolbar Features",
-      "3a29c10 - Checkpoint 3: Feature Flag & Configuration"
+      "3a29c10 - Checkpoint 3: Feature Flag & Configuration",
+      "pending - Checkpoint 4: Navigation Integration"
     ]
   },
 
@@ -262,9 +263,10 @@
 
     "checkpoint4": {
       "name": "Navigation Integration",
-      "status": "pending",
+      "status": "complete",
       "goal": "Add navigation switch (zero modifications to old modal)",
       "dependencies": ["checkpoint3"],
+      "completedDate": "2025-10-03T19:00:00Z",
       "tasks": [
         {
           "id": "c4-t1",

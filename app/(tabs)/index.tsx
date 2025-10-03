@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { NoteModal } from '@/components/note-modal';
@@ -10,6 +10,7 @@ import { FolderModal } from '@/components/folder-modal';
 import { PWADetector } from '@/components/PWADetector';
 import { notesService, Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
+import { USE_MARKDOWN_EDITOR } from '@/config/features';
 
 export default function NotesScreen() {
   const { colors } = useThemeColors();
@@ -58,13 +59,25 @@ export default function NotesScreen() {
   };
 
   const handleNewNote = () => {
-    setEditingNote(null);
-    setShowModal(true);
+    if (USE_MARKDOWN_EDITOR) {
+      // Navigate to new markdown editor
+      router.push('/note-editor/new');
+    } else {
+      // Use old modal editor
+      setEditingNote(null);
+      setShowModal(true);
+    }
   };
 
   const handleEditNote = (note: Note) => {
-    setEditingNote(note);
-    setShowModal(true);
+    if (USE_MARKDOWN_EDITOR) {
+      // Navigate to markdown editor with note ID
+      router.push(`/note-editor/${note.id}`);
+    } else {
+      // Use old modal editor
+      setEditingNote(note);
+      setShowModal(true);
+    }
   };
 
 

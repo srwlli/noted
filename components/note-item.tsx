@@ -3,10 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
+import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Card } from '@/components/common/card';
 import { Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
+import { USE_MARKDOWN_EDITOR } from '@/config/features';
 
 interface NoteItemProps {
   note: Note;
@@ -67,8 +69,14 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
   }, []);
 
   const handleEdit = useCallback(() => {
-    onEdit?.();
-  }, [onEdit]);
+    if (USE_MARKDOWN_EDITOR) {
+      // Navigate to markdown editor with note ID
+      router.push(`/note-editor/${note.id}`);
+    } else {
+      // Use old modal editor via callback
+      onEdit?.();
+    }
+  }, [note.id, onEdit]);
 
   const handleDelete = useCallback(() => {
     onDelete?.();
