@@ -12,11 +12,16 @@
   },
 
   "progressTracking": {
-    "checkpointsCompleted": 1,
+    "checkpointsCompleted": 3,
     "checkpointsTotal": 5,
-    "tasksCompleted": 4,
+    "tasksCompleted": 11,
     "tasksTotal": 17,
-    "lastUpdated": "2025-10-03T15:05:00Z"
+    "lastUpdated": "2025-10-03T18:30:00Z",
+    "commits": [
+      "71b7224 - Checkpoint 1: Basic Formatting Toolbar",
+      "0804a17 - Checkpoint 2: Advanced Toolbar Features",
+      "3a29c10 - Checkpoint 3: Feature Flag & Configuration"
+    ]
   },
 
   "checkpoints": {
@@ -107,10 +112,10 @@
 
     "checkpoint2": {
       "name": "Advanced Toolbar Features",
-      "status": "ready",
+      "status": "complete",
       "goal": "Add table generator, link dialog, and export",
       "dependencies": ["checkpoint1"],
-      "note": "Checkpoint 1 complete - ready to start",
+      "completedDate": "2025-10-03T17:15:00Z",
       "tasks": [
         {
           "id": "c2-t1",
@@ -192,9 +197,10 @@
 
     "checkpoint3": {
       "name": "Feature Flag & Configuration",
-      "status": "pending",
+      "status": "complete",
       "goal": "Create switch mechanism without modifying existing code",
       "dependencies": ["checkpoint2"],
+      "completedDate": "2025-10-03T18:30:00Z",
       "tasks": [
         {
           "id": "c3-t1",
