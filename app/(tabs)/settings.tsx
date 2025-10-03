@@ -7,6 +7,7 @@ import { ThemePickerModal } from '@/components/theme-picker-modal';
 import { ThemeSettingsCard } from '@/components/settings-cards/theme-settings-card';
 import { ProfileSettingsCard } from '@/components/settings-cards/profile-settings-card';
 import { AccountSettingsCard } from '@/components/settings-cards/account-settings-card';
+import { DevSettingsCard } from '@/components/settings-cards/dev-settings-card';
 import { router } from 'expo-router';
 import { toast } from 'sonner-native';
 
@@ -54,6 +55,10 @@ export default function SettingsScreen() {
         onToggle={() => setExpandedCard(expandedCard === 'account' ? null : 'account')}
         onSignOut={handleSignOut}
         isSigningOut={isSigningOut}
+      />
+      <DevSettingsCard
+        isExpanded={expandedCard === 'developer'}
+        onToggle={() => setExpandedCard(expandedCard === 'developer' ? null : 'developer')}
       />
 
       <ConfirmationModal
