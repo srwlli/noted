@@ -3,7 +3,8 @@
     "allow": [
       "Bash(findstr:*)",
       "Bash(touch:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
