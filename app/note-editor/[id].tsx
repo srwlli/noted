@@ -2,16 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { MarkdownEditor } from '@/components/markdown/markdown-editor';
+import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boundary';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { notesService } from '@/services/notes';
 import { extractTitle } from '@/utils/note-parser';
 import { toast } from 'sonner-native';
 
 /**
- * Test route for editing existing notes with markdown editor
- * Phase 1: Editor with edit/preview toggle and auto-save
+ * Route for editing existing notes with markdown editor
+ * Wrapped with error boundary for graceful error handling
  */
-export default function EditNoteScreen() {
+function EditNoteScreenContent() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [content, setContent] = useState('');
   const [selection, setSelection] = useState({ start: 0, end: 0 });
@@ -162,3 +163,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
+export default function EditNoteScreen() {
+  return (
+    <MarkdownErrorBoundary>
+      <EditNoteScreenContent />
+    </MarkdownErrorBoundary>
+  );
+}
