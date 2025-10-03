@@ -1,0 +1,129 @@
+{
+  "component": "Theme Switching System",
+  "reviewDate": "2025-10-03",
+  "filesReviewed": [
+    "components/settings-cards/theme-settings-card.tsx",
+    "contexts/theme-controller.tsx",
+    "components/theme-picker-modal.tsx",
+    "lib/theme-storage.ts"
+  ],
+  "criticalIssues": [
+    {
+      "severity": "high",
+      "title": "Dark Mode Toggle Logic Flaw",
+      "location": "theme-settings-card.tsx:19-21",
+      "description": "When in 'system' mode, toggling the switch permanently sets it to 'light'/'dark', removing system preference. Users lose automatic system theme tracking.",
+      "impact": "Confusing UX - no way to re-enable system mode via toggle",
+      "code": "const handleThemeToggle = (value: boolean) => {\n  setColorScheme(value ? 'dark' : 'light');\n};",
+      "recommendation": "Add 3-way toggle (Light/System/Dark) or separate system mode checkbox"
+    },
+    {
+      "severity": "high",
+      "title": "Type Safety Gap",
+      "location": "theme-storage.ts:11-13, 20-22",
+      "description": "No validation that stored values are valid ThemeName/ColorSchemeMode. Corrupted storage could bypass VALID_THEME_NAMES check.",
+      "impact": "Potential runtime errors with invalid theme names",
+      "code": "async getThemeName(): Promise<ThemeName | null> {\n  const value = await AsyncStorage.getItem(KEYS.THEME_NAME);\n  return value as ThemeName | null; // No validation\n}",
+      "recommendation": "Add validation: if (value && VALID_THEME_NAMES.includes(value)) return value as ThemeName; return null;"
+    },
+    {
+      "severity": "medium",
+      "title": "Missing User Feedback",
+      "location": "theme-controller.tsx:64-66, 73-75",
+      "description": "Theme change failures only console.warn, no toast notifications. Users don't know if their theme selection failed.",
+      "impact": "Silent failures, poor UX",
+      "code": "catch (error) {\n  console.warn('Failed to save theme name:', error);\n}",
+      "recommendation": "Add toast.error('Failed to save theme. Please try again.')"
+    }
+  ],
+  "minorIssues": [
+    {
+      "severity": "low",
+      "title": "Race Condition Risk",
+      "location": "theme-controller.tsx:60-76",
+      "description": "Rapid theme changes could cause out-of-order AsyncStorage writes. No debouncing or request cancellation.",
+      "impact": "Wrong theme could be saved if user rapidly switches",
+      "recommendation": "Implement debouncing or use a queuing mechanism for storage writes"
+    },
+    {
+      "severity": "low",
+      "title": "Accessibility Gaps",
+      "location": "theme-picker-modal.tsx",
+      "description": "Close button missing accessibilityLabel. Theme cards lack accessibilityRole='button' and labels. No keyboard navigation for web.",
+      "impact": "Poor screen reader and keyboard navigation experience",
+      "recommendation": "Add accessibility props: accessibilityLabel, accessibilityRole, accessibilityHint"
+    },
+    {
+      "severity": "low",
+      "title": "Inconsistent Dark Mode Display",
+      "location": "theme-settings-card.tsx:74-76",
+      "description": "Shows 'Current: dark (auto)' when in system mode. Toggle state doesn't clearly indicate system vs manual control.",
+      "impact": "User confusion about current mode",
+      "recommendation": "Redesign UI to make system mode more explicit (e.g., segmented control)"
+    }
+  ],
+  "strengths": [
+    "Proper memoization with useMemo/useCallback to prevent re-renders",
+    "Clean error state management with loadError",
+    "Loading states prevent race conditions during initialization",
+    "Visual theme preview with color dots provides good UX",
+    "Separation of concerns with ThemeStorage abstraction",
+    "Error banner displays load failures to users",
+    "System color scheme detection and automatic resolution",
+    "Type-safe ThemeName and ColorSchemeMode types"
+  ],
+  "recommendations": {
+    "highPriority": [
+      {
+        "task": "Add 3-way toggle for Light/System/Dark",
+        "reason": "Preserve system mode preference and make it discoverable",
+        "files": ["components/settings-cards/theme-settings-card.tsx"]
+      },
+      {
+        "task": "Validate stored theme values before applying",
+        "reason": "Prevent runtime errors from corrupted storage",
+        "files": ["lib/theme-storage.ts"]
+      },
+      {
+        "task": "Add toast notifications for theme changes",
+        "reason": "User feedback for successful/failed theme changes",
+        "files": ["contexts/theme-controller.tsx"]
+      }
+    ],
+    "mediumPriority": [
+      {
+        "task": "Add accessibility labels throughout",
+        "reason": "Support screen readers and improve accessibility",
+        "files": ["components/theme-picker-modal.tsx", "components/settings-cards/theme-settings-card.tsx"]
+      },
+      {
+        "task": "Implement debouncing for rapid theme changes",
+        "reason": "Prevent race conditions and excessive storage writes",
+        "files": ["contexts/theme-controller.tsx"]
+      },
+      {
+        "task": "Add success confirmation when theme changes",
+        "reason": "User confidence that action completed",
+        "files": ["components/settings-cards/theme-settings-card.tsx"]
+      }
+    ],
+    "lowPriority": [
+      {
+        "task": "Add keyboard navigation for web platform",
+        "reason": "Better web accessibility",
+        "files": ["components/theme-picker-modal.tsx"]
+      },
+      {
+        "task": "Consider adding theme change animation",
+        "reason": "Smoother visual transition",
+        "files": ["contexts/theme-controller.tsx"]
+      }
+    ]
+  },
+  "architectureNotes": {
+    "dataFlow": "User interaction → ThemeSettingsCard → ThemeController → ThemeStorage (AsyncStorage) → State update → Re-render",
+    "persistence": "Uses AsyncStorage with keys @noted_theme_name and @noted_theme_preference",
+    "typeSystem": "ThemeName validated against VALID_THEME_NAMES constant",
+    "systemIntegration": "Listens to system color scheme via useColorScheme() hook and auto-resolves when mode is 'system'"
+  }
+}

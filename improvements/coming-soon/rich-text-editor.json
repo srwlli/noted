@@ -1,15 +1,16 @@
 {
-  "feature": "Rich Text Markdown Editor - Complete Implementation Guide",
-  "version": "2.0 - Synthesized",
-  "dateCreated": "2025-10-02",
-  "status": "planned",
+  "feature": "Markdown Editor with Preview Toggle - Implementation Guide",
+  "version": "3.0 - Simplified Approach",
+  "dateCreated": "2025-10-03",
+  "status": "approved",
   "priority": "high",
 
   "executiveSummary": {
-    "goal": "Replace current form-style modal editor with full-screen markdown editor (Apple Notes + Bear hybrid)",
+    "goal": "Replace current form-style modal editor with full-screen markdown editor with preview toggle",
     "keyChanges": [
       "Full-screen editor with auto-focus (no modal)",
-      "Markdown storage with live styling (syntax visible but formatted)",
+      "Markdown storage (plain text, portable)",
+      "Preview toggle to view formatted result",
       "Auto-title extraction from first line",
       "Smart formatting toolbar above keyboard",
       "Auto-save (no save button)",
@@ -17,7 +18,8 @@
     ],
     "approach": "Parallel development - Build new system alongside old, swap when ready",
     "noBreakingChanges": "Old modal works until final migration phase",
-    "estimatedDuration": "6-8 weeks (4 phases)"
+    "agenticDevelopment": "No time estimates - task-based completion",
+    "upgradePath": "Can evolve to live markdown (hybrid) or WYSIWYG later without data migration"
   },
 
   "projectContext": {
@@ -40,105 +42,97 @@
       ]
     },
     "targetExperience": {
-      "inspiration": "Apple Notes + Bear hybrid",
+      "inspiration": "Obsidian, iA Writer, Typora (edit/preview toggle style)",
       "flow": [
         "1. User taps 'New Note' → Full-screen editor appears",
         "2. Cursor ready immediately (auto-focus)",
-        "3. User types markdown with live styling",
-        "4. First line becomes title automatically",
-        "5. Toolbar provides formatting buttons",
-        "6. Auto-saves as user types (debounced 1s)",
-        "7. Tap back button → Returns to list"
+        "3. User types markdown (plain text)",
+        "4. Toolbar provides formatting buttons to insert syntax",
+        "5. User taps 'Preview' → Sees formatted result",
+        "6. User taps 'Edit' → Back to markdown editing",
+        "7. Auto-saves as user types (debounced)",
+        "8. First line becomes title automatically",
+        "9. Tap back button → Returns to list"
       ],
       "transformation": {
         "before": "Modal, separate fields, plain text, manual save",
-        "after": "Full-screen, single field, markdown, auto-save"
+        "after": "Full-screen, single field, markdown with preview, auto-save"
       }
     }
   },
 
-  "industryResearch": {
-    "purpose": "Understanding how major notes apps solve rich text to inform our design decisions",
-    "keyApproaches": {
-      "pureWYSIWYG": {
-        "apps": ["Apple Notes", "Evernote", "Google Keep"],
-        "storage": "Binary/HTML/Proprietary",
-        "pros": ["Instant formatting", "Native feel"],
-        "cons": ["Vendor lock-in", "Not portable"]
+  "approachDecision": {
+    "chosenOption": "Option 2: Markdown with Preview Toggle",
+    "reasoning": [
+      "Simplest to implement - plain TextInput",
+      "Best data portability - markdown is universal",
+      "Easy to export - markdown converts to anything",
+      "Can upgrade later - add live preview if users request",
+      "No vendor lock-in - plain text storage",
+      "Familiar UX - like Obsidian, Typora, iA Writer"
+    ],
+    "alternatives": {
+      "option1": {
+        "name": "Plain Markdown (no preview)",
+        "rejected": "Too basic, users can't verify formatting"
       },
-      "hybridMarkdown": {
-        "apps": ["Bear"],
-        "storage": "Bear Flavored Markdown (human-readable)",
-        "editor": "Shows syntax but styles it live",
-        "pros": ["Portable", "Live styling feels WYSIWYG"],
-        "cons": ["Syntax visible while editing"],
-        "ourChoice": true
+      "option3": {
+        "name": "Hybrid (syntax visible + styled)",
+        "deferred": "More complex, can add later if needed"
       },
-      "blockBased": {
-        "apps": ["Notion"],
-        "storage": "JSON blocks (structured data)",
-        "pros": ["Very flexible", "Queryable"],
-        "cons": ["Complex to implement", "Not human-readable"]
-      },
-      "pureMarkdown": {
-        "apps": ["Obsidian"],
-        "storage": "Pure Markdown files",
-        "editor": "Toggle edit/preview modes",
-        "pros": ["100% portable", "Future-proof"],
-        "cons": ["Syntax visible in edit mode"]
+      "option4": {
+        "name": "Pure WYSIWYG",
+        "deferred": "Most complex, loses markdown portability"
       }
     },
-    "ourDecision": {
-      "approach": "Bear-style hybrid markdown",
-      "storage": "Markdown (human-readable, portable)",
-      "display": "Live-styled markdown (shows ** but makes it bold)",
-      "editor": "Full-screen, auto-title, clean (like Apple Notes UX)",
-      "export": "HTML on demand (like Notion)",
-      "reasoning": "Best of all worlds - portable storage, great UX, powerful export"
+    "upgradePath": {
+      "phase1": "Ship preview toggle (this plan)",
+      "laterIfNeeded": [
+        "Add live preview (react-native-live-markdown)",
+        "Add custom parser (Bear-style syntax hiding)",
+        "Add WYSIWYG mode (rich text editor)",
+        "All upgrades possible without data migration"
+      ]
     }
   },
 
   "technicalArchitecture": {
     "packages": {
-      "reactNativeLiveMarkdown": {
-        "npm": "react-native-live-markdown",
-        "purpose": "Live markdown input with syntax styling",
-        "behavior": "Shows markdown syntax (**, ##) but applies styling in real-time",
-        "example": "User types **bold** → Sees '**bold**' but text appears bold",
-        "platforms": ["iOS", "Android", "Web"]
-      },
       "reactNativeMarkdownDisplay": {
         "npm": "react-native-markdown-display",
-        "purpose": "Render markdown to native components for display",
-        "usage": "Used in note list to show formatted previews",
+        "purpose": "Render markdown to native components in preview mode",
+        "usage": "Display formatted markdown when user toggles preview",
         "platforms": ["iOS", "Android", "Web"]
       },
       "marked": {
         "npm": "marked",
         "purpose": "Convert markdown to HTML for export",
-        "usage": "Only for HTML export feature, not real-time rendering",
+        "usage": "Export notes as HTML documents",
         "platforms": ["All"]
       },
-      "installation": "npm install react-native-live-markdown react-native-markdown-display marked && npm install --save-dev @types/marked"
+      "installation": "npm install react-native-markdown-display marked && npm install --save-dev @types/marked",
+      "notNeeded": {
+        "reactNativeLiveMarkdown": "Not needed for preview toggle approach - deferred to future upgrade"
+      }
     },
     "fileStructure": {
       "routes": [
         {
           "path": "app/note/new.tsx",
           "purpose": "Full-screen editor for creating new notes",
-          "features": ["Auto-focus", "Single textarea", "Auto-save", "Markdown toolbar"]
+          "features": ["Auto-focus", "Single textarea", "Edit/Preview toggle", "Auto-save", "Markdown toolbar"]
         },
         {
           "path": "app/note/[id].tsx",
           "purpose": "Full-screen editor for editing existing notes",
-          "features": ["Load note content", "Auto-save", "Back navigation"]
+          "features": ["Load note content", "Edit/Preview toggle", "Auto-save", "Back navigation"]
         }
       ],
       "components": [
         {
           "path": "components/markdown/markdown-editor.tsx",
-          "purpose": "Main markdown input component with live preview",
-          "key": "Uses MarkdownTextInput from react-native-live-markdown"
+          "purpose": "Main editor component with edit/preview toggle",
+          "modes": ["Edit mode (TextInput)", "Preview mode (MarkdownDisplay)"]
         },
         {
           "path": "components/markdown/markdown-toolbar.tsx",
@@ -149,7 +143,7 @@
         {
           "path": "components/markdown/markdown-renderer.tsx",
           "purpose": "Display markdown content as styled native components",
-          "usage": "Used in note-item.tsx for previews"
+          "usage": "Used in preview mode and note-item.tsx for previews"
         },
         {
           "path": "components/markdown/table-generator-modal.tsx",
@@ -167,7 +161,7 @@
           "path": "services/markdown-service.ts",
           "purpose": "Markdown rendering and HTML conversion",
           "methods": [
-            "renderToComponents(markdown) - For in-app display",
+            "renderToComponents(markdown) - For in-app preview display",
             "renderToHtml(markdown) - For HTML export",
             "renderToDocument(title, markdown) - Full HTML document with styles"
           ]
@@ -219,12 +213,39 @@
     }
   },
 
+  "editorSpecification": {
+    "editMode": {
+      "component": "TextInput",
+      "appearance": "Plain text input",
+      "behavior": "User types raw markdown: **bold**, # heading, etc.",
+      "autoFocus": true,
+      "multiline": true,
+      "placeholder": "Start typing..."
+    },
+    "previewMode": {
+      "component": "MarkdownDisplay (from react-native-markdown-display)",
+      "appearance": "Fully formatted/styled content",
+      "behavior": "Shows rendered markdown - bold text, headings, lists, etc.",
+      "syntax": "All markdown syntax hidden in preview",
+      "scrollable": true
+    },
+    "toggleButton": {
+      "states": ["Edit", "Preview"],
+      "position": "Top right or bottom toolbar",
+      "behavior": "Switch between edit and preview modes",
+      "icons": {
+        "edit": "MaterialIcons: edit",
+        "preview": "MaterialIcons: visibility"
+      }
+    }
+  },
+
   "toolbarSpecification": {
     "architecture": {
       "location": "Floating toolbar at bottom of screen, above keyboard",
       "positioning": "Fixed above keyboard using KeyboardAvoidingView",
       "layout": "Horizontal row of icon buttons with gap spacing",
-      "visibility": "Always visible when keyboard is open"
+      "visibility": "Visible in edit mode, hidden in preview mode"
     },
     "buttons": [
       {
@@ -377,17 +398,16 @@
 
   "implementationPhases": {
     "overview": "Sequential phases with task-based completion. Each phase must complete before next begins.",
-    "totalDuration": "6-8 weeks",
+    "agenticApproach": "No time estimates - complete tasks, verify criteria, move forward",
 
     "phase1": {
-      "name": "Foundation - Markdown Rendering",
-      "duration": "1-1.5 weeks",
-      "goal": "Display notes with markdown formatting (read-only)",
+      "name": "Core Editor - Edit/Preview Toggle",
+      "goal": "Full-screen editor with preview toggle working",
       "prerequisite": "None - Starting phase",
       "tasks": [
         {
           "task": "Install packages",
-          "details": "npm install react-native-live-markdown react-native-markdown-display marked @types/marked",
+          "details": "npm install react-native-markdown-display marked @types/marked",
           "verification": "Package.json updated, no errors on install"
         },
         {
@@ -396,36 +416,21 @@
           "verification": "Service exports all methods, basic rendering works"
         },
         {
-          "task": "Create components/markdown/markdown-renderer.tsx",
-          "details": "Wrapper for react-native-markdown-display",
-          "verification": "Component accepts markdown string, renders with styling"
-        },
-        {
           "task": "Create utils/note-parser.ts",
           "methods": ["extractTitle()", "parseNote()", "getPreviewText()"],
           "verification": "extractTitle function returns correct title from markdown"
         },
         {
-          "task": "Update components/note-item.tsx",
-          "details": "Use markdown-renderer for preview instead of raw text",
-          "verification": "Note list shows formatted markdown, plain text still works"
-        }
-      ],
-      "completionCriteria": [
-        "Markdown notes display with formatting in list",
-        "Plain text notes still display correctly",
-        "Title extraction works from # heading or first line",
-        "No console errors or warnings"
-      ],
-      "deliverable": "Can display notes with markdown rendering (no editing yet)"
-    },
-
-    "phase2": {
-      "name": "Editor UI - Full-Screen Experience",
-      "duration": "2-2.5 weeks",
-      "goal": "Create new full-screen editor with basic toolbar",
-      "prerequisite": "Phase 1 complete - Markdown rendering working",
-      "tasks": [
+          "task": "Create components/markdown/markdown-renderer.tsx",
+          "details": "Wrapper for react-native-markdown-display",
+          "verification": "Component accepts markdown string, renders with styling"
+        },
+        {
+          "task": "Create components/markdown/markdown-editor.tsx",
+          "details": "Main editor with edit/preview toggle state",
+          "features": ["TextInput for edit mode", "MarkdownRenderer for preview mode", "Toggle button", "Auto-focus"],
+          "verification": "Can switch between edit and preview modes smoothly"
+        },
         {
           "task": "Create app/note/new.tsx",
           "details": "Full-screen route for new notes with blank editor, auto-focus",
@@ -437,14 +442,14 @@
           "verification": "Route loads note by ID, content editable"
         },
         {
-          "task": "Create components/markdown/markdown-editor.tsx",
-          "details": "MarkdownTextInput with live styling",
-          "verification": "Live markdown input with syntax styling works"
+          "task": "Implement auto-save with useEffect + debounce",
+          "details": "Save after 1000ms of no typing",
+          "verification": "Saves trigger after typing stops, no data loss"
         },
         {
-          "task": "Create components/markdown/markdown-toolbar.tsx",
-          "details": "Basic buttons: B, I, H1-H3, List, Code",
-          "verification": "Toolbar renders, buttons trigger correct actions"
+          "task": "Update components/note-item.tsx",
+          "details": "Use markdown-renderer for preview instead of raw text",
+          "verification": "Note list shows formatted markdown, plain text still works"
         },
         {
           "task": "Wire navigation from app/(tabs)/index.tsx",
@@ -455,20 +460,33 @@
       "completionCriteria": [
         "Navigating to /note/new shows blank editor with cursor",
         "Navigating to /note/[id] loads note content",
-        "Toolbar buttons insert markdown syntax correctly",
-        "Live markdown styling works (** shows bold)",
+        "Edit/Preview toggle switches modes correctly",
+        "Preview mode shows fully formatted markdown",
+        "Edit mode shows plain markdown syntax",
+        "Auto-save triggers after typing stops",
         "Back button returns to list",
+        "Note list shows formatted previews",
+        "Plain text notes still display correctly",
         "Old modal still works for fallback"
       ],
-      "deliverable": "New full-screen editor working in parallel with old modal"
+      "deliverable": "Working full-screen editor with edit/preview toggle"
     },
 
-    "phase3": {
-      "name": "Advanced Features - Tables, Links, Auto-save",
-      "duration": "2-2.5 weeks",
-      "goal": "Add visual helpers for complex markdown + auto-save",
-      "prerequisite": "Phase 2 complete - Basic editor working",
+    "phase2": {
+      "name": "Toolbar, Export, Migration",
+      "goal": "Add formatting toolbar, export features, make new editor default",
+      "prerequisite": "Phase 1 complete - Edit/preview toggle working",
       "tasks": [
+        {
+          "task": "Create components/markdown/markdown-toolbar.tsx",
+          "details": "Basic buttons: B, I, H1-H3, List, Code",
+          "verification": "Toolbar renders, buttons trigger correct actions"
+        },
+        {
+          "task": "Implement text insertion logic",
+          "details": "Handle selection wrapping and cursor positioning",
+          "verification": "Buttons insert markdown syntax correctly with/without selection"
+        },
         {
           "task": "Create components/markdown/table-generator-modal.tsx",
           "details": "Visual grid picker for rows/columns",
@@ -485,38 +503,15 @@
           "verification": "Buttons open modals, modals insert correct markdown"
         },
         {
-          "task": "Implement auto-save with useEffect + debounce",
-          "details": "Save after 1000ms of no typing",
-          "verification": "Saves trigger after 1s of no typing, no data loss"
-        },
-        {
           "task": "Add keyboard shortcuts",
           "details": "## → heading, - → list auto-conversion",
           "verification": "Keyboard shortcuts convert text automatically"
         },
         {
-          "task": "Optional: Add preview toggle",
-          "details": "Switch between edit/view modes",
-          "verification": "Toggle works, shows formatted preview"
-        }
-      ],
-      "completionCriteria": [
-        "Table modal generates valid markdown tables",
-        "Link modal inserts [text](url) correctly",
-        "Auto-save triggers after typing stops",
-        "Keyboard shortcuts work reliably",
-        "Complex markdown renders properly",
-        "No data loss during auto-save"
-      ],
-      "deliverable": "Full-featured markdown editor with visual helpers"
-    },
-
-    "phase4": {
-      "name": "Migration - Replace Old System",
-      "duration": "1-1.5 weeks",
-      "goal": "Make new editor default, archive old modal",
-      "prerequisite": "Phase 3 complete - All features working",
-      "tasks": [
+          "task": "Implement HTML export",
+          "details": "Add export button in preview mode, generate HTML document",
+          "verification": "Export generates valid HTML with styling"
+        },
         {
           "task": "Update app/(tabs)/index.tsx navigation",
           "details": "New Note button → navigate to /note/new (not modal)",
@@ -554,13 +549,18 @@
         }
       ],
       "completionCriteria": [
+        "Toolbar buttons insert markdown syntax correctly",
+        "Table modal generates valid markdown tables",
+        "Link modal inserts [text](url) correctly",
+        "Keyboard shortcuts work reliably",
+        "HTML export generates valid documents",
         "New editor is default for all note creation/editing",
         "No active code references old modal",
         "Animations smooth on all platforms",
         "Documentation updated and accurate",
         "All tests passing (iOS, Android, Web)"
       ],
-      "deliverable": "Only new system active, old system archived"
+      "deliverable": "Full-featured markdown editor as default system"
     }
   },
 
@@ -569,31 +569,32 @@
 
     "noteParser": "// utils/note-parser.ts\nexport function extractTitle(markdown: string): string {\n  const lines = markdown.trim().split('\\n');\n  const firstLine = lines[0]?.trim() || '';\n\n  if (firstLine.startsWith('#')) {\n    return firstLine.replace(/^#+\\s*/, ''); // Remove # symbols\n  }\n\n  if (firstLine) {\n    return firstLine.substring(0, 500); // Limit to VARCHAR(500)\n  }\n\n  return `Note ${new Date().toLocaleString()}`; // Fallback\n}\n\nexport function parseNote(markdown: string) {\n  return {\n    title: extractTitle(markdown),\n    content: markdown\n  };\n}\n\nexport function getPreviewText(markdown: string, maxLength = 100): string {\n  const lines = markdown.split('\\n');\n  const contentLines = lines.slice(1); // Skip title line\n  return contentLines.join(' ').substring(0, maxLength);\n}",
 
-    "newNoteScreen": "// app/note/new.tsx\nimport { useState, useRef, useEffect } from 'react';\nimport { View, KeyboardAvoidingView } from 'react-native';\nimport { MarkdownTextInput } from 'react-native-live-markdown';\nimport { MarkdownToolbar } from '@/components/markdown/markdown-toolbar';\nimport { useRouter } from 'expo-router';\nimport { notesService } from '@/services/notes';\nimport { extractTitle } from '@/utils/note-parser';\n\nexport default function NewNoteScreen() {\n  const [content, setContent] = useState('');\n  const [selection, setSelection] = useState({ start: 0, end: 0 });\n  const router = useRouter();\n  const textInputRef = useRef(null);\n\n  // Auto-save\n  useEffect(() => {\n    if (!content.trim()) return;\n    const timer = setTimeout(async () => {\n      const title = extractTitle(content);\n      await notesService.createNote(title, content);\n    }, 1000);\n    return () => clearTimeout(timer);\n  }, [content]);\n\n  const handleInsert = (before: string, after: string) => {\n    const { start, end } = selection;\n    const selectedText = content.substring(start, end);\n    if (start !== end) {\n      const newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);\n      setContent(newContent);\n    } else {\n      const newContent = content.substring(0, start) + before + after + content.substring(start);\n      setContent(newContent);\n    }\n  };\n\n  return (\n    <KeyboardAvoidingView style={{ flex: 1 }}>\n      <MarkdownTextInput\n        ref={textInputRef}\n        value={content}\n        onChangeText={setContent}\n        onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}\n        autoFocus\n        multiline\n        placeholder=\"Start typing...\"\n      />\n      <MarkdownToolbar onInsert={handleInsert} />\n    </KeyboardAvoidingView>\n  );\n}",
+    "markdownEditor": "// components/markdown/markdown-editor.tsx\nimport { useState } from 'react';\nimport { View, TextInput, TouchableOpacity, Text } from 'react-native';\nimport { MarkdownRenderer } from './markdown-renderer';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\n\ninterface MarkdownEditorProps {\n  value: string;\n  onChange: (text: string) => void;\n  onSelectionChange?: (selection: { start: number; end: number }) => void;\n}\n\nexport function MarkdownEditor({ value, onChange, onSelectionChange }: MarkdownEditorProps) {\n  const [mode, setMode] = useState<'edit' | 'preview'>('edit');\n  const { colors } = useThemeColors();\n\n  return (\n    <View style={{ flex: 1 }}>\n      {/* Toggle Button */}\n      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', padding: 12 }}>\n        <TouchableOpacity onPress={() => setMode(mode === 'edit' ? 'preview' : 'edit')}>\n          <Text style={{ color: colors.tint, fontWeight: '600' }}>\n            {mode === 'edit' ? 'Preview' : 'Edit'}\n          </Text>\n        </TouchableOpacity>\n      </View>\n\n      {/* Edit Mode */}\n      {mode === 'edit' && (\n        <TextInput\n          value={value}\n          onChangeText={onChange}\n          onSelectionChange={(e) => onSelectionChange?.(e.nativeEvent.selection)}\n          multiline\n          autoFocus\n          placeholder=\"Start typing...\"\n          style={{ flex: 1, padding: 16, color: colors.text }}\n        />\n      )}\n\n      {/* Preview Mode */}\n      {mode === 'preview' && (\n        <MarkdownRenderer markdown={value} />\n      )}\n    </View>\n  );\n}",
 
-    "markdownToolbar": "// components/markdown/markdown-toolbar.tsx\nimport { View, TouchableOpacity, Text, StyleSheet } from 'react-native';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\n\ninterface MarkdownToolbarProps {\n  onInsert: (before: string, after: string) => void;\n}\n\nexport function MarkdownToolbar({ onInsert }: MarkdownToolbarProps) {\n  const { colors } = useThemeColors();\n\n  return (\n    <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>\n      <ToolbarButton text=\"B\" onPress={() => onInsert('**', '**')} />\n      <ToolbarButton text=\"I\" onPress={() => onInsert('*', '*')} />\n      <ToolbarButton text=\"H1\" onPress={() => onInsert('# ', '')} />\n      <ToolbarButton text=\"•\" onPress={() => onInsert('- ', '')} />\n    </View>\n  );\n}\n\nfunction ToolbarButton({ text, onPress }) {\n  return (\n    <TouchableOpacity style={styles.button} onPress={onPress}>\n      <Text style={styles.buttonText}>{text}</Text>\n    </TouchableOpacity>\n  );\n}\n\nconst styles = StyleSheet.create({\n  toolbar: {\n    flexDirection: 'row',\n    borderTopWidth: 1,\n    paddingHorizontal: 8,\n    paddingVertical: 8,\n    gap: 8,\n  },\n  button: {\n    width: 40,\n    height: 40,\n    borderRadius: 8,\n    justifyContent: 'center',\n    alignItems: 'center',\n  },\n  buttonText: {\n    fontSize: 16,\n    fontWeight: '600',\n  },\n});"
+    "newNoteScreen": "// app/note/new.tsx\nimport { useState, useEffect } from 'react';\nimport { KeyboardAvoidingView, Platform } from 'react-native';\nimport { MarkdownEditor } from '@/components/markdown/markdown-editor';\nimport { MarkdownToolbar } from '@/components/markdown/markdown-toolbar';\nimport { useRouter } from 'expo-router';\nimport { notesService } from '@/services/notes';\nimport { extractTitle } from '@/utils/note-parser';\n\nexport default function NewNoteScreen() {\n  const [content, setContent] = useState('');\n  const [selection, setSelection] = useState({ start: 0, end: 0 });\n  const router = useRouter();\n\n  // Auto-save\n  useEffect(() => {\n    if (!content.trim()) return;\n    const timer = setTimeout(async () => {\n      const title = extractTitle(content);\n      await notesService.createNote(title, content);\n    }, 1000);\n    return () => clearTimeout(timer);\n  }, [content]);\n\n  const handleInsert = (before: string, after: string) => {\n    const { start, end } = selection;\n    const selectedText = content.substring(start, end);\n    if (start !== end) {\n      const newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);\n      setContent(newContent);\n    } else {\n      const newContent = content.substring(0, start) + before + after + content.substring(start);\n      setContent(newContent);\n    }\n  };\n\n  return (\n    <KeyboardAvoidingView \n      style={{ flex: 1 }} \n      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}\n    >\n      <MarkdownEditor \n        value={content} \n        onChange={setContent}\n        onSelectionChange={setSelection}\n      />\n      <MarkdownToolbar onInsert={handleInsert} />\n    </KeyboardAvoidingView>\n  );\n}",
+
+    "markdownToolbar": "// components/markdown/markdown-toolbar.tsx\nimport { View, TouchableOpacity, Text, StyleSheet } from 'react-native';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\n\ninterface MarkdownToolbarProps {\n  onInsert: (before: string, after: string) => void;\n}\n\nexport function MarkdownToolbar({ onInsert }: MarkdownToolbarProps) {\n  const { colors } = useThemeColors();\n\n  return (\n    <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>\n      <ToolbarButton text=\"B\" onPress={() => onInsert('**', '**')} />\n      <ToolbarButton text=\"I\" onPress={() => onInsert('*', '*')} />\n      <ToolbarButton text=\"H1\" onPress={() => onInsert('# ', '')} />\n      <ToolbarButton text=\"•\" onPress={() => onInsert('- ', '')} />\n    </View>\n  );\n}\n\nfunction ToolbarButton({ text, onPress }) {\n  const { colors } = useThemeColors();\n  return (\n    <TouchableOpacity style={styles.button} onPress={onPress}>\n      <Text style={[styles.buttonText, { color: colors.text }]}>{text}</Text>\n    </TouchableOpacity>\n  );\n}\n\nconst styles = StyleSheet.create({\n  toolbar: {\n    flexDirection: 'row',\n    borderTopWidth: 1,\n    paddingHorizontal: 8,\n    paddingVertical: 8,\n    gap: 8,\n  },\n  button: {\n    width: 40,\n    height: 40,\n    borderRadius: 8,\n    justifyContent: 'center',\n    alignItems: 'center',\n  },\n  buttonText: {\n    fontSize: 16,\n    fontWeight: '600',\n  },\n});"
   },
 
   "testingStrategy": {
     "phase1Tests": [
+      "Navigate to /note/new, verify blank editor appears with cursor focused",
+      "Type markdown syntax: **bold**, # heading, - list",
+      "Tap 'Preview' button, verify formatted output (bold text, large heading, bullet list)",
+      "Tap 'Edit' button, verify raw markdown appears again",
+      "Type content, wait 2s, navigate back, verify note saved",
       "Create test note with markdown: '# Title\\n**Bold** text'",
       "Verify note list shows formatted preview",
       "Verify plain text note 'Plain note' still displays",
       "Check console for errors"
     ],
     "phase2Tests": [
-      "Navigate to /note/new, verify blank editor appears",
-      "Type markdown, verify live styling works",
-      "Tap B button, verify ** inserted",
-      "Navigate back, verify note saved"
-    ],
-    "phase3Tests": [
+      "Tap B button, verify ** inserted around selection or at cursor",
+      "Tap H1 button, verify # inserted at line start",
       "Tap table button, select 3x3, verify table generated",
       "Tap link button, enter text/URL, verify link inserted",
-      "Type content, wait 2s, verify auto-save occurred",
-      "Type '## ' and space, verify converts to heading"
-    ],
-    "phase4Tests": [
+      "Type '## ' and space, verify converts to heading",
+      "Tap export button in preview mode, verify HTML generated",
       "Verify all 'New Note' actions use new editor",
       "Verify old modal components in archive/ folder",
       "Test on iOS device, Android device, Web browser",
@@ -617,15 +618,17 @@
 
   "successCriteria": {
     "functionality": [
-      "Users can create notes with markdown formatting",
-      "Users can edit existing notes with markdown",
+      "Users can create notes with markdown syntax",
+      "Users can toggle between edit and preview modes",
+      "Users can edit existing notes",
       "Toolbar provides easy formatting without knowing markdown",
       "Auto-save prevents data loss",
-      "Old plain text notes display correctly"
+      "Old plain text notes display correctly",
+      "HTML export works correctly"
     ],
     "performance": [
       "Editor opens instantly with cursor ready",
-      "Live markdown styling has no lag",
+      "Preview toggle switches modes smoothly",
       "Auto-save doesn't block typing",
       "Smooth animations on all platforms"
     ],
@@ -637,14 +640,30 @@
     ]
   },
 
-  "futureEnhancements": {
-    "phase2": [
+  "futureUpgrades": {
+    "livePreview": {
+      "when": "If users request seeing formatted text while typing",
+      "approach": "Add react-native-live-markdown for hybrid mode",
+      "effort": "Moderate - add package, update editor component",
+      "dataMigration": "None - markdown storage unchanged"
+    },
+    "customParser": {
+      "when": "If users want Bear-style syntax hiding (hide syntax after Enter)",
+      "approach": "Build custom line-by-line parser with focus detection",
+      "effort": "High - complex custom implementation",
+      "dataMigration": "None - markdown storage unchanged"
+    },
+    "pureWYSIWYG": {
+      "when": "If users prefer Word-style editor with no syntax",
+      "approach": "Integrate rich text editor, store as HTML or convert to markdown",
+      "effort": "Very High - major architectural change",
+      "dataMigration": "Possibly needed if switching from markdown to HTML storage"
+    },
+    "additionalFeatures": [
       "Image upload and embedding",
       "Syntax highlighting for code blocks",
       "Collaborative editing (real-time)",
-      "Version history / undo/redo"
-    ],
-    "phase3": [
+      "Version history / undo/redo",
       "Custom markdown plugins",
       "Diagram support (mermaid)",
       "Math equations (KaTeX)",
@@ -654,22 +673,22 @@
 
   "troubleshooting": {
     "packageInstallFails": "Try: npm install --legacy-peer-deps or check React Native version compatibility",
-    "markdownNotRendering": "Check: import statements correct, MarkdownTextInput props configured, NativeWind conflicts",
+    "markdownNotRendering": "Check: import statements correct, MarkdownDisplay props configured, NativeWind conflicts",
     "autoSaveNotWorking": "Check: useEffect dependencies, debounce timer cleanup, notesService methods",
     "toolbarNotVisible": "Check: KeyboardAvoidingView behavior prop, platform-specific keyboard handling",
-    "navigationIssues": "Check: Expo Router file structure, navigation imports, screen options"
+    "navigationIssues": "Check: Expo Router file structure, navigation imports, screen options",
+    "previewNotFormatting": "Check: MarkdownDisplay component setup, markdown syntax validity, styles applied"
   },
 
   "references": {
     "packages": {
-      "reactNativeLiveMarkdown": "https://github.com/expensify/react-native-live-markdown",
       "reactNativeMarkdownDisplay": "https://github.com/iamacup/react-native-markdown-display",
       "marked": "https://marked.js.org/"
     },
     "inspiration": {
-      "bear": "https://bear.app/",
-      "appleNotes": "https://www.apple.com/ios/notes/",
-      "notion": "https://www.notion.so/"
+      "obsidian": "https://obsidian.md/ - Preview toggle style",
+      "iaWriter": "https://ia.net/writer - Clean markdown editor",
+      "typora": "https://typora.io/ - Live preview approach"
     }
   }
 }
