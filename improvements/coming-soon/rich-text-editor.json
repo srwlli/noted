@@ -400,10 +400,45 @@
     "overview": "Sequential phases with task-based completion. Each phase must complete before next begins.",
     "agenticApproach": "No time estimates - complete tasks, verify criteria, move forward",
 
+    "phase0": {
+      "name": "Development Environment Isolation",
+      "goal": "Setup workspace to build new editor without affecting current app",
+      "prerequisite": "None - Starting phase",
+      "tasks": [
+        {
+          "task": "Create isolated component directory structure",
+          "details": "Create components/markdown/ directory for all new editor components",
+          "verification": "Directory exists, separated from existing components"
+        },
+        {
+          "task": "Create isolated route structure",
+          "details": "Create app/note-editor/ directory (separate from current app/note/)",
+          "verification": "Routes isolated, can develop without touching current app/note/"
+        },
+        {
+          "task": "Add development-only navigation link",
+          "details": "Temporary button in settings to access /note-editor/test route",
+          "verification": "Can access new editor for testing without affecting main flow"
+        },
+        {
+          "task": "Verify complete isolation",
+          "details": "Confirm no imports/dependencies from new code to old code",
+          "verification": "Can build new editor entirely separately, old app unchanged"
+        }
+      ],
+      "completionCriteria": [
+        "New component directory structure created",
+        "Test routes accessible via dev-only link",
+        "No changes to existing note functionality",
+        "Can develop new editor without affecting current app"
+      ],
+      "deliverable": "Isolated development environment ready"
+    },
+
     "phase1": {
       "name": "Core Editor - Edit/Preview Toggle",
       "goal": "Full-screen editor with preview toggle working",
-      "prerequisite": "None - Starting phase",
+      "prerequisite": "Phase 0 complete - Isolated environment ready",
       "tasks": [
         {
           "task": "Install packages",
@@ -513,9 +548,19 @@
           "verification": "Export generates valid HTML with styling"
         },
         {
+          "task": "Add simple feature flag",
+          "details": "const USE_MARKDOWN_EDITOR = true; // Toggle in one place to switch editors",
+          "verification": "Can switch between old and new editor by changing one boolean"
+        },
+        {
+          "task": "Create error boundary wrapper",
+          "details": "Wrap new editor with error boundary that falls back to old editor on crash",
+          "verification": "Simulated error switches to old editor gracefully with toast message"
+        },
+        {
           "task": "Update app/(tabs)/index.tsx navigation",
-          "details": "New Note button → navigate to /note/new (not modal)",
-          "verification": "New Note button navigates to new editor by default"
+          "details": "New Note button → navigate to /note/new (not modal) if USE_MARKDOWN_EDITOR === true",
+          "verification": "Feature flag controls which editor is used"
         },
         {
           "task": "Update note tap behavior",
@@ -554,7 +599,9 @@
         "Link modal inserts [text](url) correctly",
         "Keyboard shortcuts work reliably",
         "HTML export generates valid documents",
-        "New editor is default for all note creation/editing",
+        "Feature flag successfully switches between editors",
+        "Error boundary catches crashes and falls back to old editor",
+        "New editor is default when flag is enabled",
         "No active code references old modal",
         "Animations smooth on all platforms",
         "Documentation updated and accurate",
@@ -573,7 +620,11 @@
 
     "newNoteScreen": "// app/note/new.tsx\nimport { useState, useEffect } from 'react';\nimport { KeyboardAvoidingView, Platform } from 'react-native';\nimport { MarkdownEditor } from '@/components/markdown/markdown-editor';\nimport { MarkdownToolbar } from '@/components/markdown/markdown-toolbar';\nimport { useRouter } from 'expo-router';\nimport { notesService } from '@/services/notes';\nimport { extractTitle } from '@/utils/note-parser';\n\nexport default function NewNoteScreen() {\n  const [content, setContent] = useState('');\n  const [selection, setSelection] = useState({ start: 0, end: 0 });\n  const router = useRouter();\n\n  // Auto-save\n  useEffect(() => {\n    if (!content.trim()) return;\n    const timer = setTimeout(async () => {\n      const title = extractTitle(content);\n      await notesService.createNote(title, content);\n    }, 1000);\n    return () => clearTimeout(timer);\n  }, [content]);\n\n  const handleInsert = (before: string, after: string) => {\n    const { start, end } = selection;\n    const selectedText = content.substring(start, end);\n    if (start !== end) {\n      const newContent = content.substring(0, start) + before + selectedText + after + content.substring(end);\n      setContent(newContent);\n    } else {\n      const newContent = content.substring(0, start) + before + after + content.substring(start);\n      setContent(newContent);\n    }\n  };\n\n  return (\n    <KeyboardAvoidingView \n      style={{ flex: 1 }} \n      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}\n    >\n      <MarkdownEditor \n        value={content} \n        onChange={setContent}\n        onSelectionChange={setSelection}\n      />\n      <MarkdownToolbar onInsert={handleInsert} />\n    </KeyboardAvoidingView>\n  );\n}",
 
-    "markdownToolbar": "// components/markdown/markdown-toolbar.tsx\nimport { View, TouchableOpacity, Text, StyleSheet } from 'react-native';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\n\ninterface MarkdownToolbarProps {\n  onInsert: (before: string, after: string) => void;\n}\n\nexport function MarkdownToolbar({ onInsert }: MarkdownToolbarProps) {\n  const { colors } = useThemeColors();\n\n  return (\n    <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>\n      <ToolbarButton text=\"B\" onPress={() => onInsert('**', '**')} />\n      <ToolbarButton text=\"I\" onPress={() => onInsert('*', '*')} />\n      <ToolbarButton text=\"H1\" onPress={() => onInsert('# ', '')} />\n      <ToolbarButton text=\"•\" onPress={() => onInsert('- ', '')} />\n    </View>\n  );\n}\n\nfunction ToolbarButton({ text, onPress }) {\n  const { colors } = useThemeColors();\n  return (\n    <TouchableOpacity style={styles.button} onPress={onPress}>\n      <Text style={[styles.buttonText, { color: colors.text }]}>{text}</Text>\n    </TouchableOpacity>\n  );\n}\n\nconst styles = StyleSheet.create({\n  toolbar: {\n    flexDirection: 'row',\n    borderTopWidth: 1,\n    paddingHorizontal: 8,\n    paddingVertical: 8,\n    gap: 8,\n  },\n  button: {\n    width: 40,\n    height: 40,\n    borderRadius: 8,\n    justifyContent: 'center',\n    alignItems: 'center',\n  },\n  buttonText: {\n    fontSize: 16,\n    fontWeight: '600',\n  },\n});"
+    "markdownToolbar": "// components/markdown/markdown-toolbar.tsx\nimport { View, TouchableOpacity, Text, StyleSheet } from 'react-native';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\n\ninterface MarkdownToolbarProps {\n  onInsert: (before: string, after: string) => void;\n}\n\nexport function MarkdownToolbar({ onInsert }: MarkdownToolbarProps) {\n  const { colors } = useThemeColors();\n\n  return (\n    <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>\n      <ToolbarButton text=\"B\" onPress={() => onInsert('**', '**')} />\n      <ToolbarButton text=\"I\" onPress={() => onInsert('*', '*')} />\n      <ToolbarButton text=\"H1\" onPress={() => onInsert('# ', '')} />\n      <ToolbarButton text=\"•\" onPress={() => onInsert('- ', '')} />\n    </View>\n  );\n}\n\nfunction ToolbarButton({ text, onPress }) {\n  const { colors } = useThemeColors();\n  return (\n    <TouchableOpacity style={styles.button} onPress={onPress}>\n      <Text style={[styles.buttonText, { color: colors.text }]}>{text}</Text>\n    </TouchableOpacity>\n  );\n}\n\nconst styles = StyleSheet.create({\n  toolbar: {\n    flexDirection: 'row',\n    borderTopWidth: 1,\n    paddingHorizontal: 8,\n    paddingVertical: 8,\n    gap: 8,\n  },\n  button: {\n    width: 40,\n    height: 40,\n    borderRadius: 8,\n    justifyContent: 'center',\n    alignItems: 'center',\n  },\n  buttonText: {\n    fontSize: 16,\n    fontWeight: '600',\n  },\n});",
+
+    "errorBoundary": "// components/markdown/markdown-editor-boundary.tsx\nimport React, { Component, ReactNode } from 'react';\nimport { toast } from 'sonner-native';\n\ninterface Props {\n  children: ReactNode;\n  fallback: ReactNode; // Old editor component\n}\n\ninterface State {\n  hasError: boolean;\n}\n\nexport class MarkdownEditorBoundary extends Component<Props, State> {\n  constructor(props: Props) {\n    super(props);\n    this.state = { hasError: false };\n  }\n\n  static getDerivedStateFromError() {\n    return { hasError: true };\n  }\n\n  componentDidCatch(error: Error) {\n    console.error('Markdown editor crashed:', error);\n    toast.error('Editor error - switched to legacy mode');\n  }\n\n  render() {\n    if (this.state.hasError) {\n      return this.props.fallback;\n    }\n    return this.props.children;\n  }\n}\n\n// Usage:\n// <MarkdownEditorBoundary fallback={<LegacyNoteModal />}>\n//   <MarkdownEditor />\n// </MarkdownEditorBoundary>",
+
+    "featureFlag": "// lib/feature-flags.ts\nexport const FeatureFlags = {\n  USE_MARKDOWN_EDITOR: true, // Toggle to switch between old and new editor\n};\n\n// In app/(tabs)/index.tsx:\nimport { FeatureFlags } from '@/lib/feature-flags';\nimport { MarkdownEditorBoundary } from '@/components/markdown/markdown-editor-boundary';\n\nfunction handleNewNote() {\n  if (FeatureFlags.USE_MARKDOWN_EDITOR) {\n    router.push('/note/new'); // New markdown editor\n  } else {\n    setShowModal(true); // Old modal\n  }\n}\n\n// Wrap new editor with boundary:\nif (FeatureFlags.USE_MARKDOWN_EDITOR) {\n  return (\n    <MarkdownEditorBoundary fallback={<NoteModal />}>\n      <MarkdownEditor />\n    </MarkdownEditorBoundary>\n  );\n}"
   },
 
   "testingStrategy": {
