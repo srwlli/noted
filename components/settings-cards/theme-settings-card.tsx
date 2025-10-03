@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Switch, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useThemeController } from '@/contexts/theme-controller';
+import { useThemeController, ColorSchemeMode } from '@/contexts/theme-controller';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Card } from '@/components/common/card';
 import { Themes } from '@/constants/theme';
@@ -16,8 +16,8 @@ export function ThemeSettingsCard({ isExpanded, onToggle, onOpenThemePicker }: T
   const { themeName, colorScheme, resolvedScheme, setColorScheme, isLoading, loadError } = useThemeController();
   const { colors } = useThemeColors();
 
-  const handleThemeToggle = (value: boolean) => {
-    setColorScheme(value ? 'dark' : 'light');
+  const handleColorSchemeChange = (scheme: ColorSchemeMode) => {
+    setColorScheme(scheme);
   };
 
   return (
@@ -69,20 +69,91 @@ export function ThemeSettingsCard({ isExpanded, onToggle, onOpenThemePicker }: T
       </TouchableOpacity>
 
       <View style={[styles.settingRow, { marginTop: 16 }]}>
-        <View style={styles.settingInfo}>
-          <Text style={[styles.settingLabel, { color: colors.text }]}>Dark Mode</Text>
-          <Text style={[styles.settingDescription, { color: colors.textSecondary }]}>
-            Current: {resolvedScheme} {colorScheme === 'system' ? '(auto)' : ''}
-          </Text>
-        </View>
-        <Switch
-          value={resolvedScheme === 'dark'}
-          onValueChange={handleThemeToggle}
-          disabled={isLoading}
-          trackColor={{ false: colors.border, true: colors.tint }}
-          thumbColor={resolvedScheme === 'dark' ? colors.surface : colors.background}
-        />
+        <Text style={[styles.settingLabel, { color: colors.text }]}>Appearance</Text>
       </View>
+
+      <View style={[styles.segmentedControl, { borderColor: colors.border }]}>
+        <TouchableOpacity
+          style={[
+            styles.segmentButton,
+            styles.segmentButtonLeft,
+            { borderColor: colors.border },
+            colorScheme === 'light' && { backgroundColor: colors.tint },
+          ]}
+          onPress={() => handleColorSchemeChange('light')}
+          disabled={isLoading}
+        >
+          <MaterialIcons
+            name="light-mode"
+            size={18}
+            color={colorScheme === 'light' ? colors.surface : colors.text}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              { color: colorScheme === 'light' ? colors.surface : colors.text },
+            ]}
+          >
+            Light
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.segmentButton,
+            styles.segmentButtonMiddle,
+            { borderColor: colors.border },
+            colorScheme === 'system' && { backgroundColor: colors.tint },
+          ]}
+          onPress={() => handleColorSchemeChange('system')}
+          disabled={isLoading}
+        >
+          <MaterialIcons
+            name="brightness-auto"
+            size={18}
+            color={colorScheme === 'system' ? colors.surface : colors.text}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              { color: colorScheme === 'system' ? colors.surface : colors.text },
+            ]}
+          >
+            System
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.segmentButton,
+            styles.segmentButtonRight,
+            { borderColor: colors.border },
+            colorScheme === 'dark' && { backgroundColor: colors.tint },
+          ]}
+          onPress={() => handleColorSchemeChange('dark')}
+          disabled={isLoading}
+        >
+          <MaterialIcons
+            name="dark-mode"
+            size={18}
+            color={colorScheme === 'dark' ? colors.surface : colors.text}
+          />
+          <Text
+            style={[
+              styles.segmentText,
+              { color: colorScheme === 'dark' ? colors.surface : colors.text },
+            ]}
+          >
+            Dark
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.settingDescription, { color: colors.textSecondary, marginTop: 8 }]}>
+        {colorScheme === 'system'
+          ? `Currently using ${resolvedScheme} mode (automatic)`
+          : `${colorScheme.charAt(0).toUpperCase() + colorScheme.slice(1)} mode`}
+      </Text>
     </Card>
   );
 }
@@ -155,5 +226,37 @@ const styles = StyleSheet.create({
   },
   settingDescription: {
     fontSize: 14,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  segmentButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    gap: 6,
+  },
+  segmentButtonLeft: {
+    borderTopLeftRadius: 9,
+    borderBottomLeftRadius: 9,
+  },
+  segmentButtonMiddle: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+  },
+  segmentButtonRight: {
+    borderTopRightRadius: 9,
+    borderBottomRightRadius: 9,
+  },
+  segmentText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ThemeName } from '@/constants/theme';
+import { ThemeName, VALID_THEME_NAMES } from '@/constants/theme';
 import { ColorSchemeMode } from '@/contexts/theme-controller';
 
 const KEYS = {
@@ -7,10 +7,16 @@ const KEYS = {
   COLOR_SCHEME: '@noted_theme_preference' as const,
 } as const;
 
+const VALID_COLOR_SCHEMES: ColorSchemeMode[] = ['light', 'dark', 'system'];
+
 export const ThemeStorage = {
   async getThemeName(): Promise<ThemeName | null> {
     const value = await AsyncStorage.getItem(KEYS.THEME_NAME);
-    return value as ThemeName | null;
+    // Validate stored value is a valid theme name
+    if (value && VALID_THEME_NAMES.includes(value as ThemeName)) {
+      return value as ThemeName;
+    }
+    return null;
   },
 
   async setThemeName(name: ThemeName): Promise<void> {
@@ -19,7 +25,11 @@ export const ThemeStorage = {
 
   async getColorScheme(): Promise<ColorSchemeMode | null> {
     const value = await AsyncStorage.getItem(KEYS.COLOR_SCHEME);
-    return value as ColorSchemeMode | null;
+    // Validate stored value is a valid color scheme
+    if (value && VALID_COLOR_SCHEMES.includes(value as ColorSchemeMode)) {
+      return value as ColorSchemeMode;
+    }
+    return null;
   },
 
   async setColorScheme(scheme: ColorSchemeMode): Promise<void> {

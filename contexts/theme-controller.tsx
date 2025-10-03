@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { useColorScheme } from 'react-native';
 import { ThemeName, VALID_THEME_NAMES, DEFAULT_THEME_NAME, DEFAULT_COLOR_SCHEME } from '@/constants/theme';
 import { ThemeStorage } from '@/lib/theme-storage';
+import { toast } from 'sonner-native';
 
 export type ColorSchemeMode = 'light' | 'dark' | 'system';
 
@@ -61,8 +62,10 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
     try {
       await ThemeStorage.setThemeName(theme);
       setThemeNameState(theme);
+      toast.success('Theme updated');
     } catch (error) {
-      console.warn('Failed to save theme name:', error);
+      console.error('Failed to save theme name:', error);
+      toast.error('Failed to save theme. Please try again.');
     }
   }, []);
 
@@ -70,8 +73,10 @@ export function ThemeControllerProvider({ children }: ThemeControllerProviderPro
     try {
       await ThemeStorage.setColorScheme(scheme);
       setColorSchemeState(scheme);
+      toast.success('Color scheme updated');
     } catch (error) {
-      console.warn('Failed to save color scheme:', error);
+      console.error('Failed to save color scheme:', error);
+      toast.error('Failed to save color scheme. Please try again.');
     }
   }, []);
 

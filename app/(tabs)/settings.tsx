@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import { toast } from 'sonner-native';
 
 export default function SettingsScreen() {
-  const { setTheme } = useThemeController();
+  const { setTheme, themeName } = useThemeController();
   const { signOut } = useAuth();
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -69,6 +69,7 @@ export default function SettingsScreen() {
 
       <ThemePickerModal
         visible={showThemePicker}
+        currentTheme={themeName}
         onSelectTheme={setTheme}
         onClose={() => setShowThemePicker(false)}
       />
