@@ -1,66 +1,113 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { LinkDialogModal } from './link-dialog-modal';
+import { TableGeneratorModal } from './table-generator-modal';
 
 interface MarkdownToolbarProps {
   onInsert: (before: string, after: string) => void;
+  onInsertText?: (text: string) => void;
+  selectedText?: string;
 }
 
 /**
  * Formatting toolbar for markdown editor
  * Provides quick access to common markdown formatting
  */
-export function MarkdownToolbar({ onInsert }: MarkdownToolbarProps) {
+export function MarkdownToolbar({ onInsert, onInsertText, selectedText = '' }: MarkdownToolbarProps) {
   const { colors } = useThemeColors();
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showTableModal, setShowTableModal] = useState(false);
+
+  const handleInsertLink = (text: string, url: string) => {
+    const markdownLink = `[${text}](${url})`;
+    onInsertText?.(markdownLink);
+    setShowLinkModal(false);
+  };
+
+  const handleInsertTable = (table: string) => {
+    onInsertText?.(table);
+    setShowTableModal(false);
+  };
 
   return (
-    <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-      {/* Bold */}
-      <ToolbarButton
-        text="B"
-        bold
-        onPress={() => onInsert('**', '**')}
-        colors={colors}
+    <>
+      <View style={[styles.toolbar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        {/* Bold */}
+        <ToolbarButton
+          text="B"
+          bold
+          onPress={() => onInsert('**', '**')}
+          colors={colors}
+        />
+
+        {/* Italic */}
+        <ToolbarButton
+          text="I"
+          italic
+          onPress={() => onInsert('*', '*')}
+          colors={colors}
+        />
+
+        {/* Heading 1 */}
+        <ToolbarButton
+          text="H1"
+          onPress={() => onInsert('# ', '')}
+          colors={colors}
+        />
+
+        {/* Heading 2 */}
+        <ToolbarButton
+          text="H2"
+          onPress={() => onInsert('## ', '')}
+          colors={colors}
+        />
+
+        {/* List */}
+        <ToolbarButton
+          icon="format-list-bulleted"
+          onPress={() => onInsert('- ', '')}
+          colors={colors}
+        />
+
+        {/* Code */}
+        <ToolbarButton
+          text="`"
+          monospace
+          onPress={() => onInsert('`', '`')}
+          colors={colors}
+        />
+
+        {/* Link */}
+        <ToolbarButton
+          icon="link"
+          onPress={() => setShowLinkModal(true)}
+          colors={colors}
+        />
+
+        {/* Table */}
+        <ToolbarButton
+          icon="table-chart"
+          onPress={() => setShowTableModal(true)}
+          colors={colors}
+        />
+      </View>
+
+      {/* Modals */}
+      <LinkDialogModal
+        visible={showLinkModal}
+        selectedText={selectedText}
+        onInsert={handleInsertLink}
+        onCancel={() => setShowLinkModal(false)}
       />
 
-      {/* Italic */}
-      <ToolbarButton
-        text="I"
-        italic
-        onPress={() => onInsert('*', '*')}
-        colors={colors}
+      <TableGeneratorModal
+        visible={showTableModal}
+        onGenerate={handleInsertTable}
+        onCancel={() => setShowTableModal(false)}
       />
-
-      {/* Heading 1 */}
-      <ToolbarButton
-        text="H1"
-        onPress={() => onInsert('# ', '')}
-        colors={colors}
-      />
-
-      {/* Heading 2 */}
-      <ToolbarButton
-        text="H2"
-        onPress={() => onInsert('## ', '')}
-        colors={colors}
-      />
-
-      {/* List */}
-      <ToolbarButton
-        icon="format-list-bulleted"
-        onPress={() => onInsert('- ', '')}
-        colors={colors}
-      />
-
-      {/* Code */}
-      <ToolbarButton
-        text="`"
-        monospace
-        onPress={() => onInsert('`', '`')}
-        colors={colors}
-      />
-    </View>
+    </>
   );
 }
 

@@ -3,7 +3,7 @@
   "version": "1.0",
   "dateCreated": "2025-10-03",
   "status": "in-progress",
-  "currentCheckpoint": "checkpoint2",
+  "currentCheckpoint": "checkpoint3",
 
   "overview": {
     "goal": "Add formatting toolbar and integrate markdown editor as default (with safe fallback)",

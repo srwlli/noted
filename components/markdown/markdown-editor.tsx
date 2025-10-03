@@ -1,8 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform, Share } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownRenderer } from './markdown-renderer';
 import { MarkdownToolbar } from './markdown-toolbar';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { markdownService } from '@/services/markdown-service';
+import { extractTitle } from '@/utils/note-parser';
+import { toast } from 'sonner-native';
 
 interface MarkdownEditorProps {
   value: string;
@@ -63,10 +67,72 @@ export function MarkdownEditor({
     onSelectionChange?.(selection);
   };
 
+  /**
+   * Handle text insertion (for link, table, etc)
+   * Inserts text at cursor position
+   */
+  const handleInsertText = (text: string) => {
+    const { start } = selectionRef.current;
+    const newContent = value.substring(0, start) + text + value.substring(start);
+    onChange(newContent);
+
+    // Update selection ref for next insertion
+    const newCursorPos = start + text.length;
+    selectionRef.current = { start: newCursorPos, end: newCursorPos };
+  };
+
+  // Get selected text for link modal
+  const getSelectedText = () => {
+    const { start, end } = selectionRef.current;
+    return value.substring(start, end);
+  };
+
+  /**
+   * Export markdown as HTML document
+   */
+  const handleExport = async () => {
+    try {
+      const title = extractTitle(value) || 'Note';
+      const htmlContent = markdownService.renderToDocument(title, value);
+
+      if (Platform.OS === 'web') {
+        // Web: Download as file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title}.html`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('HTML exported successfully');
+      } else {
+        // Mobile: Share sheet
+        await Share.share({
+          message: htmlContent,
+          title: `${title}.html`,
+        });
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export HTML');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Toggle Button */}
+      {/* Toggle Button & Export */}
       <View style={[styles.toggleContainer, { borderBottomColor: colors.border }]}>
+        {mode === 'preview' && (
+          <TouchableOpacity
+            onPress={handleExport}
+            style={[styles.exportButton, { backgroundColor: colors.surface }]}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="file-download" size={20} color={colors.tint} />
+            <Text style={[styles.exportText, { color: colors.tint }]}>Export HTML</Text>
+          </TouchableOpacity>
+        )}
+        <View style={{ flex: 1 }} />
         <TouchableOpacity
           onPress={() => setMode(mode === 'edit' ? 'preview' : 'edit')}
           style={[styles.toggleButton, { backgroundColor: colors.surface }]}
@@ -105,7 +171,11 @@ export function MarkdownEditor({
 
       {/* Toolbar (only in edit mode) */}
       {showToolbar && mode === 'edit' && (
-        <MarkdownToolbar onInsert={handleInsert} />
+        <MarkdownToolbar
+          onInsert={handleInsert}
+          onInsertText={handleInsertText}
+          selectedText={getSelectedText()}
+        />
       )}
     </View>
   );
@@ -117,7 +187,7 @@ const styles = StyleSheet.create({
   },
   toggleContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    alignItems: 'center',
     padding: 12,
     borderBottomWidth: 1,
   },
@@ -128,6 +198,18 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 16,
+    fontWeight: '600',
+  },
+  exportButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  exportText: {
+    fontSize: 14,
     fontWeight: '600',
   },
   textInput: {
