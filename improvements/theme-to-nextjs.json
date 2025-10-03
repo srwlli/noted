@@ -1,0 +1,341 @@
+{
+  "title": "Theme System Migration: React Native → Next.js",
+  "version": "1.0",
+  "date": "2025-10-03",
+  "difficulty": "LOW-MEDIUM",
+  "estimatedTime": "30-60 minutes",
+  "author": "Based on Noted PWA theme system",
+
+  "overview": {
+    "summary": "Complete guide to migrating the React Native theme system (10 themes, 3-way toggle, validation, toasts) to Next.js with Tailwind CSS",
+    "portability": {
+      "fullyPortable": [
+        "Architecture pattern (Context + Storage abstraction)",
+        "Theme data structure (constants/theme.ts)",
+        "Validation logic",
+        "Type system",
+        "3-way toggle UX pattern"
+      ],
+      "needsAdaptation": [
+        "Storage layer (AsyncStorage → localStorage/cookies)",
+        "System theme detection (useColorScheme → matchMedia)",
+        "UI primitives (TouchableOpacity → button)",
+        "Toast library (sonner-native → sonner)",
+        "Icons (MaterialIcons → lucide-react)"
+      ]
+    },
+    "benefits": {
+      "fromReactNative": [
+        "Proven architecture with validation",
+        "3-way toggle prevents system mode loss",
+        "Toast notifications for user feedback",
+        "10 beautiful themes ready to use",
+        "Type-safe storage abstraction"
+      ],
+      "forNextJs": [
+        "SSR-friendly with cookie support",
+        "Tailwind CSS integration",
+        "CSS variables for dynamic theming",
+        "No hydration mismatches",
+        "Keyboard accessible"
+      ]
+    }
+  },
+
+  "stackCompatibility": {
+    "fullyModular": {
+      "nextjs": {
+        "compatible": true,
+        "effort": "LOW",
+        "changes": ["AsyncStorage → localStorage/cookies", "UI primitives → HTML/Tailwind"],
+        "notes": "Works with both Pages Router and App Router"
+      },
+      "remix": {
+        "compatible": true,
+        "effort": "LOW",
+        "changes": ["AsyncStorage → cookies (SSR)", "UI primitives → HTML/Tailwind"],
+        "notes": "Cookie-based storage recommended for SSR"
+      },
+      "vite": {
+        "compatible": true,
+        "effort": "LOW",
+        "changes": ["AsyncStorage → localStorage", "UI primitives → HTML/CSS"],
+        "notes": "Simplest migration - pure client-side"
+      },
+      "expo": {
+        "compatible": true,
+        "effort": "NONE",
+        "changes": [],
+        "notes": "Copy as-is - already compatible"
+      },
+      "reactNativeCli": {
+        "compatible": true,
+        "effort": "NONE",
+        "changes": [],
+        "notes": "Copy as-is - already compatible"
+      }
+    },
+    "architecturePortable": {
+      "vue": {
+        "compatible": true,
+        "effort": "MEDIUM",
+        "changes": ["Context → provide/inject", "hooks → Composition API"],
+        "notes": "Convert React patterns to Vue patterns"
+      },
+      "svelte": {
+        "compatible": true,
+        "effort": "MEDIUM",
+        "changes": ["Context → stores", "hooks → reactive statements"],
+        "notes": "Convert to Svelte stores pattern"
+      },
+      "solid": {
+        "compatible": true,
+        "effort": "MEDIUM",
+        "changes": ["hooks → signals", "Context → Solid Context"],
+        "notes": "Very similar patterns, straightforward conversion"
+      }
+    },
+    "notModular": {
+      "angular": {
+        "compatible": false,
+        "effort": "HIGH",
+        "changes": ["Full rewrite using services"],
+        "notes": "Different paradigm - use Angular services instead"
+      }
+    }
+  },
+
+  "migrationMap": {
+    "file1_themeConstants": {
+      "reactNativeFile": "constants/theme.ts",
+      "nextJsFile": "lib/themes.ts",
+      "portability": "100% PORTABLE",
+      "changes": "NONE - Copy as-is",
+      "notes": "Pure TypeScript/JavaScript data structure, no framework dependencies",
+      "action": "Copy entire file without modifications"
+    },
+    "file2_themeStorage": {
+      "reactNativeFile": "lib/theme-storage.ts",
+      "nextJsFile": "lib/theme-storage.ts",
+      "portability": "ARCHITECTURE PORTABLE",
+      "changes": "Replace AsyncStorage with localStorage/cookies",
+      "notes": "Keep abstraction pattern, swap storage mechanism",
+      "action": "Adapt storage implementation (see codeExamples)"
+    },
+    "file3_themeController": {
+      "reactNativeFile": "contexts/theme-controller.tsx",
+      "nextJsFile": "contexts/theme-provider.tsx",
+      "portability": "LOGIC PORTABLE",
+      "changes": "Replace useColorScheme with matchMedia",
+      "notes": "Keep validation logic, swap system detection",
+      "action": "Adapt system theme detection (see codeExamples)"
+    },
+    "file4_themeSettings": {
+      "reactNativeFile": "components/settings-cards/theme-settings-card.tsx",
+      "nextJsFile": "components/theme-settings.tsx",
+      "portability": "PATTERN PORTABLE",
+      "changes": "Rebuild UI with HTML/Tailwind",
+      "notes": "Keep 3-way toggle pattern, rebuild with web primitives",
+      "action": "Recreate UI component (see codeExamples)"
+    }
+  },
+
+  "packageDependencies": {
+    "remove": {
+      "reactNative": "@react-native-async-storage/async-storage",
+      "expo": "@expo/vector-icons",
+      "toasts": "sonner-native",
+      "framework": "react-native"
+    },
+    "add": {
+      "toasts": "sonner",
+      "icons": "lucide-react",
+      "cookies": "js-cookie",
+      "types": "@types/js-cookie"
+    },
+    "installCommand": "npm install sonner lucide-react js-cookie && npm install --save-dev @types/js-cookie",
+    "optional": {
+      "tailwind": "tailwindcss postcss autoprefixer",
+      "tailwindCommand": "npm install -D tailwindcss postcss autoprefixer && npx tailwindcss init -p"
+    }
+  },
+
+  "codeExamples": {
+    "1_themeConstants": {
+      "description": "Theme data - 100% portable, copy as-is",
+      "file": "lib/themes.ts",
+      "code": "// COPY ENTIRE FILE FROM constants/theme.ts\n// No changes needed - pure TypeScript\n\nexport type ThemeName = 'monochrome' | 'ocean' | 'sepia' | 'nord' | 'crimson' | 'forest' | 'lavender' | 'amber' | 'midnight' | 'rose';\n\nexport const DEFAULT_THEME_NAME: ThemeName = 'monochrome';\nexport const DEFAULT_COLOR_SCHEME = 'system' as const;\n\ninterface ThemeMetadata {\n  displayName: string;\n  description: string;\n  light: ColorScheme;\n  dark: ColorScheme;\n}\n\ninterface ColorScheme {\n  background: string;\n  surface: string;\n  text: string;\n  textSecondary: string;\n  border: string;\n  tint: string;\n  icon: string;\n  tabIconDefault: string;\n  tabIconSelected: string;\n  elevatedSurface: string;\n  selectedSurface: string;\n  overlay: string;\n  hover: string;\n  pressed: string;\n  disabled: string;\n  highlight: string;\n  linkColor: string;\n  accentSecondary: string;\n}\n\nexport const Themes: Record<ThemeName, ThemeMetadata> = {\n  monochrome: {\n    displayName: 'Monochrome',\n    description: 'Clean monochrome design',\n    light: { /* ...all 18 colors */ },\n    dark: { /* ...all 18 colors */ }\n  },\n  // ...9 more themes\n};\n\nexport const VALID_THEME_NAMES = Object.keys(Themes) as ThemeName[];"
+    },
+    "2_themeStorage": {
+      "description": "Storage abstraction for Next.js with localStorage + cookies",
+      "file": "lib/theme-storage.ts",
+      "code": "import Cookies from 'js-cookie';\nimport { ThemeName, VALID_THEME_NAMES } from './themes';\nimport { ColorSchemeMode } from '@/contexts/theme-provider';\n\nconst KEYS = {\n  THEME_NAME: 'noted_theme_name' as const,\n  COLOR_SCHEME: 'noted_theme_preference' as const,\n} as const;\n\nconst VALID_COLOR_SCHEMES: ColorSchemeMode[] = ['light', 'dark', 'system'];\n\n// Use localStorage for client-side, cookies for SSR compatibility\nexport const ThemeStorage = {\n  getThemeName(): ThemeName | null {\n    if (typeof window === 'undefined') {\n      // SSR: Read from cookies\n      return null; // Or use cookies on server\n    }\n    \n    const value = localStorage.getItem(KEYS.THEME_NAME);\n    // Validate stored value\n    if (value && VALID_THEME_NAMES.includes(value as ThemeName)) {\n      return value as ThemeName;\n    }\n    return null;\n  },\n\n  setThemeName(name: ThemeName): void {\n    if (typeof window === 'undefined') return;\n    \n    localStorage.setItem(KEYS.THEME_NAME, name);\n    // Also set cookie for SSR\n    Cookies.set(KEYS.THEME_NAME, name, { expires: 365 });\n  },\n\n  getColorScheme(): ColorSchemeMode | null {\n    if (typeof window === 'undefined') return null;\n    \n    const value = localStorage.getItem(KEYS.COLOR_SCHEME);\n    // Validate stored value\n    if (value && VALID_COLOR_SCHEMES.includes(value as ColorSchemeMode)) {\n      return value as ColorSchemeMode;\n    }\n    return null;\n  },\n\n  setColorScheme(scheme: ColorSchemeMode): void {\n    if (typeof window === 'undefined') return;\n    \n    localStorage.setItem(KEYS.COLOR_SCHEME, scheme);\n    Cookies.set(KEYS.COLOR_SCHEME, scheme, { expires: 365 });\n  },\n};"
+    },
+    "3_themeProvider": {
+      "description": "Theme controller adapted for Next.js with matchMedia",
+      "file": "contexts/theme-provider.tsx",
+      "code": "'use client'; // For Next.js App Router\n\nimport React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';\nimport { ThemeName, VALID_THEME_NAMES, DEFAULT_THEME_NAME, DEFAULT_COLOR_SCHEME } from '@/lib/themes';\nimport { ThemeStorage } from '@/lib/theme-storage';\nimport { toast } from 'sonner';\n\nexport type ColorSchemeMode = 'light' | 'dark' | 'system';\n\ninterface ThemeContextType {\n  themeName: ThemeName;\n  colorScheme: ColorSchemeMode;\n  resolvedScheme: 'light' | 'dark';\n  setTheme: (theme: ThemeName) => void;\n  setColorScheme: (scheme: ColorSchemeMode) => void;\n  isLoading: boolean;\n  loadError: string | null;\n}\n\nconst ThemeContext = createContext<ThemeContextType | null>(null);\n\nexport function ThemeProvider({ children }: { children: ReactNode }) {\n  const [themeName, setThemeNameState] = useState<ThemeName>(DEFAULT_THEME_NAME);\n  const [colorScheme, setColorSchemeState] = useState<ColorSchemeMode>(DEFAULT_COLOR_SCHEME);\n  const [isLoading, setIsLoading] = useState(true);\n  const [loadError, setLoadError] = useState<string | null>(null);\n  const [systemScheme, setSystemScheme] = useState<'light' | 'dark'>('light');\n\n  // System theme detection with matchMedia\n  useEffect(() => {\n    if (typeof window === 'undefined') return;\n\n    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');\n    setSystemScheme(mediaQuery.matches ? 'dark' : 'light');\n\n    const handler = (e: MediaQueryListEvent) => {\n      setSystemScheme(e.matches ? 'dark' : 'light');\n    };\n\n    mediaQuery.addEventListener('change', handler);\n    return () => mediaQuery.removeEventListener('change', handler);\n  }, []);\n\n  // Load theme preferences from storage on mount\n  useEffect(() => {\n    if (typeof window === 'undefined') return;\n\n    try {\n      const storedColorScheme = ThemeStorage.getColorScheme();\n      const storedThemeName = ThemeStorage.getThemeName();\n\n      if (storedColorScheme) {\n        setColorSchemeState(storedColorScheme);\n      }\n\n      if (storedThemeName && VALID_THEME_NAMES.includes(storedThemeName)) {\n        setThemeNameState(storedThemeName);\n      }\n    } catch (error) {\n      const errorMessage = 'Failed to load theme preferences';\n      console.warn(errorMessage, error);\n      setLoadError(errorMessage);\n    } finally {\n      setIsLoading(false);\n    }\n  }, []);\n\n  const setTheme = useCallback((theme: ThemeName) => {\n    try {\n      ThemeStorage.setThemeName(theme);\n      setThemeNameState(theme);\n      toast.success('Theme updated');\n    } catch (error) {\n      console.error('Failed to save theme name:', error);\n      toast.error('Failed to save theme. Please try again.');\n    }\n  }, []);\n\n  const setColorScheme = useCallback((scheme: ColorSchemeMode) => {\n    try {\n      ThemeStorage.setColorScheme(scheme);\n      setColorSchemeState(scheme);\n      toast.success('Color scheme updated');\n    } catch (error) {\n      console.error('Failed to save color scheme:', error);\n      toast.error('Failed to save color scheme. Please try again.');\n    }\n  }, []);\n\n  const resolvedScheme = useMemo(() => {\n    if (colorScheme === 'system') {\n      return systemScheme;\n    }\n    return colorScheme;\n  }, [colorScheme, systemScheme]);\n\n  const value = useMemo(() => ({\n    themeName,\n    colorScheme,\n    resolvedScheme,\n    setTheme,\n    setColorScheme,\n    isLoading,\n    loadError,\n  }), [themeName, colorScheme, resolvedScheme, setTheme, setColorScheme, isLoading, loadError]);\n\n  return (\n    <ThemeContext.Provider value={value}>\n      {children}\n    </ThemeContext.Provider>\n  );\n}\n\nexport function useTheme() {\n  const context = useContext(ThemeContext);\n  if (!context) {\n    throw new Error('useTheme must be used within ThemeProvider');\n  }\n  return context;\n}"
+    },
+    "4_themeSettings": {
+      "description": "3-way toggle component for Next.js with Tailwind",
+      "file": "components/theme-settings.tsx",
+      "code": "'use client';\n\nimport { useTheme, ColorSchemeMode } from '@/contexts/theme-provider';\nimport { Sun, Moon, Monitor } from 'lucide-react';\nimport { Themes } from '@/lib/themes';\n\nexport function ThemeSettings() {\n  const { themeName, colorScheme, resolvedScheme, setColorScheme, isLoading, loadError } = useTheme();\n\n  const handleColorSchemeChange = (scheme: ColorSchemeMode) => {\n    setColorScheme(scheme);\n  };\n\n  return (\n    <div className=\"space-y-4\">\n      {/* Error Banner */}\n      {loadError && (\n        <div className=\"p-4 rounded-lg border-2 border-red-500 bg-red-50 dark:bg-red-950\">\n          <p className=\"text-red-600 dark:text-red-400 font-semibold\">⚠️ {loadError}</p>\n          <p className=\"text-sm text-red-500 dark:text-red-500 mt-1\">\n            Using default theme. Your preferences may not have loaded correctly.\n          </p>\n        </div>\n      )}\n\n      {/* Theme Selector */}\n      <div className=\"border rounded-lg p-4 bg-white dark:bg-gray-800\">\n        <div className=\"flex items-center gap-3 mb-4\">\n          <div className=\"flex gap-2\">\n            <div className=\"w-6 h-6 rounded-full border\" style={{ backgroundColor: Themes[themeName].light.background }} />\n            <div className=\"w-6 h-6 rounded-full border\" style={{ backgroundColor: Themes[themeName].light.surface }} />\n            <div className=\"w-6 h-6 rounded-full border\" style={{ backgroundColor: Themes[themeName].light.tint }} />\n          </div>\n          <div className=\"flex-1\">\n            <p className=\"font-semibold\">{Themes[themeName].displayName}</p>\n            <p className=\"text-sm text-gray-600 dark:text-gray-400\">{Themes[themeName].description}</p>\n          </div>\n        </div>\n      </div>\n\n      {/* Appearance Toggle */}\n      <div>\n        <p className=\"text-lg font-medium mb-3\">Appearance</p>\n        \n        <div className=\"inline-flex rounded-lg border overflow-hidden\">\n          <button\n            onClick={() => handleColorSchemeChange('light')}\n            disabled={isLoading}\n            className={`\n              flex items-center gap-2 px-4 py-3 border-r transition-colors\n              ${colorScheme === 'light' \n                ? 'bg-blue-500 text-white' \n                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'\n              }\n              disabled:opacity-50 disabled:cursor-not-allowed\n            `}\n          >\n            <Sun className=\"w-4 h-4\" />\n            <span className=\"font-semibold\">Light</span>\n          </button>\n\n          <button\n            onClick={() => handleColorSchemeChange('system')}\n            disabled={isLoading}\n            className={`\n              flex items-center gap-2 px-4 py-3 border-r transition-colors\n              ${colorScheme === 'system' \n                ? 'bg-blue-500 text-white' \n                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'\n              }\n              disabled:opacity-50 disabled:cursor-not-allowed\n            `}\n          >\n            <Monitor className=\"w-4 h-4\" />\n            <span className=\"font-semibold\">System</span>\n          </button>\n\n          <button\n            onClick={() => handleColorSchemeChange('dark')}\n            disabled={isLoading}\n            className={`\n              flex items-center gap-2 px-4 py-3 transition-colors\n              ${colorScheme === 'dark' \n                ? 'bg-blue-500 text-white' \n                : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'\n              }\n              disabled:opacity-50 disabled:cursor-not-allowed\n            `}\n          >\n            <Moon className=\"w-4 h-4\" />\n            <span className=\"font-semibold\">Dark</span>\n          </button>\n        </div>\n\n        <p className=\"text-sm text-gray-600 dark:text-gray-400 mt-2\">\n          {colorScheme === 'system'\n            ? `Currently using ${resolvedScheme} mode (automatic)`\n            : `${colorScheme.charAt(0).toUpperCase() + colorScheme.slice(1)} mode`}\n        </p>\n      </div>\n    </div>\n  );\n}"
+    },
+    "5_appWrapper": {
+      "description": "Wrap your app with ThemeProvider",
+      "file": "app/layout.tsx (App Router) or pages/_app.tsx (Pages Router)",
+      "code": "// App Router: app/layout.tsx\nimport { ThemeProvider } from '@/contexts/theme-provider';\nimport { Toaster } from 'sonner';\nimport './globals.css';\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <ThemeProvider>\n          {children}\n          <Toaster richColors position=\"top-right\" />\n        </ThemeProvider>\n      </body>\n    </html>\n  );\n}\n\n// Pages Router: pages/_app.tsx\nimport type { AppProps } from 'next/app';\nimport { ThemeProvider } from '@/contexts/theme-provider';\nimport { Toaster } from 'sonner';\nimport '@/styles/globals.css';\n\nexport default function App({ Component, pageProps }: AppProps) {\n  return (\n    <ThemeProvider>\n      <Component {...pageProps} />\n      <Toaster richColors position=\"top-right\" />\n    </ThemeProvider>\n  );\n}"
+    },
+    "6_tailwindIntegration": {
+      "description": "Dynamic theming with Tailwind CSS variables",
+      "file": "lib/apply-theme.ts",
+      "code": "import { Themes, ThemeName } from './themes';\n\n// Apply theme as CSS variables to document root\nexport function applyTheme(themeName: ThemeName, scheme: 'light' | 'dark') {\n  if (typeof document === 'undefined') return;\n\n  const colors = Themes[themeName][scheme];\n  const root = document.documentElement;\n\n  // Set CSS variables\n  root.style.setProperty('--color-background', colors.background);\n  root.style.setProperty('--color-surface', colors.surface);\n  root.style.setProperty('--color-text', colors.text);\n  root.style.setProperty('--color-text-secondary', colors.textSecondary);\n  root.style.setProperty('--color-border', colors.border);\n  root.style.setProperty('--color-tint', colors.tint);\n  root.style.setProperty('--color-icon', colors.icon);\n  root.style.setProperty('--color-elevated-surface', colors.elevatedSurface);\n  root.style.setProperty('--color-selected-surface', colors.selectedSurface);\n  root.style.setProperty('--color-overlay', colors.overlay);\n  root.style.setProperty('--color-hover', colors.hover);\n  root.style.setProperty('--color-pressed', colors.pressed);\n  root.style.setProperty('--color-disabled', colors.disabled);\n  root.style.setProperty('--color-highlight', colors.highlight);\n  root.style.setProperty('--color-link', colors.linkColor);\n  root.style.setProperty('--color-accent-secondary', colors.accentSecondary);\n}\n\n// Call this in ThemeProvider useEffect\n// useEffect(() => {\n//   applyTheme(themeName, resolvedScheme);\n// }, [themeName, resolvedScheme]);"
+    },
+    "7_tailwindConfig": {
+      "description": "Tailwind config to use CSS variables",
+      "file": "tailwind.config.ts",
+      "code": "import type { Config } from 'tailwindcss';\n\nconst config: Config = {\n  content: [\n    './pages/**/*.{js,ts,jsx,tsx,mdx}',\n    './components/**/*.{js,ts,jsx,tsx,mdx}',\n    './app/**/*.{js,ts,jsx,tsx,mdx}',\n  ],\n  theme: {\n    extend: {\n      colors: {\n        // Use CSS variables for dynamic theming\n        background: 'var(--color-background)',\n        surface: 'var(--color-surface)',\n        text: 'var(--color-text)',\n        'text-secondary': 'var(--color-text-secondary)',\n        border: 'var(--color-border)',\n        tint: 'var(--color-tint)',\n        icon: 'var(--color-icon)',\n        'elevated-surface': 'var(--color-elevated-surface)',\n        'selected-surface': 'var(--color-selected-surface)',\n        hover: 'var(--color-hover)',\n        pressed: 'var(--color-pressed)',\n        disabled: 'var(--color-disabled)',\n        highlight: 'var(--color-highlight)',\n        link: 'var(--color-link)',\n        'accent-secondary': 'var(--color-accent-secondary)',\n      },\n    },\n  },\n  plugins: [],\n};\n\nexport default config;"
+    }
+  },
+
+  "implementationSteps": {
+    "step1": {
+      "title": "Install Dependencies",
+      "commands": [\n        "npm install sonner lucide-react js-cookie",\n        "npm install --save-dev @types/js-cookie"\n      ],\n      "notes": "sonner for toasts, lucide-react for icons, js-cookie for SSR storage"
+    },
+    "step2": {
+      "title": "Copy Theme Constants",
+      "action": "Copy constants/theme.ts → lib/themes.ts",
+      "changes": "None - copy as-is",
+      "verification": "File compiles without errors"
+    },
+    "step3": {
+      "title": "Create Storage Adapter",
+      "action": "Create lib/theme-storage.ts using codeExamples.2_themeStorage",
+      "changes": "Replace AsyncStorage with localStorage + cookies",
+      "verification": "Storage methods work in browser console"
+    },
+    "step4": {
+      "title": "Create Theme Provider",
+      "action": "Create contexts/theme-provider.tsx using codeExamples.3_themeProvider",
+      "changes": "Replace useColorScheme with matchMedia",
+      "verification": "Provider compiles without errors"
+    },
+    "step5": {
+      "title": "Create Theme Settings Component",
+      "action": "Create components/theme-settings.tsx using codeExamples.4_themeSettings",
+      "changes": "Build 3-way toggle with Tailwind",
+      "verification": "Component renders and buttons work"
+    },
+    "step6": {
+      "title": "Wrap App in Provider",
+      "action": "Update app/layout.tsx or pages/_app.tsx using codeExamples.5_appWrapper",
+      "changes": "Add ThemeProvider + Toaster",
+      "verification": "App runs without errors"
+    },
+    "step7": {
+      "title": "Add CSS Variable Integration (Optional)",
+      "action": "Create lib/apply-theme.ts and update tailwind.config.ts",
+      "changes": "Dynamic CSS variables for theming",
+      "verification": "Themes switch without page reload"
+    },
+    "step8": {
+      "title": "Test All 3 Modes",
+      "checklist": [\n        "Light mode works",\n        "Dark mode works",\n        "System mode detects OS preference",\n        "Preferences persist on page reload",\n        "Toast notifications appear on changes",\n        "All 10 themes selectable",\n        "No hydration mismatches"\n      ]
+    }
+  },
+
+  "keyDifferences": {
+    "storage": {
+      "reactNative": "AsyncStorage (async key-value store)",
+      "nextJs": "localStorage (sync) + cookies (for SSR)",
+      "reasoning": "localStorage for client-side speed, cookies for server-side rendering compatibility"
+    },
+    "systemDetection": {
+      "reactNative": "useColorScheme() hook from react-native",
+      "nextJs": "window.matchMedia('(prefers-color-scheme: dark)')",
+      "reasoning": "Web API for detecting OS theme preference"
+    },
+    "toasts": {
+      "reactNative": "sonner-native (React Native port)",
+      "nextJs": "sonner (original web library)",
+      "reasoning": "Same API, different rendering layer"
+    },
+    "icons": {
+      "reactNative": "@expo/vector-icons (MaterialIcons)",
+      "nextJs": "lucide-react (modern React icon library)",
+      "reasoning": "lucide-react is TypeScript-native and tree-shakeable"
+    },
+    "ui": {
+      "reactNative": "TouchableOpacity, View, Text",
+      "nextJs": "button, div, p (with Tailwind classes)",
+      "reasoning": "Web uses HTML primitives, styled with Tailwind"
+    }
+  },
+
+  "otherStackAdaptations": {
+    "remix": {
+      "differences": ["Use cookies for SSR via remix loader/action", "Add cookie consent if needed"],
+      "storageExample": "export async function loader({ request }: LoaderArgs) {\n  const cookieHeader = request.headers.get('Cookie');\n  const themeCookie = await themeStorage.parse(cookieHeader);\n  return json({ theme: themeCookie });\n}",
+      "notes": "Remix has first-class cookie support - use it for SSR themes"
+    },
+    "vite": {
+      "differences": ["Pure client-side - only use localStorage", "No SSR considerations"],
+      "simplification": "Remove all cookie logic, only keep localStorage",
+      "notes": "Simplest migration - no server-side rendering"
+    },
+    "vue": {
+      "differences": [\n        "Replace createContext with provide/inject",\n        "Replace useState with ref",\n        "Replace useEffect with watchEffect",\n        "Replace useCallback with computed"\n      ],
+      "example": "// Vue Composition API\nconst themeName = ref<ThemeName>('monochrome');\nconst setTheme = (theme: ThemeName) => {\n  themeName.value = theme;\n  ThemeStorage.setThemeName(theme);\n};\nprovide('theme', { themeName, setTheme });",
+      "notes": "Very similar patterns, straightforward conversion"
+    },
+    "svelte": {
+      "differences": [\n        "Replace Context with writable stores",\n        "Replace hooks with reactive statements",\n        "Use $: for reactivity"\n      ],
+      "example": "// Svelte store\nimport { writable } from 'svelte/store';\nexport const themeName = writable<ThemeName>('monochrome');\nexport function setTheme(theme: ThemeName) {\n  themeName.set(theme);\n  ThemeStorage.setThemeName(theme);\n}",
+      "notes": "Svelte stores are simpler than React Context"
+    }
+  },
+
+  "troubleshooting": {
+    "hydrationMismatch": {
+      "problem": "Server-rendered HTML doesn't match client",
+      "solution": "Use cookies to sync SSR theme with client",
+      "code": "// In app/layout.tsx\nimport { cookies } from 'next/headers';\nconst themeCookie = cookies().get('noted_theme_name')?.value;"
+    },
+    "flashOfUnstyled": {
+      "problem": "Brief flash of wrong theme on page load",
+      "solution": "Add inline script in layout to apply theme before hydration",
+      "code": "<script dangerouslySetInnerHTML={{\n  __html: `\n    (function() {\n      const theme = localStorage.getItem('noted_theme_name') || 'monochrome';\n      const scheme = localStorage.getItem('noted_theme_preference') || 'system';\n      document.documentElement.setAttribute('data-theme', theme);\n      document.documentElement.setAttribute('data-scheme', scheme);\n    })()\n  `\n}} />"
+    },
+    "cookieConsent": {
+      "problem": "EU requires cookie consent",
+      "solution": "Cookies are functional (not tracking), but inform users",
+      "notes": "Theme cookies are strictly necessary, exempt from consent in most jurisdictions"
+    }
+  },
+
+  "bestPractices": {
+    "ssr": [\n      "Always check typeof window !== 'undefined' before localStorage",\n      "Use cookies for SSR-compatible theme persistence",\n      "Apply theme in layout to prevent flash of unstyled content"\n    ],
+    "performance": [\n      "Use CSS variables for instant theme switching",\n      "Memoize context values to prevent re-renders",\n      "Tree-shake unused themes in production"\n    ],
+    "accessibility": [\n      "Add aria-label to toggle buttons",\n      "Ensure keyboard navigation works",\n      "Respect user's prefers-reduced-motion"\n    ],
+    "testing": [\n      "Test all 10 themes in light/dark modes",\n      "Test system mode with OS theme changes",\n      "Test persistence after page reload",\n      "Test SSR hydration consistency"\n    ]
+  },
+
+  "references": {
+    "reactNativeSource": "Based on Noted PWA theme system (React Native + Expo)",
+    "documentation": [\n      "React Native useColorScheme: https://reactnative.dev/docs/usecolorscheme",\n      "Next.js App Router: https://nextjs.org/docs/app",\n      "Tailwind CSS: https://tailwindcss.com/docs",\n      "matchMedia API: https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia"\n    ],
+    "packages": [\n      "sonner: https://sonner.emilkowal.ski/",\n      "lucide-react: https://lucide.dev/",\n      "js-cookie: https://github.com/js-cookie/js-cookie"\n    ]
+  },
+
+  "futureEnhancements": {
+    "suggestions": [\n      "Add theme preview modal with live demo",\n      "Add custom theme builder",\n      "Add theme export/import functionality",\n      "Add theme scheduling (auto-switch at sunset)",\n      "Add per-route theme overrides",\n      "Add theme animations/transitions"\n    ]
+  },
+
+  "notes": {
+    "migrationTime": "Expected 30-60 minutes for experienced developer",
+    "complexity": "LOW-MEDIUM - Straightforward API translation",
+    "maintainability": "HIGH - Same architecture patterns",
+    "backwards": "Not applicable - one-way migration",
+    "production": "Tested patterns from production React Native app"
+  }
+}
