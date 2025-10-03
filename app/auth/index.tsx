@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { toast } from 'sonner-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { useAuth } from '@/hooks/use-auth';
 import { router } from 'expo-router';
+import { validateEmail, validatePassword } from '@/lib/validation';
+import { supabase } from '@/lib/supabase';
 
 export default function AuthScreen() {
   const { colors } = useThemeColors();
@@ -15,6 +17,8 @@ export default function AuthScreen() {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [isResetting, setIsResetting] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   // Redirect to dashboard if user is already logged in
   useEffect(() => {
@@ -23,35 +27,68 @@ export default function AuthScreen() {
     }
   }, [user]);
 
+  // Phase 2: Detect email verification success from URL hash
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+      // Parse the session to get user email
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+
+      // Get user email from Supabase session and pre-fill
+      if (accessToken) {
+        supabase.auth.getUser(accessToken).then(({ data }) => {
+          if (data?.user?.email) {
+            setEmail(data.user.email); // Pre-fill email for easy login
+          }
+        });
+      }
+
+      toast.success('Email verified! Please log in');
+      setIsLogin(true); // Switch to login tab
+      setPassword(''); // Clear password for security
+      window.history.replaceState({}, '', '/auth'); // Clean URL
+    }
+  }, []);
+
   const handleSubmit = async () => {
-    if (!email || !password) {
-      toast.error('Please fill in all fields');
-      return;
+    // Phase 1: Client-side validation
+    const emailValidationError = validateEmail(email);
+    const passwordValidationError = !isLogin ? validatePassword(password) : null;
+
+    setEmailError(emailValidationError);
+    setPasswordError(passwordValidationError);
+
+    if (emailValidationError || passwordValidationError) {
+      return; // Don't submit if validation fails
     }
 
     setIsSubmitting(true);
     try {
-      console.log('Auth attempt:', { isLogin, email });
-
       const { error, data } = isLogin
         ? await signIn(email, password)
         : await signUp(email, password);
 
-      console.log('Auth response:', { error, data });
-
       if (error) {
-        console.error('Auth error:', error);
-        toast.error(error.message || 'Authentication failed');
+        // Phase 3: Enhanced error handling
+        if (error.message.includes('already registered') || error.message.includes('User already registered')) {
+          toast.error('This email is already registered. Please sign in.');
+          setIsLogin(true); // Switch to login tab
+          setPassword(''); // Clear password
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password');
+        } else if (error.message.includes('password')) {
+          toast.error('Password is too weak. Please use at least 8 characters with uppercase, lowercase, and numbers.');
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          toast.error('Connection failed. Please check your internet and try again.');
+        } else {
+          toast.error(error.message || 'Authentication failed');
+        }
       } else if (!isLogin) {
-        console.log('Signup successful, showing success message');
         toast.success('Please check your email to confirm your account');
       } else {
-        console.log('Login successful, redirecting to dashboard');
-        // toast.success('Welcome back!'); // Removed: Silent login for cleaner UX
         router.replace('/(tabs)');
       }
     } catch (err) {
-      console.error('Auth exception:', err);
       toast.error('Something went wrong');
     } finally {
       setIsSubmitting(false);
@@ -62,6 +99,20 @@ export default function AuthScreen() {
     setIsLogin(!isLogin);
     setEmail('');
     setPassword('');
+    setEmailError(null);
+    setPasswordError(null);
+  };
+
+  // Real-time validation handlers
+  const handleEmailBlur = () => {
+    setEmailError(validateEmail(email));
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    if (!isLogin) {
+      setPasswordError(validatePassword(value));
+    }
   };
 
   const handleForgotPassword = async () => {
@@ -124,35 +175,65 @@ export default function AuthScreen() {
 
         {/* Form */}
         <View style={styles.form}>
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            placeholder="Email"
-            placeholderTextColor={colors.textSecondary}
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
+          <View>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: colors.background, borderColor: emailError ? '#ef4444' : colors.border, color: colors.text }
+              ]}
+              placeholder="Email"
+              placeholderTextColor={colors.textSecondary}
+              value={email}
+              onChangeText={setEmail}
+              onBlur={handleEmailBlur}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              editable={!isSubmitting}
+            />
+            {emailError && (
+              <Text style={[styles.errorText, { color: '#ef4444' }]}>{emailError}</Text>
+            )}
+          </View>
 
-          <TextInput
-            style={[styles.input, { backgroundColor: colors.background, borderColor: colors.border, color: colors.text }]}
-            placeholder="Password"
-            placeholderTextColor={colors.textSecondary}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="password"
-          />
+          <View>
+            <TextInput
+              style={[
+                styles.input,
+                { backgroundColor: colors.background, borderColor: passwordError ? '#ef4444' : colors.border, color: colors.text }
+              ]}
+              placeholder="Password"
+              placeholderTextColor={colors.textSecondary}
+              value={password}
+              onChangeText={handlePasswordChange}
+              secureTextEntry
+              autoComplete="password"
+              editable={!isSubmitting}
+            />
+            {passwordError && (
+              <Text style={[styles.errorText, { color: '#ef4444' }]}>{passwordError}</Text>
+            )}
+          </View>
 
           <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: colors.tint }]}
+            style={[
+              styles.submitButton,
+              { backgroundColor: colors.tint },
+              (isSubmitting || loading || !!emailError || !!passwordError) && { opacity: 0.6 }
+            ]}
             onPress={handleSubmit}
-            disabled={isSubmitting || loading}
+            disabled={isSubmitting || loading || !!emailError || !!passwordError}
           >
-            <Text style={[styles.submitButtonText, { color: colors.background }]}>
-              {isSubmitting ? 'Loading...' : (isLogin ? 'Sign in' : 'Create account')}
-            </Text>
+            {isSubmitting ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color={colors.background} />
+                <Text style={[styles.submitButtonText, { color: colors.background }]}>Loading...</Text>
+              </View>
+            ) : (
+              <Text style={[styles.submitButtonText, { color: colors.background }]}>
+                {isLogin ? 'Sign in' : 'Create account'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           {isLogin && (
@@ -268,6 +349,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 16,
     fontSize: 16,
+  },
+  errorText: {
+    fontSize: 13,
+    marginTop: 4,
+    marginLeft: 4,
   },
   submitButton: {
     height: 48,

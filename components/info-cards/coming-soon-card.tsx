@@ -32,6 +32,7 @@ export function ComingSoonCard({ isExpanded, onToggle }: ComingSoonCardProps) {
             <Text style={[styles.featureItem, { color: colors.text }]}>• Rich Text Editor</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• Search Bar</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• Advanced Filters</Text>
+            <Text style={[styles.featureItem, { color: colors.text }]}>• Notifications</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• Sharing and Collaboration</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• Exports</Text>
             <Text style={[styles.featureItem, { color: colors.text }]}>• Private Notes</Text>

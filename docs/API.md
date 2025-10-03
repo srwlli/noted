@@ -1,7 +1,7 @@
 # Noted API Documentation
 
-**Date**: September 21, 2025
-**Version**: 1.0.0
+**Date**: October 2, 2025
+**Version**: 2.0.0
 
 ## Table of Contents
 
@@ -10,22 +10,22 @@
 3. [Base URLs](#base-urls)
 4. [Authentication Endpoints](#authentication-endpoints)
 5. [Notes Endpoints](#notes-endpoints)
-6. [User Endpoints](#user-endpoints)
-7. [Settings Endpoints](#settings-endpoints)
+6. [Folders Endpoints](#folders-endpoints)
+7. [User Endpoints](#user-endpoints)
 8. [Data Schemas](#data-schemas)
 9. [Error Handling](#error-handling)
-10. [Rate Limiting](#rate-limiting)
-11. [Pagination](#pagination)
+10. [Services Layer](#services-layer)
 
 ## Overview
 
-The Noted API provides a Supabase-powered interface for managing personal notes and user authentication. This API is designed to support the Noted React Native mobile application built with Expo Router, enabling users to create, read, update, and delete personal notes with a clean, minimal interface.
+The Noted API provides a Supabase-powered interface for managing notes with folder organization and user authentication. This API supports the Noted Progressive Web App (PWA) built with React Native and Expo Router, enabling users to create, read, update, and delete notes organized in folders with comprehensive offline support.
 
 **Base Architecture**: Supabase REST API with Row Level Security (RLS)
 **Data Format**: JSON
 **Authentication**: Supabase Auth with JWT tokens
 **Content-Type**: application/json
 **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+**Services Layer**: Type-safe CRUD operations via services/notes.ts and services/folders.ts
 
 *References: README.md provides setup and quickstart information for the client application.*
 
@@ -309,6 +309,114 @@ Delete a note.
   "message": "Note deleted successfully"
 }
 ```
+
+---
+
+## Folders Endpoints
+
+### GET /rest/v1/folders
+
+Get all folders for the authenticated user.
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "folder-uuid-1",
+    "name": "Work Notes",
+    "user_id": "user-uuid",
+    "parent_folder_id": null,
+    "created_at": "2025-10-02T10:00:00.000000+00:00",
+    "updated_at": "2025-10-02T10:00:00.000000+00:00"
+  },
+  {
+    "id": "folder-uuid-2",
+    "name": "Personal",
+    "user_id": "user-uuid",
+    "parent_folder_id": null,
+    "created_at": "2025-10-02T11:00:00.000000+00:00",
+    "updated_at": "2025-10-02T11:00:00.000000+00:00"
+  }
+]
+```
+
+### POST /rest/v1/folders
+
+Create a new folder.
+
+**Request Body:**
+```json
+{
+  "name": "Project Notes",
+  "parent_folder_id": null
+}
+```
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+Content-Type: application/json
+Prefer: return=representation
+```
+
+**Response (201):**
+```json
+[
+  {
+    "id": "new-folder-uuid",
+    "name": "Project Notes",
+    "user_id": "user-uuid",
+    "parent_folder_id": null,
+    "created_at": "2025-10-02T12:00:00.000000+00:00",
+    "updated_at": "2025-10-02T12:00:00.000000+00:00"
+  }
+]
+```
+
+**Validation:**
+- `name`: Required, 1-255 characters, cannot be empty/whitespace
+- `parent_folder_id`: Optional, must reference existing folder
+
+### PATCH /rest/v1/folders?id=eq.{folder_id}
+
+Update folder name.
+
+**Request Body:**
+```json
+{
+  "name": "Updated Folder Name"
+}
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "folder-uuid",
+    "name": "Updated Folder Name",
+    "user_id": "user-uuid",
+    "parent_folder_id": null,
+    "created_at": "2025-10-02T12:00:00.000000+00:00",
+    "updated_at": "2025-10-02T13:00:00.000000+00:00"
+  }
+]
+```
+
+### DELETE /rest/v1/folders?id=eq.{folder_id}
+
+Delete a folder. Notes in the folder will have `folder_id` set to `null` (ON DELETE SET NULL).
+
+**Response (204):**
+No content
+
+---
 
 ## User Endpoints
 
@@ -664,39 +772,169 @@ CREATE POLICY "Users can delete own notes" ON notes
   FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## TypeScript Client Integration
+## Services Layer
 
-The Noted app uses the Supabase JavaScript client:
+**Recommended Approach**: Use the services layer instead of direct Supabase calls for type safety and abstraction.
+
+**Location**: `services/notes.ts`, `services/folders.ts`
+
+### Notes Service
 
 ```typescript
-// lib/supabase.ts
-import { createClient } from '@supabase/supabase-js';
+// services/notes.ts
+import { supabase } from '@/lib/supabase';
 
-const supabase = createClient(
-  process.env.EXPO_PUBLIC_SUPABASE_URL,
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
-);
+// Get all notes
+export async function getNotes(): Promise<Note[]> {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-// Example: Create note
-const { data, error } = await supabase
-  .from('notes')
-  .insert({
-    title: 'My Note',
-    content: 'Note content here'
-  })
-  .select();
+  if (error) throw error;
+  return data || [];
+}
 
-// Example: Get user's notes
-const { data, error } = await supabase
-  .from('notes')
-  .select('*')
-  .order('created_at', { ascending: false });
+// Get notes by folder
+export async function getNotesByFolder(folderId: string | null): Promise<Note[]> {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('folder_id', folderId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Create note
+export async function createNote(note: CreateNoteRequest): Promise<Note> {
+  const { data, error } = await supabase
+    .from('notes')
+    .insert([{
+      title: note.title,
+      content: note.content || '',
+      folder_id: note.folder_id || null,
+    }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Update note
+export async function updateNote(id: string, updates: UpdateNoteRequest): Promise<Note> {
+  const { data, error } = await supabase
+    .from('notes')
+    .update({
+      ...updates,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Delete note
+export async function deleteNote(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('notes')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+```
+
+### Folders Service
+
+```typescript
+// services/folders.ts
+import { supabase } from '@/lib/supabase';
+
+// Get all folders
+export async function getFolders(): Promise<Folder[]> {
+  const { data, error } = await supabase
+    .from('folders')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Create folder
+export async function createFolder(name: string): Promise<Folder> {
+  const { data, error } = await supabase
+    .from('folders')
+    .insert([{ name }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Update folder
+export async function updateFolder(id: string, name: string): Promise<Folder> {
+  const { data, error } = await supabase
+    .from('folders')
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// Delete folder
+export async function deleteFolder(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('folders')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+```
+
+### Usage in Components
+
+```typescript
+import { getNotes, createNote, updateNote, deleteNote } from '@/services/notes';
+import { getFolders, createFolder } from '@/services/folders';
+
+// In component
+const notes = await getNotes();
+const folders = await getFolders();
+
+const newNote = await createNote({
+  title: 'My Note',
+  content: 'Note content',
+  folder_id: selectedFolderId,
+});
+
+await updateNote(noteId, { title: 'Updated Title' });
+await deleteNote(noteId);
+
+const newFolder = await createFolder('Work Notes');
 ```
 
 ---
 
-**🤖 Generated with [Claude Code](https://claude.ai/code)**
+**🤖 Generated with [Claude Code](https://claude.com/claude-code)**
 
-*This API documentation provides the technical interface reference for the Noted application's Supabase backend, designed to support a clean and minimal note-taking experience with modern authentication, real-time capabilities, and automatic data management through Row Level Security.*
+*This API documentation provides the technical interface reference for the Noted Progressive Web App's Supabase backend, designed to support note-taking with folder organization, 10-theme system, and comprehensive offline support. The services layer provides type-safe abstractions over direct Supabase calls for improved maintainability and error handling.*
 
-*References: README.md for client setup instructions and ARCHITECTURE.md for system design overview.*
+**Key Updates in 2.0.0:**
+- **Folders Endpoints**: Full CRUD operations for folder management with hierarchical support
+- **Services Layer**: Type-safe abstraction layer (services/notes.ts, services/folders.ts) recommended over direct Supabase calls
+- **Enhanced RLS**: Row-Level Security policies on both notes and folders tables
+- **Input Validation**: Database-level constraints (title: 200 chars, content: 50,000 chars, folder name: 255 chars)
+
+*References: README.md for client setup, ARCHITECTURE.md for system design, SCHEMA.md for database schema and types.*

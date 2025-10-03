@@ -102,7 +102,7 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
             {activeTab === 'ios' && (
               <View>
                 <Text style={[styles.instructionTitle, { color: colors.text }]}>
-                  Install on iOS (Safari)
+                  Install on iOS
                 </Text>
                 <View style={styles.instructionsList}>
                   <Text style={[styles.instruction, { color: colors.textSecondary }]}>
@@ -130,7 +130,7 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
             {activeTab === 'android' && (
               <View>
                 <Text style={[styles.instructionTitle, { color: colors.text }]}>
-                  Install on Android (Chrome)
+                  Install on Android
                 </Text>
                 <View style={styles.instructionsList}>
                   <Text style={[styles.instruction, { color: colors.textSecondary }]}>
@@ -158,7 +158,7 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
             {activeTab === 'pc' && (
               <View>
                 <Text style={[styles.instructionTitle, { color: colors.text }]}>
-                  Install on Desktop (Windows/Mac/Linux)
+                  Install on PC
                 </Text>
                 <View style={styles.instructionsList}>
                   <Text style={[styles.instruction, { color: colors.textSecondary }]}>

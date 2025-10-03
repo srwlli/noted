@@ -44,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
-    console.log('Supabase signUp response:', { data, error });
     return { data, error };
   };
 
@@ -53,7 +52,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       email,
       password,
     });
-    console.log('Supabase signIn response:', { data, error });
     return { data, error };
   };
 
@@ -65,7 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth`,
     });
-    console.log('Supabase resetPassword response:', { data, error });
     return { data, error };
   };
 

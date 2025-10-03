@@ -1,12 +1,12 @@
 # Noted
 
-**Date:** September 21, 2025
+**Date:** October 2, 2025
 **Version:** 1.0.0
 **Maintainer:** willh
 
 ## Overview
 
-Noted is a modern React Native note-taking application built with Expo Router and Supabase. The app features a clean, themeable interface with dark mode support, user authentication, and CRUD operations for managing personal notes. Built with TypeScript, NativeWind (Tailwind CSS), and follows modern mobile development patterns.
+Noted is a modern Progressive Web App (PWA) note-taking application built with React Native, Expo Router, and Supabase. The app features a universal card-based interface with 10 theme options, folder organization, dark/light mode support, user authentication, and full offline capabilities. Built with TypeScript and Material Design Icons, optimized for mobile, desktop, and web platforms.
 
 ## Prerequisites
 
@@ -59,20 +59,57 @@ npm run web
 
 ### Basic Note Creation
 ```typescript
-import { createNote } from '@/lib/supabase';
+import { createNote } from '@/services/notes';
 
 const newNote = await createNote({
   title: "Meeting Notes",
-  content: "Discussion points and action items..."
+  content: "Discussion points and action items...",
+  folder_id: null  // or specific folder ID
 });
+```
+
+### Folder Management
+```typescript
+import { createFolder, getFolders } from '@/services/folders';
+
+// Create a new folder
+const folder = await createFolder('Work Notes');
+
+// Get all folders for current user
+const folders = await getFolders();
 ```
 
 ### Theme Integration
 ```typescript
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import { useThemeController } from '@/contexts/theme-controller';
 
+// Access current theme colors
 const { colors } = useThemeColors();
-// Access: colors.text, colors.background, colors.surface
+// colors.text, colors.background, colors.surface, colors.tint, etc.
+
+// Change theme programmatically
+const { setTheme, colorScheme } = useThemeController();
+setTheme('ocean');  // 10 themes available
+```
+
+### Universal Card Component
+```typescript
+import { Card } from '@/components/common/card';
+
+<Card
+  isAccordion={true}
+  isExpanded={expanded}
+  onToggle={() => setExpanded(!expanded)}
+  headerContent={
+    <>
+      <MaterialIcons name="info" size={24} color={colors.tint} />
+      <Text>Header Title</Text>
+    </>
+  }
+>
+  <Text>Card content goes here</Text>
+</Card>
 ```
 
 ### Authentication Flow
@@ -91,19 +128,30 @@ if (!user) {
 noted/
 ├── app/                    # Expo Router pages
 │   ├── (tabs)/            # Tab navigation screens
-│   │   ├── index.tsx      # Notes list screen
-│   │   ├── docs.tsx       # Documentation screen
-│   │   └── settings.tsx   # Settings screen
+│   │   ├── index.tsx      # Notes list screen with folder filtering
+│   │   ├── info.tsx       # Information and quick start screen
+│   │   └── settings.tsx   # Theme and account settings
 │   ├── auth/              # Authentication screens
+│   ├── +html.tsx          # Custom HTML template for PWA
 │   └── _layout.tsx        # Root layout with theme providers
 ├── components/            # Reusable UI components
+│   ├── common/            # Shared components (Card, Header, Layout)
+│   ├── info-cards/        # Info page accordion cards
+│   ├── settings-cards/    # Settings page cards
+│   └── note-item.tsx      # Individual note card component
 ├── contexts/              # React Context providers
 │   ├── auth-context.tsx   # User authentication state
 │   └── theme-controller.tsx # Theme management
+├── services/              # Backend service layer
+│   ├── notes.ts           # Note CRUD operations
+│   └── folders.ts         # Folder management
 ├── hooks/                 # Custom React hooks
 ├── lib/                   # Utility libraries
+│   └── theme-storage.ts   # Type-safe AsyncStorage for themes
 ├── constants/             # App constants and themes
-└── assets/               # Images and static files
+│   └── theme.ts           # 10 themes with 18 colors each
+├── supabase/              # Database migrations and config
+└── assets/                # Images, icons, and static files
 ```
 
 ## Development Commands
@@ -114,7 +162,9 @@ noted/
 | `npm run android` | Run on Android device/emulator |
 | `npm run ios` | Run on iOS device/simulator |
 | `npm run web` | Run in web browser |
+| `npm run build` | Export production build |
 | `npm run lint` | Run ESLint code analysis |
+| `npm run validate-pwa` | Validate PWA configuration |
 | `npm run reset-project` | Reset to clean Expo template |
 
 ## Troubleshooting
@@ -158,22 +208,52 @@ npx expo run:ios --clear
    - Verify anon key permissions
 
 3. **Styling issues?**
-   - Ensure `global.css` is imported in `_layout.tsx`
-   - Check NativeWind configuration in `tailwind.config.js`
-   - Verify theme context is properly wrapped
+   - Check theme context is properly wrapped in `_layout.tsx`
+   - Verify colors are accessed via `useThemeColors()` hook
+   - Ensure Material Icons are loaded (Google Fonts CDN in +html.tsx)
 
 ## Technology Stack
 
-- **Framework:** React Native with Expo Router
-- **Language:** TypeScript
-- **Styling:** NativeWind (Tailwind CSS for React Native)
-- **Backend:** Supabase (Authentication, Database, RLS)
+### Frontend
+- **Framework:** React Native 0.81.4 with Expo Router 6.0
+- **Language:** TypeScript 5.9
+- **UI Components:** Material Design Icons (@expo/vector-icons)
+- **Menus:** react-native-popup-menu for contextual dropdowns
+- **Styling:** Custom 18-color theme system (10 themes)
+
+### Backend
+- **Database:** Supabase PostgreSQL
+- **Authentication:** Supabase Auth with RLS policies
+- **Real-time:** Supabase Realtime for live updates
+- **Storage:** AsyncStorage for local preferences
+
+### PWA Features
+- **Service Worker:** Offline-first caching strategies
+- **Install Prompts:** iOS, Android, Desktop support
+- **Icons:** Custom branded assets (noted-white.png)
+- **Manifest:** Web app manifest for home screen installation
+
+### Architecture
 - **State Management:** React Context + Custom Hooks
-- **Navigation:** Expo Router with file-based routing
-- **Theme System:** Custom theme controller with dark/light modes
+- **Navigation:** File-based routing with Expo Router
+- **Services Layer:** Centralized data access (notes.ts, folders.ts)
+- **Type Safety:** Full TypeScript coverage with strict mode
 
 ---
 
-*🤖 Generated with [Claude Code](https://claude.ai/code)*
+## Key Features
+
+- **10 Theme System:** Monochrome, Ocean, Sepia, Nord, Crimson, Forest, Lavender, Amber, Midnight, Rose
+- **18-Color Palette:** Each theme includes 18 semantic colors (background, surface, text, tint, etc.)
+- **Folder Organization:** Create folders, filter notes by folder, "All Notes" default view
+- **Universal Card Component:** Consistent accordion UI across info, notes, and settings pages
+- **Progressive Web App:** Install on iOS, Android, and desktop with offline support
+- **Input Validation:** Title (200 chars), content (50,000 chars) with real-time feedback
+- **Memory Optimized:** Fixed critical memory leak (4.5GB → 700MB-1GB stable)
+- **Dark/Light Mode:** System-aware or manual toggle in settings
+
+---
+
+*🤖 Generated with [Claude Code](https://claude.com/claude-code)*
 
 *This README provides comprehensive setup and usage guidance for the Noted application, designed for developers seeking to understand, extend, or contribute to the codebase.*

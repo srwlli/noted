@@ -1,11 +1,11 @@
 # Noted Schema Reference
 
 **Date**: October 2, 2025
-**Schema Version**: 1.3.0
+**Schema Version**: 2.0.0
 
 ## Overview
 
-This document defines the data schemas, TypeScript interfaces, validation rules, and database relationships for the Noted application. The app uses Supabase as the backend service with TypeScript for type safety, multi-theme support, enhanced authentication with forgot password functionality, and Sonner toast notification integration.
+This document defines the data schemas, TypeScript interfaces, validation rules, and database relationships for the Noted application. The app uses Supabase as the backend service with TypeScript for type safety, 10-theme system with 18-color palettes, folder organization, enhanced authentication, and universal card component architecture.
 
 **Referenced Documentation**:
 - README.md: Modern React Native note-taking app with Expo Router and Supabase backend
@@ -33,6 +33,33 @@ CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid()
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
 ```
 
+### Folders Table
+
+```sql
+CREATE TABLE folders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  parent_folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Constraints
+ALTER TABLE folders ADD CONSTRAINT folders_name_not_empty CHECK (LENGTH(TRIM(name)) > 0);
+
+-- Indexes
+CREATE INDEX idx_folders_user_id ON folders(user_id);
+CREATE INDEX idx_folders_parent_id ON folders(parent_folder_id);
+
+-- RLS Policies
+ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own folders" ON folders FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own folders" ON folders FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own folders" ON folders FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own folders" ON folders FOR DELETE USING (auth.uid() = user_id);
+```
+
 ### Notes Table
 
 ```sql
@@ -40,13 +67,15 @@ CREATE TABLE notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(200) NOT NULL CHECK (LENGTH(TRIM(title)) > 0),
   content TEXT CHECK (LENGTH(content) <= 50000),
-  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Indexes
 CREATE INDEX idx_notes_user_id ON notes(user_id);
+CREATE INDEX idx_notes_folder_id ON notes(folder_id);
 CREATE INDEX idx_notes_created_at ON notes(created_at DESC);
 CREATE INDEX idx_notes_updated_at ON notes(updated_at DESC);
 
@@ -116,6 +145,31 @@ interface Session {
 }
 ```
 
+### Folder Data Types
+
+```typescript
+// Folder Entity
+interface Folder {
+  id: string;
+  name: string;
+  user_id: string;
+  parent_folder_id: string | null;
+  created_at: string; // ISO 8601 format
+  updated_at: string; // ISO 8601 format
+}
+
+// Folder Creation Request
+interface CreateFolderRequest {
+  name: string;
+  parent_folder_id?: string | null;
+}
+
+// Folder Update Request
+interface UpdateFolderRequest {
+  name?: string;
+}
+```
+
 ### Note Data Types
 
 ```typescript
@@ -125,6 +179,7 @@ interface Note {
   title: string;
   content: string;
   user_id: string;
+  folder_id: string | null;
   created_at: string; // ISO 8601 format
   updated_at: string; // ISO 8601 format
 }
@@ -133,12 +188,14 @@ interface Note {
 interface CreateNoteRequest {
   title: string;
   content?: string;
+  folder_id?: string | null;
 }
 
 // Note Update Request
 interface UpdateNoteRequest {
   title?: string;
   content?: string;
+  folder_id?: string | null;
 }
 
 // Notes List Response
@@ -158,14 +215,25 @@ interface NotesListResponse {
 ### Multi-Theme System Types
 
 ```typescript
-// Theme Name Type
-export type ThemeName = 'greyscale' | 'appleNotes';
+// Theme Name Type (10 themes)
+export type ThemeName =
+  | 'monochrome'
+  | 'ocean'
+  | 'sepia'
+  | 'nord'
+  | 'crimson'
+  | 'forest'
+  | 'lavender'
+  | 'amber'
+  | 'midnight'
+  | 'rose';
 
 // Color Scheme Type
 export type ColorSchemeMode = 'light' | 'dark' | 'system';
 
-// Color Scheme Interface
+// Color Scheme Interface (18 colors)
 interface ColorScheme {
+  // Original 9 colors
   background: string;
   surface: string;
   text: string;
@@ -175,19 +243,29 @@ interface ColorScheme {
   icon: string;
   tabIconDefault: string;
   tabIconSelected: string;
+
+  // Extended 9 colors
+  elevatedSurface: string;
+  selectedSurface: string;
+  overlay: string;
+  hover: string;
+  pressed: string;
+  disabled: string;
+  highlight: string;
+  linkColor: string;
+  accentSecondary: string;
+}
+
+// Theme Metadata
+interface ThemeMetadata {
+  displayName: string;
+  description: string;
+  light: ColorScheme;
+  dark: ColorScheme;
 }
 
 // Multi-Theme Structure
-interface Themes {
-  greyscale: {
-    light: ColorScheme;
-    dark: ColorScheme;
-  };
-  appleNotes: {
-    light: ColorScheme;
-    dark: ColorScheme;
-  };
-}
+type Themes = Record<ThemeName, ThemeMetadata>;
 
 // Enhanced Theme Context Interface
 interface ThemeControllerContextType {
@@ -197,60 +275,83 @@ interface ThemeControllerContextType {
   setTheme: (theme: ThemeName) => Promise<void>;
   setColorScheme: (scheme: ColorSchemeMode) => Promise<void>;
   isLoading: boolean;
+  error: string | null;
 }
 
-// Themed Component Props
-interface ThemedProps {
-  lightColor?: string;
-  darkColor?: string;
+// Theme Storage
+interface ThemeStorage {
+  getTheme: () => Promise<ThemeName | null>;
+  setTheme: (theme: ThemeName) => Promise<void>;
+  getColorScheme: () => Promise<ColorSchemeMode | null>;
+  setColorScheme: (scheme: ColorSchemeMode) => Promise<void>;
 }
-
-type ThemedTextProps = TextProps & ThemedProps & {
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link';
-};
-
-type ThemedViewProps = ViewProps & ThemedProps;
 ```
 
 ### Component Props Types
 
 ```typescript
-// Navigation Component Props
-interface HapticTabProps extends BottomTabBarButtonProps {}
-
-interface ExternalLinkProps extends Omit<ComponentProps<typeof Link>, 'href'> {
-  href: Href & string;
+// Universal Card Component Props
+interface CardProps {
+  isAccordion?: boolean;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+  headerContent: React.ReactNode;
+  children?: React.ReactNode;
 }
 
-// UI Component Props
-interface CollapsibleProps extends PropsWithChildren {
-  title: string;
+// Info Card Props
+interface ComingSoonCardProps {
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
-interface IconSymbolProps {
-  name: IconSymbolName;
-  size?: number;
-  color: string | OpaqueColorValue;
-  style?: StyleProp<TextStyle>;
-  weight?: SymbolWeight;
+interface TechStackCardProps {
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
-interface ParallaxScrollViewProps extends PropsWithChildren {
-  headerImage: ReactElement;
-  headerBackgroundColor: { dark: string; light: string };
+interface QuickStartCardProps {
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
-// Icon Symbol Names (SF Symbols mapping)
-type IconSymbolName =
-  | 'house.fill'
-  | 'note.text'
-  | 'gear'
-  | 'paperplane.fill'
-  | 'chevron.left.forwardslash.chevron.right'
-  | 'chevron.right'
-  | 'plus'
-  | 'trash'
-  | 'pencil';
+// Settings Card Props
+interface ThemeSettingsCardProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  onOpenThemePicker: () => void;
+}
+
+interface ProfileSettingsCardProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+interface AccountSettingsCardProps {
+  isExpanded: boolean;
+  onToggle: () => void;
+  onSignOut: () => void;
+  isSigningOut: boolean;
+}
+
+// Note Item Props
+interface NoteItemProps {
+  note: Note;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onDelete: (noteId: string) => void;
+  onEdit: (note: Note) => void;
+  onMoveToFolder: (noteId: string, folderId: string | null) => void;
+}
+
+// Layout Props
+interface SharedPageLayoutProps extends PropsWithChildren {
+  scrollable?: boolean;
+}
+
+interface CommonHeaderProps {
+  title?: string;
+}
 ```
 
 ### Settings Types
@@ -270,36 +371,33 @@ interface UserSettings {
 
 interface SettingsUpdateRequest extends Partial<UserSettings> {}
 
-### Notification Types
+### Folder Validation
 
 ```typescript
-// Sonner Toast Types
-interface ToastOptions {
-  position?: 'top-left' | 'top-right' | 'top-center' | 'bottom-left' | 'bottom-right' | 'bottom-center';
-  theme?: 'light' | 'dark' | 'system';
-  expand?: boolean;
-  richColors?: boolean;
-  closeButton?: boolean;
-}
+// Folder Constraints
+const FOLDER_CONSTRAINTS = {
+  name: {
+    minLength: 1,
+    maxLength: 255,
+    required: true
+  }
+};
 
-// Toast Message Types
-type ToastType = 'success' | 'error' | 'warning' | 'info';
+// Folder validation function
+function validateFolder(folder: CreateFolderRequest): ValidationResult {
+  const errors: ValidationError[] = [];
 
-interface ToastMessage {
-  type: ToastType;
-  message: string;
-  duration?: number;
-}
+  if (!folder.name?.trim()) {
+    errors.push({ field: 'name', message: 'Folder name is required', code: 'REQUIRED' });
+  } else if (folder.name.length > FOLDER_CONSTRAINTS.name.maxLength) {
+    errors.push({
+      field: 'name',
+      message: `Folder name must not exceed ${FOLDER_CONSTRAINTS.name.maxLength} characters`,
+      code: 'MAX_LENGTH'
+    });
+  }
 
-// Auth-related Toast Messages
-interface AuthToastMessages {
-  signInSuccess: 'Welcome back!';
-  signUpSuccess: 'Please check your email to confirm your account';
-  passwordResetSuccess: 'Check your email for password reset instructions';
-  signOutSuccess: 'Signed out successfully';
-  validationError: 'Please fill in all fields';
-  authenticationError: string; // Dynamic based on Supabase error
-  passwordResetError: string; // Dynamic based on Supabase error
+  return { isValid: errors.length === 0, errors };
 }
 ```
 
@@ -444,38 +542,43 @@ function validateNote(note: CreateNoteRequest): ValidationResult {
 ### Entity Relationship Diagram
 
 ```
-┌─────────────────┐       ┌─────────────────┐
-│     users       │       │      notes      │
-├─────────────────┤       ├─────────────────┤
-│ id (PK)         │◄─────┤│ user_id (FK)    │
-│ email           │      1:N│ id (PK)         │
-│ name            │       │ title           │
-│ created_at      │       │ content         │
-│ updated_at      │       │ created_at      │
-│ last_login_at   │       │ updated_at      │
-└─────────────────┘       └─────────────────┘
-        │
-        │ 1:1
-        ▼
-┌─────────────────┐
-│  user_settings  │
-├─────────────────┤
-│ user_id (FK,PK) │
-│ theme           │
-│ font_size       │
-│ notifications   │
-│ privacy         │
-│ created_at      │
-│ updated_at      │
+┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
+│     users       │       │     folders     │       │      notes      │
+├─────────────────┤       ├─────────────────┤       ├─────────────────┤
+│ id (PK)         │◄─────┤│ user_id (FK)    │       │ id (PK)         │
+│ email           │      1:N│ id (PK)         │◄─────┤│ folder_id (FK)  │
+│ name            │       │ name            │      0:N│ user_id (FK)    │
+│ created_at      │       │ parent_id (FK)  │───┐   │ title           │
+│ updated_at      │       │ created_at      │   │   │ content         │
+│ last_login_at   │       │ updated_at      │◄──┘   │ created_at      │
+└─────────────────┘       └─────────────────┘       │ updated_at      │
+        │                                            └─────────────────┘
+        │ 1:1                                                 ▲
+        ▼                                                     │
+┌─────────────────┐                                          │
+│  user_settings  │                                          │ 1:N
+├─────────────────┤                                          │
+│ user_id (FK,PK) │                                          │
+│ theme           │                                          │
+│ font_size       │                        ┌─────────────────┘
+│ notifications   │                        │
+│ privacy         │              ┌─────────────────┐
+│ created_at      │              │     users       │
+│ updated_at      │              └─────────────────┘
 └─────────────────┘
 ```
 
 ### Constraints and Foreign Keys
 
 - **users.email**: UNIQUE constraint
+- **folders.user_id**: FOREIGN KEY references auth.users(id) ON DELETE CASCADE
+- **folders.parent_folder_id**: FOREIGN KEY references folders(id) ON DELETE CASCADE (self-reference for nested folders)
+- **folders.name**: NOT NULL constraint with CHECK (LENGTH(TRIM(name)) > 0)
 - **notes.user_id**: FOREIGN KEY references users(id) ON DELETE CASCADE
+- **notes.folder_id**: FOREIGN KEY references folders(id) ON DELETE SET NULL (nullable)
+- **notes.title**: NOT NULL constraint with CHECK (LENGTH(TRIM(title)) > 0)
+- **notes.content**: CHECK constraint (LENGTH(content) <= 50000)
 - **user_settings.user_id**: FOREIGN KEY references users(id) ON DELETE CASCADE, UNIQUE constraint
-- **notes.title**: NOT NULL constraint
 - **users.email, users.name**: NOT NULL constraints
 
 ## Error Codes
@@ -503,13 +606,22 @@ function validateNote(note: CreateNoteRequest): ValidationResult {
 - `RESOURCE_NOT_FOUND`: Requested resource does not exist
 - `RESOURCE_ACCESS_DENIED`: User lacks permission to access resource
 - `RESOURCE_CONFLICT`: Resource conflicts with existing data
+- `NOTE_NOT_FOUND`: Note does not exist or user lacks access
+- `FOLDER_NOT_FOUND`: Folder does not exist or user lacks access
 
 ### Theme System Errors
 
-- `THEME_INVALID_NAME`: Invalid theme name provided
-- `THEME_INVALID_COLOR_SCHEME`: Invalid color scheme mode
-- `THEME_PERSISTENCE_FAILED`: Failed to save theme preferences to storage
-- `THEME_LOAD_FAILED`: Failed to load theme preferences from storage
+- `THEME_INVALID_NAME`: Invalid theme name provided (must be one of: monochrome, ocean, sepia, nord, crimson, forest, lavender, amber, midnight, rose)
+- `THEME_INVALID_COLOR_SCHEME`: Invalid color scheme mode (must be: light, dark, system)
+- `THEME_PERSISTENCE_FAILED`: Failed to save theme preferences to AsyncStorage
+- `THEME_LOAD_FAILED`: Failed to load theme preferences from AsyncStorage
+
+### Folder Errors
+
+- `FOLDER_NAME_REQUIRED`: Folder name cannot be empty
+- `FOLDER_NAME_TOO_LONG`: Folder name exceeds 255 characters
+- `FOLDER_CIRCULAR_REFERENCE`: Cannot set folder as its own parent
+- `FOLDER_DELETE_HAS_NOTES`: Cannot delete folder containing notes (notes will be moved to "All Notes")
 
 ## Environment Configuration
 
@@ -538,8 +650,17 @@ interface SupabaseConfig {
 ---
 
 **Date**: October 2, 2025
-**Schema Version**: 1.3.0
+**Schema Version**: 2.0.0
 
-🤖 Generated with [Claude Code](https://claude.ai/code)
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
-This schema reference provides comprehensive data structure documentation for the Noted application, including multi-theme support, enhanced authentication with forgot password functionality, Sonner toast notification integration, and input validation constraints. Optimized for AI-assisted development with complete type definitions, validation rules, and database relationships for seamless integration and extension.
+This schema reference provides comprehensive data structure documentation for the Noted application, including:
+
+- **10 Theme System**: 18-color palettes with light/dark modes (monochrome, ocean, sepia, nord, crimson, forest, lavender, amber, midnight, rose)
+- **Folder Organization**: Hierarchical folder structure with parent-child relationships and ON DELETE SET NULL cascading
+- **Universal Card Component**: Standardized accordion UI with consistent props across info, settings, and note cards
+- **Input Validation**: Database-level constraints (title: 200 chars, content: 50,000 chars, folder name: 255 chars)
+- **Type Safety**: Complete TypeScript interfaces for all data structures, API responses, and component props
+- **Row-Level Security**: Supabase RLS policies ensuring users can only access their own data
+
+Optimized for AI-assisted development with complete type definitions, validation rules, and database relationships for seamless integration and extension.
