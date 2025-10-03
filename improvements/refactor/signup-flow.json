@@ -1,0 +1,260 @@
+{
+  "title": "Sign Up Flow Enhancement",
+  "dateCreated": "2025-10-02",
+  "status": "planning",
+  "priority": "medium",
+
+  "overview": {
+    "description": "Improve the user sign-up experience with better validation, feedback, and error handling",
+    "currentFlow": "User enters email/password → Supabase creates user → Email verification sent → Toast shown → User stays on auth screen",
+    "issues": [
+      "No email format validation",
+      "No password strength requirements",
+      "No feedback after email verification",
+      "Generic error messages",
+      "Console logs in production code",
+      "No duplicate email handling"
+    ]
+  },
+
+  "currentImplementation": {
+    "files": [
+      "app/auth/index.tsx (auth screen UI)",
+      "contexts/auth-context.tsx (Supabase integration)",
+      "components/auth-guard.tsx (route protection)"
+    ],
+    "flow": [
+      "1. User clicks 'Sign up' tab",
+      "2. Enters email and password",
+      "3. Clicks 'Create account' button",
+      "4. AuthContext.signUp() calls Supabase",
+      "5. Supabase creates user with email_confirmed_at = null",
+      "6. Verification email sent automatically",
+      "7. Toast: 'Please check your email to confirm your account'",
+      "8. User remains on auth screen (not logged in)",
+      "9. User clicks email link → Supabase verifies → Sets email_confirmed_at",
+      "10. User manually switches to login tab and signs in"
+    ],
+    "strengths": [
+      "Secure by default (email verification required)",
+      "Clean separation of concerns (UI → Context → Supabase)",
+      "AuthGuard prevents unverified access",
+      "Good toast notifications"
+    ],
+    "weaknesses": [
+      "No client-side validation",
+      "No visual feedback after email verification",
+      "Generic error messages",
+      "Debug logs in production",
+      "No handling for duplicate email gracefully"
+    ]
+  },
+
+  "proposedImprovements": {
+    "1_inputValidation": {
+      "description": "Add client-side validation for email and password",
+      "changes": {
+        "emailValidation": {
+          "regex": "/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/",
+          "errorMessage": "Please enter a valid email address"
+        },
+        "passwordValidation": {
+          "minLength": 8,
+          "requireUppercase": true,
+          "requireLowercase": true,
+          "requireNumber": true,
+          "errorMessages": {
+            "tooShort": "Password must be at least 8 characters",
+            "noUppercase": "Password must contain an uppercase letter",
+            "noLowercase": "Password must contain a lowercase letter",
+            "noNumber": "Password must contain a number"
+          }
+        },
+        "implementation": "Create validation utilities in lib/validation.ts"
+      }
+    },
+    "2_emailVerificationFeedback": {
+      "description": "Show success message when user clicks verification link and pre-fill email",
+      "changes": {
+        "checkUrlHash": "useEffect to detect #access_token in URL",
+        "showToast": "Display 'Email verified! Please log in' message",
+        "autoSwitchTab": "Automatically switch to login tab",
+        "preFillEmail": "Extract user email from session and pre-fill email field",
+        "clearPassword": "Clear password field for security",
+        "cleanUrl": "Remove hash from URL with window.history.replaceState"
+      },
+      "implementation": "Add to app/auth/index.tsx useEffect",
+      "uxBenefit": "User clicks verification link → lands on login tab with email pre-filled → only needs to type password and tap 'Sign in'"
+    },
+    "3_betterErrorHandling": {
+      "description": "Provide specific, actionable error messages",
+      "errorCases": {
+        "duplicateEmail": {
+          "detect": "error.message.includes('already registered')",
+          "action": "Show 'Email already registered' toast and switch to login tab"
+        },
+        "weakPassword": {
+          "detect": "error.message.includes('password')",
+          "action": "Show specific password requirement that failed"
+        },
+        "networkError": {
+          "detect": "error.message.includes('network')",
+          "action": "Show 'Connection failed. Please check your internet' message"
+        },
+        "invalidEmail": {
+          "detect": "Client-side validation before submission",
+          "action": "Show 'Please enter a valid email' inline error"
+        }
+      }
+    },
+    "4_visualFeedback": {
+      "description": "Add loading indicators and visual states",
+      "changes": {
+        "buttonLoading": "Add ActivityIndicator spinner next to 'Loading...' text",
+        "inputStates": "Show red border on validation error",
+        "disabledState": "Disable inputs while submitting",
+        "successAnimation": "Brief checkmark animation on successful signup"
+      }
+    },
+    "5_productionReadiness": {
+      "description": "Remove debug code and improve security",
+      "changes": {
+        "removeConsoleLogs": "Wrap in __DEV__ check or remove entirely",
+        "errorLogging": "Replace with proper error tracking (Sentry, LogRocket)",
+        "securityHeaders": "Ensure Supabase RLS policies are correct",
+        "rateLimit": "Consider adding rate limiting for signup attempts"
+      }
+    }
+  },
+
+  "implementation": {
+    "phase1": {
+      "name": "Input Validation",
+      "duration": "2-3 hours",
+      "tasks": [
+        "Create lib/validation.ts with email and password validators",
+        "Add real-time validation to email input (onBlur)",
+        "Add real-time validation to password input (onChange)",
+        "Show inline error messages below inputs",
+        "Disable submit button if validation fails"
+      ],
+      "files": [
+        "lib/validation.ts (new)",
+        "app/auth/index.tsx (update)"
+      ]
+    },
+    "phase2": {
+      "name": "Email Verification Feedback",
+      "duration": "1-2 hours",
+      "tasks": [
+        "Add useEffect to detect URL hash #access_token",
+        "Extract user email from Supabase session",
+        "Pre-fill email field with verified email",
+        "Clear password field for security",
+        "Show success toast on verification",
+        "Auto-switch to login tab",
+        "Clean URL hash"
+      ],
+      "files": [
+        "app/auth/index.tsx (update)"
+      ]
+    },
+    "phase3": {
+      "name": "Enhanced Error Handling",
+      "duration": "2-3 hours",
+      "tasks": [
+        "Add error case detection logic",
+        "Create specific error messages",
+        "Handle duplicate email gracefully",
+        "Add network error retry button"
+      ],
+      "files": [
+        "app/auth/index.tsx (update)",
+        "contexts/auth-context.tsx (update)"
+      ]
+    },
+    "phase4": {
+      "name": "Visual Polish",
+      "duration": "2-3 hours",
+      "tasks": [
+        "Add ActivityIndicator to submit button",
+        "Add red border on validation errors",
+        "Disable inputs during submission",
+        "Add success animation (optional)"
+      ],
+      "files": [
+        "app/auth/index.tsx (update)"
+      ]
+    },
+    "phase5": {
+      "name": "Production Cleanup",
+      "duration": "1 hour",
+      "tasks": [
+        "Remove or guard all console.log statements",
+        "Add proper error tracking",
+        "Review Supabase RLS policies",
+        "Test edge cases"
+      ],
+      "files": [
+        "app/auth/index.tsx (update)",
+        "contexts/auth-context.tsx (update)"
+      ]
+    }
+  },
+
+  "codeExamples": {
+    "validation": {
+      "file": "lib/validation.ts",
+      "code": "export const validateEmail = (email: string): string | null => {\n  const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n  if (!email) return 'Email is required';\n  if (!emailRegex.test(email)) return 'Please enter a valid email address';\n  return null;\n};\n\nexport const validatePassword = (password: string): string | null => {\n  if (!password) return 'Password is required';\n  if (password.length < 8) return 'Password must be at least 8 characters';\n  if (!/[A-Z]/.test(password)) return 'Password must contain an uppercase letter';\n  if (!/[a-z]/.test(password)) return 'Password must contain a lowercase letter';\n  if (!/[0-9]/.test(password)) return 'Password must contain a number';\n  return null;\n};"
+    },
+    "emailVerificationDetection": {
+      "file": "app/auth/index.tsx",
+      "code": "useEffect(() => {\n  // Detect email verification success from URL hash\n  if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {\n    // Parse the session to get user email\n    const hashParams = new URLSearchParams(window.location.hash.substring(1));\n    const accessToken = hashParams.get('access_token');\n    \n    // Get user email from Supabase session and pre-fill\n    if (accessToken) {\n      supabase.auth.getUser(accessToken).then(({ data }) => {\n        if (data?.user?.email) {\n          setEmail(data.user.email); // Pre-fill email for easy login\n        }\n      });\n    }\n    \n    toast.success('Email verified! Please log in');\n    setIsLogin(true); // Switch to login tab\n    setPassword(''); // Clear password for security\n    window.history.replaceState({}, '', '/auth'); // Clean URL\n  }\n}, []);"
+    },
+    "betterErrorHandling": {
+      "file": "app/auth/index.tsx",
+      "code": "if (error) {\n  // Handle duplicate email\n  if (error.message.includes('already registered') || error.message.includes('User already registered')) {\n    toast.error('This email is already registered. Please sign in.');\n    setIsLogin(true); // Switch to login tab\n    setEmail(''); // Keep email for convenience\n    setPassword('');\n  }\n  // Handle weak password\n  else if (error.message.includes('password')) {\n    toast.error('Password is too weak. Please use at least 8 characters with uppercase, lowercase, and numbers.');\n  }\n  // Handle network errors\n  else if (error.message.includes('network') || error.message.includes('fetch')) {\n    toast.error('Connection failed. Please check your internet and try again.');\n  }\n  // Generic fallback\n  else {\n    toast.error(error.message || 'Authentication failed');\n  }\n}"
+    },
+    "loadingIndicator": {
+      "file": "app/auth/index.tsx",
+      "code": "<TouchableOpacity\n  style={[styles.submitButton, { backgroundColor: colors.tint }]}\n  onPress={handleSubmit}\n  disabled={isSubmitting || loading || emailError || passwordError}\n>\n  {isSubmitting ? (\n    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>\n      <ActivityIndicator size=\"small\" color={colors.background} />\n      <Text style={[styles.submitButtonText, { color: colors.background }]}>Loading...</Text>\n    </View>\n  ) : (\n    <Text style={[styles.submitButtonText, { color: colors.background }]}>Create account</Text>\n  )}\n</TouchableOpacity>"
+    }
+  },
+
+  "estimatedDuration": {
+    "total": "8-12 hours",
+    "breakdown": {
+      "validation": "2-3 hours",
+      "verificationFeedback": "1-2 hours",
+      "errorHandling": "2-3 hours",
+      "visualPolish": "2-3 hours",
+      "cleanup": "1 hour"
+    }
+  },
+
+  "testingChecklist": [
+    "✓ Valid email format accepted",
+    "✓ Invalid email format rejected with clear message",
+    "✓ Weak password rejected with specific requirement",
+    "✓ Strong password accepted",
+    "✓ Duplicate email shows helpful message and switches to login",
+    "✓ Email verification link shows success message",
+    "✓ Email field pre-filled after verification",
+    "✓ Password field cleared after verification",
+    "✓ Login tab active after verification",
+    "✓ URL hash cleaned after verification",
+    "✓ Loading spinner shows during submission",
+    "✓ Inputs disabled during submission",
+    "✓ No console logs in production",
+    "✓ Network error shows retry-friendly message",
+    "✓ All error states have clear, actionable messages"
+  ],
+
+  "notes": [
+    "Current implementation is secure but lacks polish",
+    "Supabase handles email verification well, we just need better UX feedback",
+    "Input validation prevents unnecessary API calls and improves UX",
+    "Better error messages reduce user frustration and support requests",
+    "Consider adding 'Resend verification email' button if user loses email"
+  ]
+}
