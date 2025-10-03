@@ -2,8 +2,9 @@
   "feature": "Phase 2 Roadmap: Toolbar, Export, Migration",
   "version": "1.0",
   "dateCreated": "2025-10-03",
-  "status": "in-progress",
+  "status": "complete",
   "currentCheckpoint": "checkpoint5",
+  "completedDate": "2025-10-03T19:30:00Z",
 
   "overview": {
     "goal": "Add formatting toolbar and integrate markdown editor as default (with safe fallback)",
@@ -12,16 +13,17 @@
   },
 
   "progressTracking": {
-    "checkpointsCompleted": 4,
+    "checkpointsCompleted": 5,
     "checkpointsTotal": 5,
-    "tasksCompleted": 14,
+    "tasksCompleted": 17,
     "tasksTotal": 17,
-    "lastUpdated": "2025-10-03T19:00:00Z",
+    "lastUpdated": "2025-10-03T19:30:00Z",
     "commits": [
       "71b7224 - Checkpoint 1: Basic Formatting Toolbar",
       "0804a17 - Checkpoint 2: Advanced Toolbar Features",
       "3a29c10 - Checkpoint 3: Feature Flag & Configuration",
-      "pending - Checkpoint 4: Navigation Integration"
+      "63ad9b4 - Checkpoint 4: Navigation Integration",
+      "pending - Checkpoint 5: Final Polish & Documentation"
     ]
   },
 
@@ -335,9 +337,10 @@
 
     "checkpoint5": {
       "name": "Final Polish & Documentation",
-      "status": "pending",
+      "status": "complete",
       "goal": "Enable new editor by default and document",
       "dependencies": ["checkpoint4"],
+      "completedDate": "2025-10-03T19:30:00Z",
       "tasks": [
         {
           "id": "c5-t1",

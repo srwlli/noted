@@ -11,23 +11,26 @@
  * - `false`: Uses original modal editor (components/note-modal.tsx)
  * - `true`: Uses new full-screen markdown editor (app/note-editor/*)
  *
- * Default: false (safe default, old system proven stable)
+ * Default: true (new markdown editor is production-ready)
  *
- * To enable new editor:
- * 1. Change to `true`
- * 2. Test new note creation
- * 3. Test editing existing notes
- * 4. Test all formatting buttons
- * 5. Test export functionality
+ * Features of new editor:
+ * - Full-screen editing experience
+ * - Edit/Preview toggle
+ * - Formatting toolbar (Bold, Italic, Headings, Lists, Code, Links, Tables)
+ * - HTML export functionality
+ * - Auto-save with debounce
+ * - Error boundary with graceful fallback
  *
- * To revert to old editor:
- * 1. Change back to `false`
+ * To revert to old editor (if needed):
+ * 1. Change to `false`
  * 2. Old modal works immediately
  * 3. No data migration needed
+ * 4. No code changes required
  *
  * Error handling:
- * - New editor has error boundary that falls back to old modal
- * - Any crashes in new editor automatically revert to old modal
- * - User sees toast notification on error
+ * - New editor has error boundary protection
+ * - Crashes show user-friendly error screen
+ * - User can navigate back safely
+ * - All errors logged to console
  */
-export const USE_MARKDOWN_EDITOR = false;
+export const USE_MARKDOWN_EDITOR = true;
