@@ -140,7 +140,7 @@ function AppLayout() {
           <StatusBar style={resolvedScheme === 'dark' ? 'light' : 'dark'} />
           <Toaster
             theme={resolvedScheme === 'dark' ? 'dark' : 'light'}
-            position="top-center"
+            position="bottom-center"
             richColors={true}
             closeButton={true}
           />
