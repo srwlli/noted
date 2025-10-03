@@ -8,6 +8,7 @@ import { ThemeSettingsCard } from '@/components/settings-cards/theme-settings-ca
 import { ProfileSettingsCard } from '@/components/settings-cards/profile-settings-card';
 import { AccountSettingsCard } from '@/components/settings-cards/account-settings-card';
 import { router } from 'expo-router';
+import { toast } from 'sonner-native';
 
 export default function SettingsScreen() {
   const { setTheme } = useThemeController();
@@ -24,10 +25,13 @@ export default function SettingsScreen() {
   const confirmSignOut = async () => {
     setIsSigningOut(true);
     try {
-      await signOut();
-      router.replace('/auth');
-    } catch (error) {
-      console.error('Sign out error:', error);
+      const { error } = await signOut();
+
+      if (error) {
+        toast.error('Failed to sign out. Please try again.');
+      } else {
+        router.replace('/auth');
+      }
     } finally {
       setIsSigningOut(false);
       setShowSignOutModal(false);
