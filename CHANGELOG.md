@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Markdown Editor with Toolbar** (2025-10-03)
+  - Implemented full-featured markdown editor as alternative to modal editor
+  - Feature flag controlled: `USE_MARKDOWN_EDITOR` in `config/features.ts` (enabled by default)
+  - Full-screen editing experience with edit/preview toggle
+  - 8-button formatting toolbar: Bold, Italic, H1, H2, List, Code, Link, Table
+  - Link dialog modal for creating `[text](url)` markdown links
+  - Table generator modal with visual grid picker (2-10 rows, 2-8 cols)
+  - HTML export functionality (web download, mobile share)
+  - Auto-save with 1000ms debounce after typing stops
+  - Error boundary with graceful fallback and user-friendly error screen
+  - Smooth slide-in animations for native app feel
+  - Theme-aware markdown rendering with 18-color palette support
+  - Dual-editor strategy: Both old modal and new markdown editor maintained
+  - Zero breaking changes: Instant rollback by toggling feature flag
+  - Test route accessible via Settings → Developer → Test Markdown Editor
+  - Components: `markdown-editor.tsx`, `markdown-renderer.tsx`, `markdown-toolbar.tsx`, `link-dialog-modal.tsx`, `table-generator-modal.tsx`, `markdown-error-boundary.tsx`
+  - Services: `markdown-service.ts` for HTML conversion
+  - Utils: `note-parser.ts` for title extraction
+  - Routes: `app/note-editor/new.tsx`, `app/note-editor/[id].tsx`, `app/note-editor/test.tsx`
+  - Documentation: `MARKDOWN_EDITOR_IMPLEMENTATION.md`
+  - Implementation timeline: 5 checkpoints, 17 tasks (commits: 71b7224, 0804a17, 3a29c10, 63ad9b4, 4d9c738)
 - **Coming Soon Feature Synchronization** (2025-10-02)
   - Created comprehensive planning docs for all Coming Soon features
   - Added 5 new plan files: ide-integration.json, exports.json, n8n-automation.json, themes-and-styles.json, sharing-collaboration.json
