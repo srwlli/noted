@@ -146,6 +146,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Markdown Toolbar Icon** (2025-10-04)
+  - Changed toolbar icon from `format-size` to `text-format` in note editor headers
+  - Better represents diverse formatting options (Bold, Italic, Headers, Lists, Code, Links, Tables)
+  - More semantically accurate than font-size-specific icon
 - **Toast Notifications for Note Actions** (2025-10-04)
   - Replaced blocking Alert.alert() modals with non-blocking toast notifications
   - Move to folder now displays actual folder name (e.g., "Note moved to Work")
@@ -237,6 +241,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
+- **Toast Notification Bottom Positioning** (2025-10-04)
+  - Added 60px bottom offset to Toaster component
+  - Prevents toast notifications from being cut off or overlapped by tab bar
+  - Ensures full visibility on all platforms (web PWA, iOS, Android)
+  - Accounts for tab bar height (44px) + safe area padding + visual spacing
+- **Markdown Editor Focus Restoration** (2025-10-04)
+  - Fixed TextInput losing focus after toolbar formatting actions
+  - Added TextInput ref for programmatic focus control
+  - Implemented `restoreFocus()` method with 150ms delay for smooth modal dismiss
+  - Automatically restores focus and cursor position after all toolbar actions (Bold, Italic, Headings, Lists, Code, Links, Tables)
+  - Users can now format text and immediately continue typing without manual refocus
+  - Improved writing flow: reduced from 6 steps to 4 steps per formatting action
+  - Works across all platforms (iOS, Android, Web) with proper keyboard handling
 - **Note Editor Double Header Issue** (2025-10-04)
   - Fixed double header display showing both "note-editor" and screen-specific titles
   - Added `headerShown: false` for note-editor route in root Stack layout

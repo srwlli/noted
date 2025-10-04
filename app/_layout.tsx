@@ -142,6 +142,7 @@ function AppLayout() {
           <Toaster
             theme={resolvedScheme === 'dark' ? 'dark' : 'light'}
             position="bottom-center"
+            offset={60}
             richColors={true}
             closeButton={true}
           />

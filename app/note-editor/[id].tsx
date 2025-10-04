@@ -129,7 +129,6 @@ function EditNoteScreenContent() {
             headerLeft: () => (
               <TouchableOpacity
                 onPress={() => router.back()}
-                style={{ marginLeft: 16 }}
                 activeOpacity={0.7}
               >
                 <MaterialIcons name="arrow-back" size={24} color={colors.text} />
@@ -157,7 +156,6 @@ function EditNoteScreenContent() {
             headerLeft: () => (
               <TouchableOpacity
                 onPress={() => router.back()}
-                style={{ marginLeft: 16 }}
                 activeOpacity={0.7}
               >
                 <MaterialIcons name="arrow-back" size={24} color={colors.text} />
@@ -184,7 +182,6 @@ function EditNoteScreenContent() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => router.back()}
-              style={{ marginLeft: 16 }}
               activeOpacity={0.7}
             >
               <MaterialIcons name="arrow-back" size={24} color={colors.text} />
@@ -197,7 +194,7 @@ function EditNoteScreenContent() {
                   onPress={() => setShowToolbar(!showToolbar)}
                   activeOpacity={0.7}
                 >
-                  <MaterialIcons name="format-size" size={24} color={colors.text} />
+                  <MaterialIcons name="text-format" size={24} color={colors.text} />
                 </TouchableOpacity>
               )}
               {mode === 'preview' && (

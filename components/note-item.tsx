@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
@@ -9,6 +9,7 @@ import { Card } from '@/components/common/card';
 import { Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
 import { USE_MARKDOWN_EDITOR } from '@/config/features';
+import { toast } from 'sonner-native';
 
 interface NoteItemProps {
   note: Note;
@@ -54,9 +55,9 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
   const handleCopy = useCallback(async () => {
     try {
       await Clipboard.setStringAsync(note.content || '');
-      Alert.alert('Copied', 'Note content copied to clipboard');
+      toast.success('Note content copied to clipboard');
     } catch {
-      Alert.alert('Error', 'Failed to copy content');
+      toast.error('Failed to copy content');
     }
   }, [note.content]);
 
@@ -86,14 +87,14 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
     setIsExpanded(prev => !prev);
   }, []);
 
-  const handleMoveToFolder = useCallback(async (folderId: string | null) => {
+  const handleMoveToFolder = useCallback(async (folderId: string | null, folderName?: string) => {
     try {
       await foldersService.moveNoteToFolder(note.id, folderId);
-      Alert.alert('Success', `Note moved to ${folderId ? 'folder' : 'All Notes'}`);
+      toast.success(`Note moved to ${folderName || 'All Notes'}`);
       onMoveToFolder?.();
     } catch (err) {
       console.error('Failed to move note:', err);
-      Alert.alert('Error', 'Failed to move note to folder');
+      toast.error('Failed to move note to folder');
     }
   }, [note.id, onMoveToFolder]);
 
@@ -170,7 +171,7 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
                 {folders.map((folder) => (
                   <MenuOption
                     key={folder.id}
-                    onSelect={() => handleMoveToFolder(folder.id)}
+                    onSelect={() => handleMoveToFolder(folder.id, folder.name)}
                     customStyles={{ optionWrapper: styles.submenuItem }}
                   >
                     <MaterialIcons name="folder" size={18} color={colors.text} />

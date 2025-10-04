@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { MarkdownRenderer } from './markdown-renderer';
 import { MarkdownToolbarDropdown } from './markdown-toolbar-dropdown';
@@ -34,6 +34,21 @@ export function MarkdownEditor({
 }: MarkdownEditorProps) {
   const { colors } = useThemeColors();
   const selectionRef = useRef({ start: 0, end: 0 });
+  const inputRef = useRef<TextInput>(null);
+
+  /**
+   * Restore focus and cursor position to the editor
+   * - Delayed to allow modal dismiss animation to complete
+   * - Restores both focus and cursor position
+   */
+  const restoreFocus = useCallback(() => {
+    setTimeout(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setNativeProps({
+        selection: selectionRef.current
+      });
+    }, 150);
+  }, []);
 
   /**
    * Handle markdown syntax insertion from toolbar
@@ -61,6 +76,9 @@ export function MarkdownEditor({
 
     // Update selection ref for next insertion
     selectionRef.current = { start: newCursorPos, end: newCursorPos };
+
+    // Restore focus and cursor position
+    restoreFocus();
   };
 
   const handleSelectionChange = (selection: { start: number; end: number }) => {
@@ -80,6 +98,9 @@ export function MarkdownEditor({
     // Update selection ref for next insertion
     const newCursorPos = start + text.length;
     selectionRef.current = { start: newCursorPos, end: newCursorPos };
+
+    // Restore focus and cursor position
+    restoreFocus();
   };
 
   // Get selected text for link modal
@@ -93,6 +114,7 @@ export function MarkdownEditor({
       {/* Edit Mode */}
       {mode === 'edit' && (
         <TextInput
+          ref={inputRef}
           value={value}
           onChangeText={onChange}
           onSelectionChange={(e) => handleSelectionChange(e.nativeEvent.selection)}
