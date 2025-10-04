@@ -1,0 +1,194 @@
+{
+  "component": "Markdown Editor Focus & Cursor Restoration",
+  "reviewDate": "2025-10-04",
+  "filesReviewed": [
+    "components/markdown/markdown-editor.tsx",
+    "components/markdown/markdown-toolbar-dropdown.tsx",
+    "app/note-editor/new.tsx",
+    "app/note-editor/[id].tsx"
+  ],
+  "criticalIssues": [
+    {
+      "severity": "high",
+      "title": "TextInput Loses Focus After Toolbar Action",
+      "location": "markdown-editor.tsx:95-110, markdown-toolbar-dropdown.tsx:32-35",
+      "description": "When user clicks a formatting button from the toolbar dropdown, the Modal closes and the TextInput loses focus. User must manually tap back into the editor to continue typing.",
+      "impact": "Disrupts writing flow, poor UX, requires extra tap after every toolbar action",
+      "userWorkflow": "1. User types text\n2. User taps format icon in header\n3. Toolbar dropdown appears\n4. User taps Bold button\n5. Bold syntax inserted ✓\n6. Dropdown closes ✓\n7. TextInput loses focus ✗\n8. User must tap editor again to continue ✗",
+      "code": "// markdown-editor.tsx - No ref on TextInput\n<TextInput\n  value={value}\n  onChangeText={onChange}\n  onSelectionChange={(e) => handleSelectionChange(e.nativeEvent.selection)}\n  // Missing: ref={inputRef}\n  multiline\n  autoFocus={autoFocus}\n/>",
+      "recommendation": "Add TextInput ref and programmatically restore focus + cursor position after insertion"
+    },
+    {
+      "severity": "high",
+      "title": "Cursor Position Lost After Insertion",
+      "location": "markdown-editor.tsx:43-64",
+      "description": "After inserting formatting syntax, the cursor position is saved in selectionRef.current but not restored to the TextInput. User loses their place in the document.",
+      "impact": "User must manually find and click their previous position after each formatting action",
+      "code": "const handleInsert = (before: string, after: string) => {\n  // ...\n  onChange(newContent);\n  // Updates ref but doesn't restore cursor to TextInput\n  selectionRef.current = { start: newCursorPos, end: newCursorPos };\n};",
+      "recommendation": "Call inputRef.current?.focus() and setSelection() after content update"
+    },
+    {
+      "severity": "medium",
+      "title": "No TextInput Ref for Programmatic Control",
+      "location": "markdown-editor.tsx:24-129",
+      "description": "Component uses useRef for selection tracking but has no ref attached to the actual TextInput. Cannot programmatically focus or set cursor position.",
+      "impact": "Cannot restore focus or cursor position after toolbar interactions",
+      "code": "const selectionRef = useRef({ start: 0, end: 0 });\n// Missing: const inputRef = useRef<TextInput>(null);",
+      "recommendation": "Add inputRef and attach to TextInput component"
+    }
+  ],
+  "minorIssues": [
+    {
+      "severity": "low",
+      "title": "No Timing Control for Focus Restoration",
+      "location": "markdown-toolbar-dropdown.tsx:32-35",
+      "description": "handleInsert immediately calls onClose() which dismisses the modal. Focus restoration happens before modal animation completes, potentially causing iOS keyboard issues.",
+      "impact": "On iOS, keyboard may not appear reliably if focus is set during modal dismiss animation",
+      "recommendation": "Add setTimeout delay (150-200ms) before restoring focus to allow modal to fully close"
+    },
+    {
+      "severity": "low",
+      "title": "Link and Table Modals Have Same Issue",
+      "location": "markdown-toolbar-dropdown.tsx:37-48, link-dialog-modal.tsx, table-generator-modal.tsx",
+      "description": "Link dialog and table generator modals also close without restoring focus. Same workflow disruption.",
+      "impact": "Consistent UX issue across all toolbar actions",
+      "recommendation": "Fix should handle all toolbar insertion types (formatting, links, tables)"
+    }
+  ],
+  "strengths": [
+    "Selection position properly tracked in selectionRef.current throughout edits",
+    "Cursor position calculation is accurate for wrapped and unwrapped text",
+    "handleInsert and handleInsertText correctly update content and selection state",
+    "Modal dropdown provides good visual separation from editor",
+    "autoFocus works correctly on initial mount"
+  ],
+  "recommendations": {
+    "highPriority": [
+      {
+        "task": "Add TextInput ref to markdown-editor.tsx",
+        "reason": "Enable programmatic focus control",
+        "files": ["components/markdown/markdown-editor.tsx"],
+        "implementation": "1. Add: const inputRef = useRef<TextInput>(null);\n2. Attach: <TextInput ref={inputRef} .../>\n3. Create method: restoreFocus()"
+      },
+      {
+        "task": "Implement focus restoration after toolbar insertion",
+        "reason": "Keep user in writing flow without extra tap",
+        "files": ["components/markdown/markdown-editor.tsx"],
+        "implementation": "const restoreFocus = () => {\n  setTimeout(() => {\n    inputRef.current?.focus();\n    inputRef.current?.setNativeProps({\n      selection: selectionRef.current\n    });\n  }, 150);\n};"
+      },
+      {
+        "task": "Call restoreFocus after insertions",
+        "reason": "Automatically return to editor after formatting",
+        "files": ["components/markdown/markdown-editor.tsx"],
+        "implementation": "Update handleInsert and handleInsertText to call restoreFocus() after onChange()"
+      }
+    ],
+    "mediumPriority": [
+      {
+        "task": "Expose restoreFocus to parent components",
+        "reason": "Allow note-editor screens to restore focus if needed",
+        "files": ["components/markdown/markdown-editor.tsx", "app/note-editor/new.tsx", "app/note-editor/[id].tsx"],
+        "implementation": "Add onRestoreFocus callback prop or use forwardRef/useImperativeHandle"
+      },
+      {
+        "task": "Test on iOS and Android",
+        "reason": "Ensure keyboard behavior is consistent across platforms",
+        "files": ["All markdown editor files"],
+        "implementation": "Manual testing: verify keyboard appears, cursor is in correct position, no flickering"
+      },
+      {
+        "task": "Add focus restoration to dropdown close handler",
+        "reason": "Handle case where user closes dropdown without making a selection",
+        "files": ["components/markdown/markdown-toolbar-dropdown.tsx"],
+        "implementation": "Call parent's onRestoreFocus in handleClose as well as handleInsert"
+      }
+    ],
+    "lowPriority": [
+      {
+        "task": "Consider accessibility improvements",
+        "reason": "Screen readers should announce focus changes",
+        "files": ["components/markdown/markdown-editor.tsx"],
+        "implementation": "Add accessibilityLabel and accessibilityHint to TextInput"
+      },
+      {
+        "task": "Add visual indicator when toolbar is open",
+        "reason": "Help user understand editor is still active",
+        "files": ["components/markdown/markdown-editor.tsx"],
+        "implementation": "Consider border highlight or background tint on TextInput when toolbar is visible"
+      }
+    ]
+  },
+  "implementationPlan": {
+    "phase1": {
+      "name": "Core Focus Restoration",
+      "tasks": [
+        {
+          "step": 1,
+          "action": "Add inputRef to MarkdownEditor component",
+          "file": "components/markdown/markdown-editor.tsx",
+          "code": "const inputRef = useRef<TextInput>(null);"
+        },
+        {
+          "step": 2,
+          "action": "Attach ref to TextInput",
+          "file": "components/markdown/markdown-editor.tsx",
+          "code": "<TextInput ref={inputRef} ... />"
+        },
+        {
+          "step": 3,
+          "action": "Create restoreFocus method",
+          "file": "components/markdown/markdown-editor.tsx",
+          "code": "const restoreFocus = useCallback(() => {\n  setTimeout(() => {\n    inputRef.current?.focus();\n    inputRef.current?.setNativeProps({\n      selection: selectionRef.current\n    });\n  }, 150);\n}, []);"
+        },
+        {
+          "step": 4,
+          "action": "Call restoreFocus after insertions",
+          "file": "components/markdown/markdown-editor.tsx",
+          "code": "onChange(newContent);\nselectionRef.current = { start: newCursorPos, end: newCursorPos };\nrestoreFocus();"
+        }
+      ]
+    },
+    "phase2": {
+      "name": "Testing & Polish",
+      "tasks": [
+        {
+          "step": 1,
+          "action": "Test all toolbar buttons (Bold, Italic, H1, H2, List, Code)",
+          "validation": "Verify focus returns to editor with cursor at correct position"
+        },
+        {
+          "step": 2,
+          "action": "Test link dialog modal",
+          "validation": "Verify focus returns after inserting link"
+        },
+        {
+          "step": 3,
+          "action": "Test table generator modal",
+          "validation": "Verify focus returns after generating table"
+        },
+        {
+          "step": 4,
+          "action": "Test on iOS and Android devices",
+          "validation": "Keyboard appears, no flickering, smooth transition"
+        },
+        {
+          "step": 5,
+          "action": "Test with selected text vs cursor position",
+          "validation": "Both cases restore focus correctly"
+        }
+      ]
+    }
+  },
+  "architectureNotes": {
+    "dataFlow": "User tap → Toolbar button → handleInsert → onChange → selectionRef.current → restoreFocus → inputRef.current.focus() + setNativeProps",
+    "focusControl": "Uses TextInput ref with .focus() method and setNativeProps for cursor positioning",
+    "timingStrategy": "150ms delay allows modal dismiss animation to complete before restoring focus",
+    "selectionTracking": "selectionRef tracks cursor position through all edits, separate from TextInput's native selection state",
+    "platform": "React Native TextInput focus() and setNativeProps work on iOS, Android, and Web"
+  },
+  "expectedOutcome": {
+    "before": "User taps format → syntax inserted → modal closes → focus lost → user taps editor → continues typing (5 steps, manual refocus required)",
+    "after": "User taps format → syntax inserted → modal closes → focus restored automatically → continues typing (4 steps, seamless flow)",
+    "uxImprovement": "Eliminates interruption in writing flow, feels native and polished"
+  }
+}
