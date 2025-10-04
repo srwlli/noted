@@ -3,14 +3,12 @@ import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, 
 import { useLocalSearchParams, router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
-import { NoteModal } from '@/components/note-modal';
 import { NoteItem } from '@/components/note-item';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 import { FolderModal } from '@/components/folder-modal';
 import { PWADetector } from '@/components/PWADetector';
 import { notesService, Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
-import { USE_MARKDOWN_EDITOR } from '@/config/features';
 
 export default function NotesScreen() {
   const { colors } = useThemeColors();
@@ -18,8 +16,6 @@ export default function NotesScreen() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [deleteNote, setDeleteNote] = useState<Note | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -31,13 +27,6 @@ export default function NotesScreen() {
   useEffect(() => {
     loadNotes();
   }, [selectedFolderId]);
-
-  // Open modal if navigation param is set
-  useEffect(() => {
-    if (params.openModal === 'true') {
-      setShowModal(true);
-    }
-  }, [params.openModal]);
 
   const loadNotes = async () => {
     try {
@@ -59,37 +48,11 @@ export default function NotesScreen() {
   };
 
   const handleNewNote = () => {
-    if (USE_MARKDOWN_EDITOR) {
-      // Navigate to new markdown editor
-      router.push('/note-editor/new');
-    } else {
-      // Use old modal editor
-      setEditingNote(null);
-      setShowModal(true);
-    }
+    router.push('/note-editor/new');
   };
 
   const handleEditNote = (note: Note) => {
-    if (USE_MARKDOWN_EDITOR) {
-      // Navigate to markdown editor with note ID
-      router.push(`/note-editor/${note.id}`);
-    } else {
-      // Use old modal editor
-      setEditingNote(note);
-      setShowModal(true);
-    }
-  };
-
-
-  const handleModalSuccess = () => {
-    setShowModal(false);
-    setEditingNote(null);
-    loadNotes();
-  };
-
-  const handleModalClose = () => {
-    setShowModal(false);
-    setEditingNote(null);
+    router.push(`/note-editor/${note.id}`);
   };
 
   const confirmDeleteNote = async () => {
@@ -97,13 +60,6 @@ export default function NotesScreen() {
 
     try {
       await notesService.deleteNote(deleteNote.id);
-
-      // If we're deleting the note that's currently being edited, close the modal
-      if (editingNote && deleteNote.id === editingNote.id) {
-        setShowModal(false);
-        setEditingNote(null);
-      }
-
       setDeleteNote(null);
       loadNotes();
     } catch (err) {
@@ -222,18 +178,6 @@ export default function NotesScreen() {
           ))
         )}
       </ScrollView>
-
-      {/* Note Modal */}
-      <NoteModal
-        visible={showModal}
-        onClose={handleModalClose}
-        onSuccess={handleModalSuccess}
-        initialNote={editingNote ? {
-          id: editingNote.id,
-          title: editingNote.title,
-          content: editingNote.content
-        } : undefined}
-      />
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal

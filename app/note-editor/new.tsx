@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, Share, Text } from 'react-native';
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownEditor } from '@/components/markdown/markdown-editor';
 import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boundary';
@@ -98,6 +98,15 @@ function NewNoteScreenContent() {
             backgroundColor: colors.surface,
           },
           headerTintColor: colors.text,
+          headerLeft: () => (
+            <TouchableOpacity
+              onPress={() => router.back()}
+              style={{ marginLeft: 16 }}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 16 }}>
               {mode === 'edit' && (

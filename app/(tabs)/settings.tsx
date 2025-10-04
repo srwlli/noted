@@ -19,6 +19,17 @@ export default function SettingsScreen() {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
+  const handleCardToggle = (cardId: string) => {
+    if (expandedCard === cardId) {
+      setExpandedCard(null);
+    } else if (expandedCard !== null) {
+      setExpandedCard(null);
+      setTimeout(() => setExpandedCard(cardId), 200);
+    } else {
+      setExpandedCard(cardId);
+    }
+  };
+
   const handleSignOut = () => {
     setShowSignOutModal(true);
   };
@@ -43,22 +54,22 @@ export default function SettingsScreen() {
     <SharedPageLayout scrollable={true}>
       <ThemeSettingsCard
         isExpanded={expandedCard === 'theme'}
-        onToggle={() => setExpandedCard(expandedCard === 'theme' ? null : 'theme')}
+        onToggle={() => handleCardToggle('theme')}
         onOpenThemePicker={() => setShowThemePicker(true)}
       />
       <ProfileSettingsCard
         isExpanded={expandedCard === 'profile'}
-        onToggle={() => setExpandedCard(expandedCard === 'profile' ? null : 'profile')}
+        onToggle={() => handleCardToggle('profile')}
       />
       <AccountSettingsCard
         isExpanded={expandedCard === 'account'}
-        onToggle={() => setExpandedCard(expandedCard === 'account' ? null : 'account')}
+        onToggle={() => handleCardToggle('account')}
         onSignOut={handleSignOut}
         isSigningOut={isSigningOut}
       />
       <DevSettingsCard
         isExpanded={expandedCard === 'developer'}
-        onToggle={() => setExpandedCard(expandedCard === 'developer' ? null : 'developer')}
+        onToggle={() => handleCardToggle('developer')}
       />
 
       <ConfirmationModal

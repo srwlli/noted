@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Note Editor Navigation Controls** (2025-10-04)
+  - Added back arrow button to all note editor headers (new, edit, loading, error states)
+  - Uses MaterialIcons "arrow-back" with theme-aware colors
+  - Navigates back to notes list via `router.back()`
+  - Consistent styling across all header buttons (marginLeft: 16, activeOpacity: 0.7)
 - **Markdown Editor with Toolbar** (2025-10-03)
   - Implemented full-featured markdown editor as alternative to modal editor
   - Feature flag controlled: `USE_MARKDOWN_EDITOR` in `config/features.ts` (enabled by default)
@@ -141,6 +146,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Toast Notifications for Note Actions** (2025-10-04)
+  - Replaced blocking Alert.alert() modals with non-blocking toast notifications
+  - Move to folder now displays actual folder name (e.g., "Note moved to Work")
+  - Copy note action now uses toast instead of native alert
+  - Consistent notification system across entire app using sonner-native
+  - Better web compatibility and smoother user experience
+- **Info and Settings Card Toggle Animation** (2025-10-04)
+  - Improved accordion card toggle behavior with smooth transitions
+  - Clicking one card now closes the current card before opening the new one
+  - Added 200ms delay between close and open for smooth visual transition
+  - Applied to both info page and settings page cards
 - **Card Component Standardization** (2025-10-02)
   - Refactored all info cards to use universal Card component instead of inline structure
   - Refactored note-item.tsx to use Card component for consistent sizing
@@ -212,9 +228,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript errors related to web CSS strings in React Native styles (non-critical)
 
 ### Removed
+- **Legacy Modal Note Editor** (2025-10-04)
+  - Removed old modal-based note editor code from notes screen
+  - Removed `NoteModal` component imports and state management
+  - Removed `USE_MARKDOWN_EDITOR` feature flag conditional logic
+  - All notes now use full-screen markdown editor exclusively
+  - Simplified notes screen code by eliminating dual-editor complexity
 - "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
+- **Note Editor Double Header Issue** (2025-10-04)
+  - Fixed double header display showing both "note-editor" and screen-specific titles
+  - Added `headerShown: false` for note-editor route in root Stack layout
+  - Removed redundant screen title definitions from `note-editor/_layout.tsx`
+  - Child screens now fully control their own headers via `<Stack.Screen>` components
+  - Maintains shared navigation config (animations, gestures) in layout file
+  - Result: Clean single-header display with proper theme colors and dynamic buttons
 - **iOS App Icon Path** (Phase 1 - iOS Icon Fix)
   - Updated app.json line 7 to point to correct `noted-white.png` asset
   - Fixed broken iOS builds caused by reference to non-existent icon.png file

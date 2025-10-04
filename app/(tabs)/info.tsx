@@ -19,6 +19,17 @@ export default function InfoScreen() {
     testConnection();
   }, []);
 
+  const handleCardToggle = (cardId: string) => {
+    if (expandedCard === cardId) {
+      setExpandedCard(null);
+    } else if (expandedCard !== null) {
+      setExpandedCard(null);
+      setTimeout(() => setExpandedCard(cardId), 200);
+    } else {
+      setExpandedCard(cardId);
+    }
+  };
+
   const testConnection = async () => {
     try {
       const { data, error } = await supabase.from('notes').select('count', { count: 'exact', head: true });
@@ -38,27 +49,27 @@ export default function InfoScreen() {
 
       <DownloadCard
         isExpanded={expandedCard === 'download'}
-        onToggle={() => setExpandedCard(expandedCard === 'download' ? null : 'download')}
+        onToggle={() => handleCardToggle('download')}
       />
 
       <QuickStartCard
         isExpanded={expandedCard === 'quickstart'}
-        onToggle={() => setExpandedCard(expandedCard === 'quickstart' ? null : 'quickstart')}
+        onToggle={() => handleCardToggle('quickstart')}
       />
 
       <TechStackCard
         isExpanded={expandedCard === 'techstack'}
-        onToggle={() => setExpandedCard(expandedCard === 'techstack' ? null : 'techstack')}
+        onToggle={() => handleCardToggle('techstack')}
       />
 
       <ComingSoonCard
         isExpanded={expandedCard === 'comingsoon'}
-        onToggle={() => setExpandedCard(expandedCard === 'comingsoon' ? null : 'comingsoon')}
+        onToggle={() => handleCardToggle('comingsoon')}
       />
 
       <ContactCard
         isExpanded={expandedCard === 'contact'}
-        onToggle={() => setExpandedCard(expandedCard === 'contact' ? null : 'contact')}
+        onToggle={() => handleCardToggle('contact')}
       />
 
       <Text style={[styles.statusText, { color: colors.textSecondary }]}>
