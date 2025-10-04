@@ -32,7 +32,43 @@ export default function NotesScreen() {
     try {
       setError(null);
       const data = await notesService.getNotesByFolder(selectedFolderId);
-      setNotes(data);
+
+      // Inject test note at the top when viewing "All Notes"
+      if (selectedFolderId === null) {
+        const testNote: Note = {
+          id: 'test-modal-note',
+          title: 'NOTE-MODAL-TEST',
+          content: `# Modal Actions Test Note
+
+This note is used to test the new comprehensive actions modal interface.
+
+## Purpose
+
+The (...) menu button on this note opens a bottom-sheet modal with multiple action sections:
+
+- **Primary Actions**: Edit, Share, Duplicate
+- **AI Actions** (beta): Generate Title, Summarize, Suggest Tags
+- **Export & Publishing**: HTML, PDF, Markdown, CSS, Publish
+- **Organization**: Add Comment, Pin Note
+- **Actions**: Copy Content
+- **Delete**: Remove this note
+
+## Testing Instructions
+
+1. Tap the (...) button in the header to open the modal
+2. Try tapping different action buttons
+3. Each button shows a "Coming Soon" toast for now
+4. Tap outside the modal or swipe down to dismiss
+
+[Learn more about modal patterns](https://reactnative.dev/docs/modal)`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          user_id: 'test-user',
+        };
+        setNotes([testNote, ...data]);
+      } else {
+        setNotes(data);
+      }
     } catch (err) {
       console.error('Failed to load notes:', err);
       setError('Failed to load notes');

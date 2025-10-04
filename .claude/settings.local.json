@@ -6,7 +6,8 @@
       "Bash(dir:*)",
       "Bash(git add:*)",
       "Bash(npm install:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImplement Phase 1: Modal test with comprehensive actions UI\n\nCreated test note \"NOTE-MODAL-TEST\" that triggers new actions modal:\n- Test note appears at top of \"All Notes\" with instructional content\n- (...) button opens bottom-sheet modal (test note only)\n- All other notes keep existing popup menu (unchanged)\n\nNew reusable components:\n- ActionButton: Icon + label with disabled/destructive states\n- ActionCard: Card wrapper for vertical action lists\n- PrimaryActionRow: Horizontal row of equal-width buttons with optional title\n- NoteActionsModal: Bottom sheet with editable title and action grid\n\nModal features:\n- Editable note title field in header\n- 9 action cards in 3x3 grid layout\n- Row 1: Edit, Share, Duplicate\n- Row 2: AI Actions, Export, Organization\n- Row 3: Copy, Delete (red), Download\n- All actions show \"Coming Soon\" toast\n- Delete button uses destructive variant (red)\n- Uses elevatedSurface for better visual contrast\n\nTechnical improvements:\n- Modal rendered outside Card to preserve collapse behavior\n- Destructive variant support in PrimaryActionRow\n- Slide animation for bottom sheet\n- Backdrop dismissal\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
     ],
     "deny": [],
     "ask": []

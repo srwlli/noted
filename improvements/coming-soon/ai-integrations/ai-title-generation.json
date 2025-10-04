@@ -1,0 +1,260 @@
+{
+  "title": "AI-Powered Smart Note Titles",
+  "dateCreated": "2025-10-04",
+  "status": "planning",
+  "priority": "high",
+
+  "overview": {
+    "description": "Introduce an AI assistive action that generates concise, descriptive note titles from existing content to reduce manual effort.",
+    "userNeed": [
+      "Create useful titles automatically when starting notes quickly",
+      "Replace placeholder names before sharing or filing notes into folders",
+      "Improve search and sorting accuracy with clearer naming"
+    ],
+    "businessValue": [
+      "Delivers a visible AI enhancement with minimal engineering lift",
+      "Improves perceived intelligence of the product and user satisfaction",
+      "Acts as a bridge toward deeper AI workflows (summaries, tags)"
+    ]
+  },
+
+  "featureGoals": {
+    "primary": [
+      "Offer a one-tap action that proposes a high-quality title within two seconds",
+      "Allow users to edit or reject the suggestion without any data loss"
+    ],
+    "secondary": [
+      "Reuse the AI service layer for future content-generation features",
+      "Collect light telemetry on acceptance rate to guide iterations"
+    ]
+  },
+
+  "userJourneys": {
+    "autoSuggestOnCreate": {
+      "trigger": "User saves a new note with an empty or generic title",
+      "experience": [
+        "Modal highlights 'Generate Title' helper below the title input",
+        "User taps the helper and sees a loading spinner on the button",
+        "Suggested title fills the input field and remains editable",
+        "User saves or tweaks the suggestion, then closes the modal"
+      ]
+    },
+    "retrofitExistingNotes": {
+      "trigger": "User edits an older note that still has 'Untitled' naming",
+      "experience": [
+        "Generate button sits next to the title input or overflow menu",
+        "On completion the old text is replaced but still undoable manually",
+        "Updated title persists on save and syncs to all clients"
+      ]
+    }
+  },
+
+  "uiDesign": {
+    "touchpoints": [
+      "Add a secondary button labeled 'Generate Title' inside the note modal header area",
+      "Show a compact helper tooltip the first time the feature is available",
+      "Indicate loading with inline spinner and disable repeated presses until response returns"
+    ],
+    "states": {
+      "default": "Button visible when note has 10+ characters of content and title is empty or matches 'Untitled'",
+      "loading": "Button shows spinner, tooltip text replaced with 'Generating…'",
+      "success": "Title input animates to new text and button resets to default",
+      "failure": "Toast or inline message appears with retry option and fallback title retained"
+    }
+  },
+
+  "workflow": [
+    {
+      "step": 1,
+      "summary": "Detect eligibility",
+      "details": [
+        "Observe title field on change and flag when it is empty or matches default placeholder",
+        "Enable AI action only when note body length exceeds minimal threshold (e.g., 20 characters) to reduce low-quality prompts"
+      ]
+    },
+    {
+      "step": 2,
+      "summary": "Send generation request",
+      "details": [
+        "Call services/ai.generateTitle(content, locale) with sanitized note text (max 800 characters for prompt)",
+        "Include guardrail to prevent sending protected/private notes if user has opted out"
+      ]
+    },
+    {
+      "step": 3,
+      "summary": "Handle response",
+      "details": [
+        "Receive trimmed result from OpenAI and clamp to 50 characters",
+        "Write result into title input via controlled component state",
+        "Record analytical event noting acceptance source (auto vs manual edit)"
+      ]
+    },
+    {
+      "step": 4,
+      "summary": "Persist or fallback",
+      "details": [
+        "If user saves, persist title through existing mutation flow",
+        "If request fails, surface friendly error, allow retry, and leave original title untouched"
+      ]
+    }
+  ],
+
+  "technicalImplementation": {
+    "frontend": {
+      "component": "components/note-modal.tsx",
+      "changes": [
+        "Add CTA button and loading indicator bound to local state",
+        "Wire button to async handler that invokes AI service",
+        "Gate rendering behind feature flag or simple boolean for beta rollout"
+      ]
+    },
+    "serviceLayer": {
+      "file": "services/ai.ts",
+      "additions": [
+        "Export async generateTitle({ content, language }) function",
+        "Handle prompt construction, request, and response normalization",
+        "Expose basic caching map keyed by hash(content) for same-session reuse"
+      ]
+    },
+    "configuration": {
+      "file": "lib/openai.ts",
+      "responsibilities": [
+        "Instantiate OpenAI client using env var OPENAI_API_KEY",
+        "Provide shared helper to pass model, temperature, and max_tokens defaults"
+      ]
+    }
+  },
+
+  "apiIntegration": {
+    "provider": "OpenAI GPT-4o-mini",
+    "endpoint": "chat.completions",
+    "promptTemplate": "Generate a concise note title (<= 50 characters) describing the following content:\\n\\n{{content}}",
+    "modelParameters": {
+      "max_tokens": 32,
+      "temperature": 0.4,
+      "presence_penalty": 0.0
+    },
+    "estimatedCost": "$0.000003 per request",
+    "timeouts": "Set client timeout to 8 seconds with one retry on network errors"
+  },
+
+  "dataHandling": {
+    "storage": "No schema changes required; generated title stored in existing notes.title column",
+    "privacy": [
+      "Respect user opt-out toggles for AI features (if disabled, button hidden)",
+      "Leverage OpenAI zero-retention policy and avoid logging raw content outside telemetry"
+    ],
+    "caching": "Cache results in memory during the modal session; optional Supabase kv cache can be evaluated later"
+  },
+
+  "errorHandling": {
+    "scenarios": [
+      "Network failure or timeout: show toast 'Couldn't reach AI right now' with retry link",
+      "Empty or low-quality response: fall back to original title and log warning",
+      "Rate limited by provider: backoff and disable button for 30 seconds with explanatory tooltip"
+    ]
+  },
+
+  "telemetry": {
+    "events": [
+      "ai_title_generate_requested",
+      "ai_title_generate_succeeded",
+      "ai_title_generate_failed",
+      "ai_title_generate_accepted",
+      "ai_title_generate_overwritten"
+    ],
+    "properties": [
+      "note_length_bucket",
+      "was_auto_prompt",
+      "latency_ms",
+      "error_code"
+    ]
+  },
+
+  "implementationPlan": {
+    "phase1_setup": {
+      "duration": "0.5-1 hour",
+      "tasks": [
+        "Add OPENAI_API_KEY to development and deployment environments",
+        "Create lib/openai.ts helper with typed client",
+        "Scaffold services/ai.generateTitle with mocked response for UI work"
+      ]
+    },
+    "phase2_ui_and_logic": {
+      "duration": "1-2 hours",
+      "tasks": [
+        "Update note modal UI with button, loading state, and eligibility checks",
+        "Wire button to service and handle success/error states",
+        "Add lightweight caching to prevent duplicate calls in same session"
+      ]
+    },
+    "phase3_validation": {
+      "duration": "0.5-1 hour",
+      "tasks": [
+        "Add telemetry events via existing analytics hook",
+        "Write unit or integration test for service response normalization",
+        "QA in mobile and web targets, confirm offline fallback behaviour"
+      ]
+    }
+  },
+
+  "successCriteria": {
+    "functional": [
+      "Button appears only when generation is meaningful and permitted",
+      "API call returns within timeout and populates title input",
+      "Users can edit or revert suggestion before saving",
+      "Feature respects offline state by hiding button or messaging appropriately"
+    ],
+    "ux": [
+      "Loading feedback visible during generation",
+      "Errors explained in plain language with retry available",
+      "Generated titles read naturally and stay under 50 characters"
+    ],
+    "operational": [
+      "No unhandled promise rejections in logs",
+      "Telemetry captures acceptance and failure rates",
+      "Feature flag or config toggle allows quick disable if needed"
+    ]
+  },
+
+  "metrics": {
+    "usage": [
+      "% of eligible notes where users tap Generate Title",
+      "Median response latency per request"
+    ],
+    "quality": [
+      "Acceptance rate (title left unchanged after generation)",
+      "Manual edits within 10 seconds of generation"
+    ],
+    "reliability": [
+      "Failure rate per 100 requests",
+      "Retry success ratio"
+    ]
+  },
+
+  "risks": [
+    "Poor suggestions may reduce trust in future AI features",
+    "Unexpected costs if feature is spammed in rapid succession",
+    "Rate limiting could temporarily disable the button without clear messaging"
+  ],
+
+  "estimatedTimeline": "2-4 hours",
+
+  "dependencies": [
+    "OPENAI_API_KEY stored in Supabase secrets or Vercel env vars",
+    "services/ai.ts scaffolding for reuse across future AI features",
+    "Feature flag system (existing or simple boolean configuration)"
+  ],
+
+  "openQuestions": [
+    "Should the button surface automatically for existing notes with generic titles?",
+    "Do we cap the number of free generations per user per day?",
+    "Is localization needed for non-English workspaces at launch?"
+  ],
+
+  "notes": [
+    "Start with manual trigger only; consider auto-suggest on save after gathering feedback",
+    "Keep prompt simple to maximize speed and reduce token usage",
+    "Document fallback behaviours in the release notes for support team"
+  ]
+}

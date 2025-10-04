@@ -10,6 +10,7 @@ import { Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
 import { USE_MARKDOWN_EDITOR } from '@/config/features';
 import { toast } from 'sonner-native';
+import { NoteActionsModal } from '@/components/note-actions-modal';
 
 interface NoteItemProps {
   note: Note;
@@ -24,6 +25,10 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const [showActionsModal, setShowActionsModal] = useState(false);
+
+  // Check if this is the test note
+  const isTestNote = note.title === 'NOTE-MODAL-TEST';
 
   // Cleanup on unmount
   useEffect(() => {
@@ -103,102 +108,127 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
   }, [handleMoveToFolder]);
 
   return (
-    <Card
-      isAccordion={false}
-      style={{
-        backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,
-      }}
-      headerContent={
-        <>
-          <TouchableOpacity
-            style={styles.titleContainer}
-            onPress={handleToggleExpanded}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons
-              name={isExpanded ? "keyboard-arrow-down" : "keyboard-arrow-right"}
-              size={24}
-              color={colors.textSecondary}
-            />
-            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-              {note.title}
-            </Text>
-          </TouchableOpacity>
-          <View style={styles.actions}>
-            <Menu
-              onOpen={handleMenuOpen}
-              onClose={handleMenuClose}
+    <>
+      <Card
+        isAccordion={false}
+        style={{
+          backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,
+        }}
+        headerContent={
+          <>
+            <TouchableOpacity
+              style={styles.titleContainer}
+              onPress={handleToggleExpanded}
+              activeOpacity={0.7}
             >
-              <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>
-                <MaterialIcons name="more-vert" size={20} color={colors.text} />
-              </MenuTrigger>
-              <MenuOptions customStyles={{
-                optionsContainer: {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.border,
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  padding: 8,
-                  minWidth: 150,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 8,
-                  elevation: 5,
-                }
-              }}>
-                <MenuOption onSelect={handleEdit} customStyles={{ optionWrapper: styles.menuItem }}>
-                  <MaterialIcons name="edit" size={20} color={colors.text} />
-                  <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
-                </MenuOption>
-                <MenuOption onSelect={handleCopy} customStyles={{ optionWrapper: styles.menuItem }}>
-                  <MaterialIcons name="content-copy" size={20} color={colors.text} />
-                  <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
-                </MenuOption>
+              <MaterialIcons
+                name={isExpanded ? "keyboard-arrow-down" : "keyboard-arrow-right"}
+                size={24}
+                color={colors.textSecondary}
+              />
+              <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+                {note.title}
+              </Text>
+            </TouchableOpacity>
+            <View style={styles.actions}>
+              {isTestNote ? (
+                // Test note: Show button that opens new modal
+                <TouchableOpacity
+                  style={styles.iconButton}
+                  onPress={() => setShowActionsModal(true)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="more-vert" size={20} color={colors.text} />
+                </TouchableOpacity>
+              ) : (
+                // All other notes: Show existing popup menu
+                <Menu
+                  onOpen={handleMenuOpen}
+                  onClose={handleMenuClose}
+                >
+                  <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>
+                    <MaterialIcons name="more-vert" size={20} color={colors.text} />
+                  </MenuTrigger>
+                  <MenuOptions customStyles={{
+                    optionsContainer: {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
+                      borderWidth: 1,
+                      borderRadius: 12,
+                      padding: 8,
+                      minWidth: 150,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.25,
+                      shadowRadius: 8,
+                      elevation: 5,
+                    }
+                  }}>
+                    <MenuOption onSelect={handleEdit} customStyles={{ optionWrapper: styles.menuItem }}>
+                      <MaterialIcons name="edit" size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
+                    </MenuOption>
+                    <MenuOption onSelect={handleCopy} customStyles={{ optionWrapper: styles.menuItem }}>
+                      <MaterialIcons name="content-copy" size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
+                    </MenuOption>
 
-                {/* Move to Folder submenu */}
-                <View style={[styles.divider, { borderBottomColor: colors.border }]} />
-                <View style={[styles.menuItem, { opacity: 0.5 }]}>
-                  <MaterialIcons name="folder" size={20} color={colors.text} />
-                  <Text style={[styles.menuText, { color: colors.text }]}>Move to Folder</Text>
-                </View>
+                    {/* Move to Folder submenu */}
+                    <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+                    <View style={[styles.menuItem, { opacity: 0.5 }]}>
+                      <MaterialIcons name="folder" size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>Move to Folder</Text>
+                    </View>
 
-                <MenuOption onSelect={handleMoveToAllNotes} customStyles={{ optionWrapper: styles.submenuItem }}>
-                  <MaterialIcons name="folder-open" size={18} color={colors.text} />
-                  <Text style={[styles.submenuText, { color: colors.text }]}>All Notes</Text>
-                </MenuOption>
+                    <MenuOption onSelect={handleMoveToAllNotes} customStyles={{ optionWrapper: styles.submenuItem }}>
+                      <MaterialIcons name="folder-open" size={18} color={colors.text} />
+                      <Text style={[styles.submenuText, { color: colors.text }]}>All Notes</Text>
+                    </MenuOption>
 
-                {folders.map((folder) => (
-                  <MenuOption
-                    key={folder.id}
-                    onSelect={() => handleMoveToFolder(folder.id, folder.name)}
-                    customStyles={{ optionWrapper: styles.submenuItem }}
-                  >
-                    <MaterialIcons name="folder" size={18} color={colors.text} />
-                    <Text style={[styles.submenuText, { color: colors.text }]}>{folder.name}</Text>
-                  </MenuOption>
-                ))}
+                    {folders.map((folder) => (
+                      <MenuOption
+                        key={folder.id}
+                        onSelect={() => handleMoveToFolder(folder.id, folder.name)}
+                        customStyles={{ optionWrapper: styles.submenuItem }}
+                      >
+                        <MaterialIcons name="folder" size={18} color={colors.text} />
+                        <Text style={[styles.submenuText, { color: colors.text }]}>{folder.name}</Text>
+                      </MenuOption>
+                    ))}
 
-                <View style={[styles.divider, { borderBottomColor: colors.border }]} />
-                <MenuOption onSelect={handleDelete} customStyles={{ optionWrapper: styles.menuItem }}>
-                  <MaterialIcons name="delete" size={20} color={colors.text} />
-                  <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
-                </MenuOption>
-              </MenuOptions>
-            </Menu>
-          </View>
-        </>
-      }
-    >
-      {isExpanded && note.content && (
-        <Text
-          style={[styles.preview, { color: colors.textSecondary }]}
-          selectable={true}
-        >
-          {note.content}
-        </Text>
+                    <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+                    <MenuOption onSelect={handleDelete} customStyles={{ optionWrapper: styles.menuItem }}>
+                      <MaterialIcons name="delete" size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
+                    </MenuOption>
+                  </MenuOptions>
+                </Menu>
+              )}
+            </View>
+          </>
+        }
+      >
+        {isExpanded && note.content && (
+          <Text
+            style={[styles.preview, { color: colors.textSecondary }]}
+            selectable={true}
+          >
+            {note.content}
+          </Text>
+        )}
+      </Card>
+
+      {/* Actions Modal (only for test note) - rendered outside Card */}
+      {isTestNote && (
+        <NoteActionsModal
+          visible={showActionsModal}
+          onClose={() => setShowActionsModal(false)}
+          noteId={note.id}
+          noteTitle={note.title}
+          noteContent={note.content || ''}
+        />
       )}
-    </Card>
+    </>
   );
 }, (prevProps, nextProps) => {
   // Only re-render if note actually changed
