@@ -1,12 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform, Share } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
+import React, { useRef } from 'react';
+import { View, TextInput, StyleSheet } from 'react-native';
 import { MarkdownRenderer } from './markdown-renderer';
 import { MarkdownToolbarDropdown } from './markdown-toolbar-dropdown';
 import { useThemeColors } from '@/hooks/use-theme-colors';
-import { markdownService } from '@/services/markdown-service';
-import { extractTitle } from '@/utils/note-parser';
-import { toast } from 'sonner-native';
 
 interface MarkdownEditorProps {
   value: string;
@@ -16,6 +12,8 @@ interface MarkdownEditorProps {
   placeholder?: string;
   showToolbarDropdown?: boolean;
   onCloseToolbarDropdown?: () => void;
+  mode?: 'edit' | 'preview';
+  onExport?: () => void;
 }
 
 /**
@@ -31,8 +29,9 @@ export function MarkdownEditor({
   placeholder = 'Start typing...',
   showToolbarDropdown = false,
   onCloseToolbarDropdown,
+  mode = 'edit',
+  onExport,
 }: MarkdownEditorProps) {
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const { colors } = useThemeColors();
   const selectionRef = useRef({ start: 0, end: 0 });
 
@@ -89,63 +88,8 @@ export function MarkdownEditor({
     return value.substring(start, end);
   };
 
-  /**
-   * Export markdown as HTML document
-   */
-  const handleExport = async () => {
-    try {
-      const title = extractTitle(value) || 'Note';
-      const htmlContent = markdownService.renderToDocument(title, value);
-
-      if (Platform.OS === 'web') {
-        // Web: Download as file
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${title}.html`;
-        link.click();
-        URL.revokeObjectURL(url);
-        toast.success('HTML exported successfully');
-      } else {
-        // Mobile: Share sheet
-        await Share.share({
-          message: htmlContent,
-          title: `${title}.html`,
-        });
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export HTML');
-    }
-  };
-
   return (
     <View style={styles.container}>
-      {/* Toggle Button & Export */}
-      <View style={[styles.toggleContainer, { borderBottomColor: colors.border }]}>
-        {mode === 'preview' && (
-          <TouchableOpacity
-            onPress={handleExport}
-            style={[styles.exportButton, { backgroundColor: colors.surface }]}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="file-download" size={20} color={colors.tint} />
-            <Text style={[styles.exportText, { color: colors.tint }]}>Export HTML</Text>
-          </TouchableOpacity>
-        )}
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity
-          onPress={() => setMode(mode === 'edit' ? 'preview' : 'edit')}
-          style={[styles.toggleButton, { backgroundColor: colors.surface }]}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.toggleText, { color: colors.tint }]}>
-            {mode === 'edit' ? 'Preview' : 'Edit'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
       {/* Edit Mode */}
       {mode === 'edit' && (
         <TextInput
@@ -188,33 +132,6 @@ export function MarkdownEditor({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderBottomWidth: 1,
-  },
-  toggleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  toggleText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  exportButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  exportText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   textInput: {
     flex: 1,

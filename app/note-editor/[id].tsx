@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Text, TouchableOpacity, Share } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownEditor } from '@/components/markdown/markdown-editor';
@@ -7,6 +7,7 @@ import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boun
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { notesService } from '@/services/notes';
 import { extractTitle } from '@/utils/note-parser';
+import { markdownService } from '@/services/markdown-service';
 import { toast } from 'sonner-native';
 
 /**
@@ -20,6 +21,7 @@ function EditNoteScreenContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showToolbar, setShowToolbar] = useState(false);
+  const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const { colors } = useThemeColors();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialContentRef = useRef<string>('');
@@ -86,6 +88,34 @@ function EditNoteScreenContent() {
     };
   }, [content, id, loading, error]);
 
+  const handleExport = async () => {
+    try {
+      const title = extractTitle(content) || 'Note';
+      const htmlContent = markdownService.renderToDocument(title, content);
+
+      if (Platform.OS === 'web') {
+        // Web: Download as file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title}.html`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success('HTML exported successfully');
+      } else {
+        // Mobile: Share sheet
+        await Share.share({
+          message: htmlContent,
+          title: `${title}.html`,
+        });
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Failed to export HTML');
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -134,13 +164,33 @@ function EditNoteScreenContent() {
           },
           headerTintColor: colors.text,
           headerRight: () => (
-            <TouchableOpacity
-              onPress={() => setShowToolbar(!showToolbar)}
-              style={{ marginRight: 16 }}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name="format-size" size={24} color={colors.text} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 16 }}>
+              {mode === 'edit' && (
+                <TouchableOpacity
+                  onPress={() => setShowToolbar(!showToolbar)}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="format-size" size={24} color={colors.text} />
+                </TouchableOpacity>
+              )}
+              {mode === 'preview' && (
+                <TouchableOpacity
+                  onPress={handleExport}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="file-download" size={24} color={colors.tint} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => setMode(mode === 'edit' ? 'preview' : 'edit')}
+                style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: colors.surface, borderRadius: 6 }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: colors.tint, fontSize: 14, fontWeight: '600' }}>
+                  {mode === 'edit' ? 'Preview' : 'Edit'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           ),
         }}
       />
@@ -156,6 +206,8 @@ function EditNoteScreenContent() {
           placeholder="Start typing..."
           showToolbarDropdown={showToolbar}
           onCloseToolbarDropdown={() => setShowToolbar(false)}
+          mode={mode}
+          onExport={handleExport}
         />
       </KeyboardAvoidingView>
     </>
