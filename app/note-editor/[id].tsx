@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Text, TouchableOpacity, Share } from 'react-native';
 import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { MarkdownEditor } from '@/components/markdown/markdown-editor';
+import { MarkdownEditor, MarkdownEditorRef } from '@/components/markdown/markdown-editor';
 import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boundary';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { notesService } from '@/services/notes';
@@ -22,9 +22,12 @@ function EditNoteScreenContent() {
   const [error, setError] = useState<string | null>(null);
   const [showToolbar, setShowToolbar] = useState(false);
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const { colors } = useThemeColors();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialContentRef = useRef<string>('');
+  const editorRef = useRef<MarkdownEditorRef>(null);
 
   // Load note content
   useEffect(() => {
@@ -190,12 +193,28 @@ function EditNoteScreenContent() {
           headerRight: () => (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 16 }}>
               {mode === 'edit' && (
-                <TouchableOpacity
-                  onPress={() => setShowToolbar(!showToolbar)}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="text-format" size={24} color={colors.text} />
-                </TouchableOpacity>
+                <>
+                  <TouchableOpacity
+                    onPress={() => editorRef.current?.undo()}
+                    disabled={!canUndo}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="undo" size={24} color={canUndo ? colors.text : colors.disabled} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => editorRef.current?.redo()}
+                    disabled={!canRedo}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="redo" size={24} color={canRedo ? colors.text : colors.disabled} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowToolbar(!showToolbar)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="text-format" size={24} color={colors.text} />
+                  </TouchableOpacity>
+                </>
               )}
               {mode === 'preview' && (
                 <TouchableOpacity
@@ -223,9 +242,14 @@ function EditNoteScreenContent() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <MarkdownEditor
+          ref={editorRef}
           value={content}
           onChange={setContent}
           onSelectionChange={setSelection}
+          onUndoRedoChange={(canUndo, canRedo) => {
+            setCanUndo(canUndo);
+            setCanRedo(canRedo);
+          }}
           autoFocus={false}
           placeholder="Start typing..."
           showToolbarDropdown={showToolbar}

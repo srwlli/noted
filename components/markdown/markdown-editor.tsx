@@ -1,5 +1,5 @@
-import React, { useRef, useCallback } from 'react';
-import { View, TextInput, StyleSheet } from 'react-native';
+import React, { useRef, useCallback, useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { View, TextInput, StyleSheet, Platform } from 'react-native';
 import { MarkdownRenderer } from './markdown-renderer';
 import { MarkdownToolbarDropdown } from './markdown-toolbar-dropdown';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -8,6 +8,7 @@ interface MarkdownEditorProps {
   value: string;
   onChange: (text: string) => void;
   onSelectionChange?: (selection: { start: number; end: number }) => void;
+  onUndoRedoChange?: (canUndo: boolean, canRedo: boolean) => void;
   autoFocus?: boolean;
   placeholder?: string;
   showToolbarDropdown?: boolean;
@@ -16,25 +17,43 @@ interface MarkdownEditorProps {
   onExport?: () => void;
 }
 
+export interface MarkdownEditorRef {
+  undo: () => void;
+  redo: () => void;
+}
+
 /**
  * Main markdown editor component with edit/preview toggle
  * - Edit mode: Plain TextInput for markdown syntax
  * - Preview mode: Rendered markdown display
  */
-export function MarkdownEditor({
+export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>(function MarkdownEditor({
   value,
   onChange,
   onSelectionChange,
+  onUndoRedoChange,
   autoFocus = true,
   placeholder = 'Start typing...',
   showToolbarDropdown = false,
   onCloseToolbarDropdown,
   mode = 'edit',
   onExport,
-}: MarkdownEditorProps) {
+}, ref) {
   const { colors } = useThemeColors();
   const selectionRef = useRef({ start: 0, end: 0 });
   const inputRef = useRef<TextInput>(null);
+
+  // History state for undo/redo
+  const [history, setHistory] = useState<Array<{content: string, selection: {start: number, end: number}}>>(() => [
+    {content: value || '', selection: {start: 0, end: 0}}
+  ]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [isUndoRedoAction, setIsUndoRedoAction] = useState(false);
+  const historyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Computed values for undo/redo availability
+  const canUndo = historyIndex > 0;
+  const canRedo = historyIndex < history.length - 1;
 
   /**
    * Restore focus and cursor position to the editor
@@ -60,6 +79,125 @@ export function MarkdownEditor({
 
     return () => clearTimeout(handle);
   }, []);
+
+  /**
+   * Add content to history for undo/redo
+   * - skipDebounce: true for toolbar actions, false for typing
+   */
+  const addToHistory = useCallback((newContent: string, newSelection: {start: number, end: number}, skipDebounce = false) => {
+    if (isUndoRedoAction) return;
+
+    const doAddHistory = () => {
+      setHistory(prev => {
+        // Remove any future states if we're not at the end
+        const newHistory = prev.slice(0, historyIndex + 1);
+        // Add new state
+        newHistory.push({content: newContent, selection: newSelection});
+        // Limit history to 50 entries
+        if (newHistory.length > 50) {
+          newHistory.shift();
+          return newHistory;
+        }
+        return newHistory;
+      });
+      setHistoryIndex(prev => Math.min(prev + 1, 49));
+    };
+
+    if (skipDebounce) {
+      // Immediate for toolbar actions
+      doAddHistory();
+    } else {
+      // Debounced for typing
+      if (historyTimeoutRef.current) clearTimeout(historyTimeoutRef.current);
+      historyTimeoutRef.current = setTimeout(doAddHistory, 500);
+    }
+  }, [historyIndex, isUndoRedoAction]);
+
+  /**
+   * Undo to previous state
+   */
+  const handleUndo = useCallback(() => {
+    if (historyIndex === 0 || isUndoRedoAction) return;
+
+    setIsUndoRedoAction(true);
+    const prevState = history[historyIndex - 1];
+    onChange(prevState.content);
+    selectionRef.current = prevState.selection;
+    restoreFocus();
+    setHistoryIndex(prev => prev - 1);
+
+    // Reset flag after React finishes rendering
+    queueMicrotask(() => setIsUndoRedoAction(false));
+  }, [history, historyIndex, onChange, restoreFocus, isUndoRedoAction]);
+
+  /**
+   * Redo to next state
+   */
+  const handleRedo = useCallback(() => {
+    if (historyIndex >= history.length - 1 || isUndoRedoAction) return;
+
+    setIsUndoRedoAction(true);
+    const nextState = history[historyIndex + 1];
+    onChange(nextState.content);
+    selectionRef.current = nextState.selection;
+    restoreFocus();
+    setHistoryIndex(prev => prev + 1);
+
+    // Reset flag after React finishes rendering
+    queueMicrotask(() => setIsUndoRedoAction(false));
+  }, [history, historyIndex, onChange, restoreFocus, isUndoRedoAction]);
+
+  // Track value changes and add to history with debounce
+  useEffect(() => {
+    // Don't add to history during undo/redo actions
+    if (isUndoRedoAction) return;
+
+    // Don't add empty initial state
+    if (value === '' && history.length === 1) return;
+
+    // Add to history with debounce (500ms)
+    addToHistory(value, selectionRef.current);
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (historyTimeoutRef.current) {
+        clearTimeout(historyTimeoutRef.current);
+      }
+    };
+  }, [value, isUndoRedoAction, addToHistory]);
+
+  // Notify parent of undo/redo availability changes
+  useEffect(() => {
+    onUndoRedoChange?.(canUndo, canRedo);
+  }, [canUndo, canRedo, onUndoRedoChange]);
+
+  // Expose undo/redo methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    undo: handleUndo,
+    redo: handleRedo,
+  }), [handleUndo, handleRedo]);
+
+  // Keyboard shortcuts (web only)
+  useEffect(() => {
+    // Only add keyboard listeners on web platform
+    if (Platform.OS !== 'web') return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMac = typeof navigator !== 'undefined' && navigator.platform?.toUpperCase().includes('MAC');
+      const ctrlKey = isMac ? e.metaKey : e.ctrlKey;
+
+      if (ctrlKey && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((ctrlKey && e.key === 'y') || (ctrlKey && e.shiftKey && e.key === 'z')) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   /**
    * Handle markdown syntax insertion from toolbar
@@ -88,6 +226,9 @@ export function MarkdownEditor({
     // Update selection ref for next insertion
     selectionRef.current = { start: newCursorPos, end: newCursorPos };
 
+    // Immediate history entry for toolbar actions (skipDebounce = true)
+    addToHistory(newContent, selectionRef.current, true);
+
     // Restore focus and cursor position
     restoreFocus();
   };
@@ -109,6 +250,9 @@ export function MarkdownEditor({
     // Update selection ref for next insertion
     const newCursorPos = start + text.length;
     selectionRef.current = { start: newCursorPos, end: newCursorPos };
+
+    // Immediate history entry for toolbar actions (skipDebounce = true)
+    addToHistory(newContent, selectionRef.current, true);
 
     // Restore focus and cursor position
     restoreFocus();
@@ -160,7 +304,7 @@ export function MarkdownEditor({
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
