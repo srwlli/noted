@@ -31,20 +31,29 @@ export function MarkdownToolbarDropdown({
 
   const handleInsert = (before: string, after: string) => {
     onInsert(before, after);
-    onClose();
+    // Delay close to allow focus restoration to complete on iOS
+    setTimeout(() => {
+      onClose();
+    }, 250);
   };
 
   const handleInsertLink = (text: string, url: string) => {
     const markdownLink = `[${text}](${url})`;
     onInsertText?.(markdownLink);
     setShowLinkModal(false);
-    onClose();
+    // Delay close to allow focus restoration to complete on iOS
+    setTimeout(() => {
+      onClose();
+    }, 250);
   };
 
   const handleInsertTable = (table: string) => {
     onInsertText?.(table);
     setShowTableModal(false);
-    onClose();
+    // Delay close to allow focus restoration to complete on iOS
+    setTimeout(() => {
+      onClose();
+    }, 250);
   };
 
   if (!visible) return null;

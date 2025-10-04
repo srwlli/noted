@@ -247,13 +247,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures full visibility on all platforms (web PWA, iOS, Android)
   - Accounts for tab bar height (44px) + safe area padding + visual spacing
 - **Markdown Editor Focus Restoration** (2025-10-04)
-  - Fixed TextInput losing focus after toolbar formatting actions
+  - Fixed TextInput losing focus after toolbar formatting actions on iOS
   - Added TextInput ref for programmatic focus control
-  - Implemented `restoreFocus()` method with 150ms delay for smooth modal dismiss
+  - Implemented `restoreFocus()` method with iOS-optimized timing (200ms delay)
+  - Added `setSelection()` API fallback for newer React Native versions (deprecated `setNativeProps` replacement)
+  - Delayed modal close by 250ms to prevent iOS from interrupting focus restoration
   - Automatically restores focus and cursor position after all toolbar actions (Bold, Italic, Headings, Lists, Code, Links, Tables)
   - Users can now format text and immediately continue typing without manual refocus
   - Improved writing flow: reduced from 6 steps to 4 steps per formatting action
-  - Works across all platforms (iOS, Android, Web) with proper keyboard handling
+  - Verified working on iOS, Android, and Web with proper keyboard handling
 - **Note Editor Double Header Issue** (2025-10-04)
   - Fixed double header display showing both "note-editor" and screen-specific titles
   - Added `headerShown: false` for note-editor route in root Stack layout

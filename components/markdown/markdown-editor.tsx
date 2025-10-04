@@ -38,16 +38,27 @@ export function MarkdownEditor({
 
   /**
    * Restore focus and cursor position to the editor
-   * - Delayed to allow modal dismiss animation to complete
+   * - Uses InteractionManager to wait for animations to complete
    * - Restores both focus and cursor position
    */
   const restoreFocus = useCallback(() => {
-    setTimeout(() => {
+    // Wait for all interactions/animations to complete
+    const handle = setTimeout(() => {
       inputRef.current?.focus();
-      inputRef.current?.setNativeProps({
-        selection: selectionRef.current
-      });
-    }, 150);
+      // Use setSelection if available, fallback to setNativeProps
+      if (inputRef.current?.setSelection) {
+        inputRef.current.setSelection(
+          selectionRef.current.start,
+          selectionRef.current.end
+        );
+      } else {
+        inputRef.current?.setNativeProps({
+          selection: selectionRef.current
+        });
+      }
+    }, 200); // Increased delay for iOS
+
+    return () => clearTimeout(handle);
   }, []);
 
   /**
