@@ -127,6 +127,7 @@ function EditNoteScreenContent() {
             title: 'Loading...',
             headerStyle: {
               backgroundColor: colors.surface,
+              height: 52,
             },
             headerTintColor: colors.text,
             headerLeft: () => (
@@ -154,6 +155,7 @@ function EditNoteScreenContent() {
             title: 'Error',
             headerStyle: {
               backgroundColor: colors.surface,
+              height: 52,
             },
             headerTintColor: colors.text,
             headerLeft: () => (
@@ -180,6 +182,7 @@ function EditNoteScreenContent() {
           title: 'Edit Note',
           headerStyle: {
             backgroundColor: colors.surface,
+            height: 52,
           },
           headerTintColor: colors.text,
           headerLeft: () => (
