@@ -95,6 +95,11 @@ export const notesService = {
       const { data, error } = await query;
       if (error) throw error;
       return data as Note[];
+    } else if (folderId === 'unfiled') {
+      // Return only notes without a folder
+      const { data, error } = await query.is('folder_id', null);
+      if (error) throw error;
+      return data as Note[];
     } else {
       // Filter by specific folder
       const { data, error } = await query.eq('folder_id', folderId);

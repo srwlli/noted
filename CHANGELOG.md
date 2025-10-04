@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Unfiled Notes Filter** (2025-10-04)
+  - Added "Unfiled" option to folder dropdown menu for viewing notes without folder assignment
+  - Shows only notes where folder_id is NULL
+  - Uses folder-off icon to indicate unorganized notes
+  - Menu structure now: All Notes → Unfiled → [User Folders] → New Folder
+  - Updated getNotesByFolder() to handle 'unfiled' special case
+  - Helps users quickly find and organize notes that haven't been filed yet
 - **Note Editor Navigation Controls** (2025-10-04)
   - Added back arrow button to all note editor headers (new, edit, loading, error states)
   - Uses MaterialIcons "arrow-back" with theme-aware colors

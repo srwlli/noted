@@ -132,6 +132,16 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
                 </Text>
               </MenuOption>
 
+              <MenuOption
+                onSelect={() => handleFolderSelect('unfiled')}
+                customStyles={{ optionWrapper: styles.menuItem }}
+              >
+                <MaterialIcons name="folder-off" size={20} color={colors.text} />
+                <Text style={[styles.menuText, { color: colors.text, fontWeight: selectedFolderId === 'unfiled' ? '600' : '400' }]}>
+                  Unfiled
+                </Text>
+              </MenuOption>
+
               {folders.length > 0 && (
                 <View style={[styles.divider, { borderBottomColor: colors.border }]} />
               )}
