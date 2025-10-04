@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, Text, StyleSheet, Platform, Share } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownRenderer } from './markdown-renderer';
-import { MarkdownToolbar } from './markdown-toolbar';
+import { MarkdownToolbarDropdown } from './markdown-toolbar-dropdown';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { markdownService } from '@/services/markdown-service';
 import { extractTitle } from '@/utils/note-parser';
@@ -14,7 +14,8 @@ interface MarkdownEditorProps {
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   autoFocus?: boolean;
   placeholder?: string;
-  showToolbar?: boolean;
+  showToolbarDropdown?: boolean;
+  onCloseToolbarDropdown?: () => void;
 }
 
 /**
@@ -28,7 +29,8 @@ export function MarkdownEditor({
   onSelectionChange,
   autoFocus = true,
   placeholder = 'Start typing...',
-  showToolbar = false,
+  showToolbarDropdown = false,
+  onCloseToolbarDropdown,
 }: MarkdownEditorProps) {
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const { colors } = useThemeColors();
@@ -169,9 +171,11 @@ export function MarkdownEditor({
         <MarkdownRenderer markdown={value} scrollable={true} />
       )}
 
-      {/* Toolbar (only in edit mode) */}
-      {showToolbar && mode === 'edit' && (
-        <MarkdownToolbar
+      {/* Toolbar Dropdown (only in edit mode) */}
+      {mode === 'edit' && (
+        <MarkdownToolbarDropdown
+          visible={showToolbarDropdown}
+          onClose={onCloseToolbarDropdown || (() => {})}
           onInsert={handleInsert}
           onInsertText={handleInsertText}
           selectedText={getSelectedText()}

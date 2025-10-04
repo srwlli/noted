@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownEditor } from '@/components/markdown/markdown-editor';
 import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boundary';
 import { useThemeColors } from '@/hooks/use-theme-colors';
@@ -18,6 +19,7 @@ function EditNoteScreenContent() {
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showToolbar, setShowToolbar] = useState(false);
   const { colors } = useThemeColors();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const initialContentRef = useRef<string>('');
@@ -131,6 +133,15 @@ function EditNoteScreenContent() {
             backgroundColor: colors.surface,
           },
           headerTintColor: colors.text,
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={() => setShowToolbar(!showToolbar)}
+              style={{ marginRight: 16 }}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="format-size" size={24} color={colors.text} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <KeyboardAvoidingView
@@ -143,7 +154,8 @@ function EditNoteScreenContent() {
           onSelectionChange={setSelection}
           autoFocus={false}
           placeholder="Start typing..."
-          showToolbar={true}
+          showToolbarDropdown={showToolbar}
+          onCloseToolbarDropdown={() => setShowToolbar(false)}
         />
       </KeyboardAvoidingView>
     </>
