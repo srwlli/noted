@@ -1,0 +1,914 @@
+{
+  "title": "Visual & User Feedback Inventory",
+  "dateCreated": "2025-10-05",
+  "lastUpdated": "2025-10-05",
+  "version": "1.0.0",
+  "status": "active",
+
+  "overview": {
+    "description": "Comprehensive inventory of all visual and user feedback mechanisms implemented across the Noted application",
+    "purpose": [
+      "Document all user feedback patterns for consistency",
+      "Ensure new features follow established patterns",
+      "Identify gaps or inconsistencies in user experience",
+      "Reference guide for design and development"
+    ],
+    "categories": [
+      "Toast Notifications",
+      "Loading States",
+      "Active/Selected States",
+      "Color-Based Feedback",
+      "Animations & Transitions",
+      "Interactive States",
+      "Visual Indicators",
+      "Error Handling",
+      "Modal Feedback",
+      "Gesture Feedback",
+      "Input Validation",
+      "Theme System Feedback"
+    ]
+  },
+
+  "feedbackMechanisms": {
+    "1_toastNotifications": {
+      "name": "Toast Notifications",
+      "library": "sonner-native",
+      "implementation": "2025-10-04",
+      "priority": "high",
+      "description": "Non-blocking toast notifications for user actions and system feedback",
+
+      "variants": {
+        "success": {
+          "method": "toast.success(message)",
+          "color": "Green/success color from theme",
+          "useCases": [
+            "Note saved successfully",
+            "Note copied to clipboard",
+            "Note moved to folder (e.g., 'Note moved to Work')",
+            "Theme changed",
+            "Folder created"
+          ],
+          "examples": [
+            "toast.success('Note content copied to clipboard')",
+            "toast.success(`Note moved to ${folderName}`)"
+          ]
+        },
+        "error": {
+          "method": "toast.error(message)",
+          "color": "Red/error color",
+          "useCases": [
+            "Failed to copy content",
+            "Failed to save note",
+            "Failed to move note to folder",
+            "Failed to sign out",
+            "Editor error occurred"
+          ],
+          "examples": [
+            "toast.error('Failed to copy content')",
+            "toast.error('Failed to sign out. Please try again.')",
+            "toast.error('Editor error occurred. Please try again or use the old editor.')"
+          ]
+        },
+        "info": {
+          "method": "toast.info(message)",
+          "color": "Blue/info color",
+          "useCases": [
+            "Coming Soon actions",
+            "Feature unavailable messages"
+          ],
+          "examples": [
+            "toast.info('Coming Soon')"
+          ]
+        }
+      },
+
+      "replacedPatterns": {
+        "before": "Alert.alert() native modals",
+        "after": "toast notifications",
+        "benefit": "Non-blocking, better web compatibility, smoother UX",
+        "changelogEntry": "2025-10-04 - Toast Notifications for Note Actions"
+      },
+
+      "locations": [
+        "components/note-item.tsx (copy, move to folder)",
+        "components/note-actions-modal.tsx (coming soon actions)",
+        "app/(tabs)/settings.tsx (sign out errors)",
+        "app/note-editor/[id].tsx (save feedback)",
+        "components/markdown/markdown-error-boundary.tsx (error feedback)",
+        "contexts/theme-controller.tsx (theme change feedback)"
+      ]
+    },
+
+    "2_loadingStates": {
+      "name": "Loading States",
+      "priority": "high",
+      "description": "Visual feedback during asynchronous operations to prevent user confusion",
+
+      "patterns": {
+        "isLoading": {
+          "type": "boolean state",
+          "behavior": "Disables interactive elements during async operations",
+          "visualFeedback": "Disabled styling via colors.disabled or reduced opacity",
+          "locations": [
+            "components/settings-cards/theme-settings-card.tsx (isLoading)",
+            "app/(tabs)/settings.tsx (isSigningOut)",
+            "components/folder-modal.tsx (folder creation)"
+          ]
+        },
+        "disabled": {
+          "prop": "disabled={isLoading}",
+          "styling": "Reduced opacity, non-interactive state",
+          "examples": [
+            "Theme picker button disabled while loading",
+            "Sign out button shows 'Signing Out...' text",
+            "Form submit buttons disabled during save"
+          ]
+        },
+        "textFeedback": {
+          "pattern": "Change button text to indicate loading",
+          "examples": [
+            "'Sign Out' → 'Signing Out...'",
+            "'Save' → 'Saving...'",
+            "'Delete' → 'Deleting...'"
+          ]
+        }
+      },
+
+      "implementations": [
+        {
+          "component": "ThemeSettingsCard",
+          "state": "isLoading",
+          "disables": ["Theme picker button", "Color scheme segmented control"],
+          "file": "components/settings-cards/theme-settings-card.tsx"
+        },
+        {
+          "component": "AccountSettingsCard",
+          "state": "isSigningOut",
+          "disables": ["Sign out button"],
+          "textChange": "'Sign Out' → 'Signing Out...'",
+          "file": "components/settings-cards/account-settings-card.tsx"
+        },
+        {
+          "component": "FolderModal",
+          "state": "loadingFolders",
+          "behavior": "Shows loading state while fetching folders",
+          "file": "components/folder-modal.tsx"
+        }
+      ]
+    },
+
+    "3_activeSelectedStates": {
+      "name": "Active/Selected States",
+      "priority": "high",
+      "implementation": "2025-10-05",
+      "description": "Visual highlighting to indicate active or selected UI elements",
+
+      "headerActive": {
+        "component": "Card",
+        "prop": "headerActive: boolean",
+        "color": "colors.selectedSurface",
+        "animation": "150ms CSS transition (background-color 0.15s ease-out)",
+        "behavior": "Header background changes from colors.surface to colors.selectedSurface when active",
+        "changelogEntry": "2025-10-05 - Conditional header highlighting",
+
+        "useCases": [
+          {
+            "context": "Note cards",
+            "trigger": "Menu is open (isMenuOpen)",
+            "visual": "Header highlights when (...) menu is open",
+            "file": "components/note-item.tsx"
+          },
+          {
+            "context": "Info cards",
+            "trigger": "Card is expanded (isExpanded)",
+            "visual": "Header highlights when accordion card is expanded",
+            "files": [
+              "components/info-cards/download-card.tsx",
+              "components/info-cards/quick-start-card.tsx",
+              "components/info-cards/tech-stack-card.tsx",
+              "components/info-cards/coming-soon-card.tsx",
+              "components/info-cards/contact-card.tsx"
+            ]
+          },
+          {
+            "context": "Settings cards",
+            "trigger": "Card is expanded (isExpanded)",
+            "visual": "Header highlights when settings section is expanded",
+            "files": [
+              "components/settings-cards/theme-settings-card.tsx",
+              "components/settings-cards/profile-settings-card.tsx",
+              "components/settings-cards/account-settings-card.tsx",
+              "components/settings-cards/dev-settings-card.tsx"
+            ]
+          }
+        ]
+      },
+
+      "selectedSurface": {
+        "themeColor": "colors.selectedSurface",
+        "added": "2025-10-02 (Phase 2.1 of theme system)",
+        "purpose": "Provide visual feedback for selected/active item states",
+        "semantics": "Distinct from elevatedSurface (selection vs elevation)",
+        "coverage": "All 10 themes include selectedSurface in light and dark modes",
+        "changelogEntry": "18-Color Theme System (Phase 2.1 - selectedSurface)"
+      },
+
+      "otherSelectionStates": {
+        "themePicker": {
+          "visual": "'Current' badge on selected theme",
+          "location": "components/theme-picker-modal.tsx",
+          "styling": "Border highlight + text badge"
+        },
+        "colorScheme": {
+          "visual": "Background highlight on selected mode (Light/Dark/System)",
+          "location": "components/settings-cards/theme-settings-card.tsx",
+          "color": "colors.tint background when active"
+        }
+      }
+    },
+
+    "4_colorBasedFeedback": {
+      "name": "Color-Based Visual Feedback",
+      "priority": "high",
+      "description": "Using color changes to communicate state and validation",
+
+      "errorColors": {
+        "redBorder": {
+          "color": "#ff6b6b or red from theme",
+          "useCases": [
+            "Input validation - red border when exceeding character limits",
+            "Error banners in settings",
+            "Form validation errors"
+          ],
+          "changelogEntry": "2025-10-02 - Frontend Input Validation"
+        },
+        "redText": {
+          "color": "#ff6b6b or red",
+          "useCases": [
+            "Character counter when over limit (e.g., '205/200' in red)",
+            "Error messages in error banners",
+            "Destructive action labels"
+          ]
+        },
+        "errorBanner": {
+          "backgroundColor": "colors.surface",
+          "borderColor": "#ff6b6b",
+          "borderWidth": 2,
+          "icon": "⚠️",
+          "location": "components/settings-cards/theme-settings-card.tsx",
+          "example": "Theme load error banner"
+        }
+      },
+
+      "destructiveActions": {
+        "color": "Red color for delete/destructive actions",
+        "useCases": [
+          "Delete button in note actions (destructive: true)",
+          "Delete option in menus"
+        ],
+        "implementation": {
+          "component": "PrimaryActionRow",
+          "prop": "destructive: boolean",
+          "file": "components/note-actions/primary-action-row.tsx"
+        }
+      },
+
+      "validationFeedback": {
+        "characterCounters": {
+          "normal": "colors.textSecondary (e.g., '150/200')",
+          "overLimit": "red color (e.g., '205/200')",
+          "location": "Note forms, title inputs",
+          "realTime": true
+        },
+        "inputBorders": {
+          "normal": "colors.border",
+          "error": "red border",
+          "focus": "colors.tint or highlight color"
+        }
+      },
+
+      "themeColors": {
+        "tint": "Primary action color, highlights, active states",
+        "highlight": "Selections and notifications",
+        "disabled": "Non-interactive element styling",
+        "hover": "Interactive element hover states (web)",
+        "pressed": "Interactive element pressed states",
+        "linkColor": "Hyperlinks (distinct from buttons)",
+        "accentSecondary": "Visual variety"
+      }
+    },
+
+    "5_animationsTransitions": {
+      "name": "Animations & Transitions",
+      "priority": "medium",
+      "description": "Smooth visual transitions to enhance user experience",
+
+      "cssTransitions": {
+        "cardHeaderAnimation": {
+          "property": "background-color",
+          "duration": "150ms",
+          "timing": "ease-out",
+          "implementation": "transition: 'background-color 0.15s ease-out'",
+          "platform": "Web/PWA (gracefully degrades on React Native)",
+          "location": "components/common/card.tsx (styles.header)",
+          "changelogEntry": "2025-10-05 - Add conditional header highlighting with smooth animation"
+        }
+      },
+
+      "modalAnimations": {
+        "slideAnimation": {
+          "type": "animationType='slide'",
+          "behavior": "Bottom-sheet modals slide up from bottom",
+          "locations": [
+            "components/note-actions-modal.tsx",
+            "components/theme-picker-modal.tsx",
+            "components/folder-modal.tsx",
+            "components/confirmation-modal.tsx"
+          ]
+        },
+        "fadeAnimation": {
+          "type": "animationType='fade'",
+          "behavior": "Backdrop fades in/out",
+          "usage": "Modal backdrop overlays"
+        }
+      },
+
+      "accordionAnimations": {
+        "sequentialToggle": {
+          "behavior": "When opening new card, close current card first with delay",
+          "delay": "200ms",
+          "purpose": "Smooth visual transition between cards",
+          "implementation": "setTimeout(() => setExpandedCard(cardId), 200)",
+          "locations": [
+            "app/(tabs)/info.tsx",
+            "app/(tabs)/settings.tsx"
+          ],
+          "changelogEntry": "2025-10-04 - Info and Settings Card Toggle Animation"
+        }
+      },
+
+      "futureEnhancements": {
+        "reactNativeAnimated": {
+          "description": "Add React Native Animated API for smooth transitions on mobile",
+          "currentState": "Web-only CSS transitions",
+          "benefit": "Smooth animations on iOS/Android native apps"
+        }
+      }
+    },
+
+    "6_interactiveStates": {
+      "name": "Interactive States",
+      "priority": "medium",
+      "description": "Visual feedback for user interactions with UI elements",
+
+      "touchFeedback": {
+        "activeOpacity": {
+          "value": 0.7,
+          "usage": "Standard opacity reduction on press",
+          "locations": [
+            "All TouchableOpacity components",
+            "Note card headers",
+            "Menu items",
+            "Buttons",
+            "Action cards"
+          ]
+        }
+      },
+
+      "hoverStates": {
+        "color": "colors.hover",
+        "platform": "Web only",
+        "implementation": "Defined in theme system",
+        "usage": "Button hover effects, card hover, link hover"
+      },
+
+      "pressedStates": {
+        "color": "colors.pressed",
+        "platform": "All platforms",
+        "implementation": "Defined in theme system",
+        "usage": "Active press feedback on buttons and interactive elements"
+      },
+
+      "disabledStates": {
+        "color": "colors.disabled",
+        "opacity": "Reduced (typically 0.5-0.6)",
+        "behavior": "Non-interactive, greyed out appearance",
+        "locations": [
+          "Loading buttons",
+          "Unavailable actions",
+          "Form inputs during submission"
+        ]
+      }
+    },
+
+    "7_visualIndicators": {
+      "name": "Visual Indicators",
+      "priority": "medium",
+      "description": "Icons, badges, and visual cues to guide users",
+
+      "chevronIcons": {
+        "expanded": "keyboard-arrow-down",
+        "collapsed": "keyboard-arrow-right",
+        "size": 24,
+        "color": "colors.textSecondary",
+        "usage": "All accordion cards (notes, info, settings)",
+        "standardization": "2025-10-02",
+        "changelogEntry": "Card Component Standardization"
+      },
+
+      "characterCounters": {
+        "format": "'current/max' (e.g., '150/200')",
+        "location": "Note title input, content input",
+        "realTime": true,
+        "colorChange": "Normal → red when exceeded",
+        "changelogEntry": "2025-10-02 - Frontend Input Validation"
+      },
+
+      "themePreview": {
+        "type": "3-dot color preview",
+        "colors": ["background", "surface", "tint"],
+        "size": "24x24px dots",
+        "location": "components/settings-cards/theme-settings-card.tsx",
+        "purpose": "Visual summary of current theme"
+      },
+
+      "badgesLabels": {
+        "currentBadge": {
+          "text": "'Current'",
+          "location": "Theme picker modal on selected theme",
+          "styling": "Badge with border and highlight"
+        },
+        "comingSoon": {
+          "text": "'Coming Soon'",
+          "location": "Action buttons in note actions modal",
+          "behavior": "Shows toast when clicked"
+        }
+      },
+
+      "folderIcons": {
+        "folder": "MaterialIcons 'folder'",
+        "folderOpen": "MaterialIcons 'folder-open'",
+        "folderOff": "MaterialIcons 'folder-off' (for unfiled notes)",
+        "usage": "Folder dropdown, move to folder menu"
+      }
+    },
+
+    "8_errorHandling": {
+      "name": "Error Handling & Recovery",
+      "priority": "high",
+      "description": "Graceful error handling with user-friendly feedback",
+
+      "errorBoundary": {
+        "component": "MarkdownErrorBoundary",
+        "location": "components/markdown/markdown-error-boundary.tsx",
+        "implementation": "React Error Boundary class component",
+
+        "behavior": {
+          "onError": [
+            "Catches crashes in markdown editor",
+            "Shows user-friendly error UI",
+            "Displays toast notification",
+            "Logs error to console"
+          ],
+          "fallbackUI": {
+            "icon": "MaterialIcons 'error-outline' (size 64, color #EF4444)",
+            "title": "'Editor Error'",
+            "message": "'The markdown editor encountered an unexpected error.'",
+            "suggestion": "'You can go back and try again, or use the old editor from settings.'",
+            "devOnly": "Shows error details and stack trace in development mode",
+            "action": "Go Back button (arrow-back icon + text)"
+          }
+        },
+
+        "toast": "toast.error('Editor error occurred. Please try again or use the old editor.')",
+        "recovery": "Navigate back via router.back() or router.replace('/(tabs)')"
+      },
+
+      "errorBanners": {
+        "themeLoadError": {
+          "location": "components/settings-cards/theme-settings-card.tsx",
+          "trigger": "Theme fails to load from storage",
+          "visual": {
+            "icon": "⚠️",
+            "backgroundColor": "colors.surface",
+            "borderColor": "#ff6b6b",
+            "borderWidth": 2,
+            "text": "Warning icon + error message",
+            "subtext": "'Using default theme. Your preferences may not have loaded correctly.'"
+          }
+        }
+      },
+
+      "toastErrors": {
+        "pattern": "toast.error(message)",
+        "useCases": [
+          "Network failures",
+          "Save failures",
+          "Delete failures",
+          "Sign out errors",
+          "Editor crashes"
+        ]
+      },
+
+      "databaseValidation": {
+        "constraints": [
+          "Title max length: 200 characters",
+          "Content max length: 50,000 characters",
+          "Title cannot be null or empty/whitespace"
+        ],
+        "migration": "20251002032805_add_note_constraints.sql",
+        "frontendValidation": "Prevents submission before database rejection",
+        "changelogEntry": "2025-10-02 - Database Input Validation Constraints"
+      }
+    },
+
+    "9_modalFeedback": {
+      "name": "Modal & Dialog Feedback",
+      "priority": "medium",
+      "description": "Modal presentations and user interactions",
+
+      "bottomSheetModals": {
+        "pattern": "Modal with animationType='slide' from bottom",
+        "backdrop": "Semi-transparent overlay (colors.overlay)",
+        "dismissal": "Tap backdrop or close button",
+
+        "implementations": [
+          {
+            "name": "NoteActionsModal",
+            "file": "components/note-actions-modal.tsx",
+            "features": [
+              "Editable note title field",
+              "9 action cards in 3x3 grid",
+              "Destructive variant for delete",
+              "Coming soon toasts"
+            ]
+          },
+          {
+            "name": "ThemePickerModal",
+            "file": "components/theme-picker-modal.tsx",
+            "features": [
+              "Full-screen modal",
+              "Large theme previews (120x80px)",
+              "Light/Dark preview toggle",
+              "2-column mobile, 3-column desktop grid",
+              "Current theme indicator"
+            ]
+          },
+          {
+            "name": "FolderModal",
+            "file": "components/folder-modal.tsx",
+            "features": [
+              "Create/rename folder",
+              "Validation",
+              "Real-time feedback"
+            ]
+          },
+          {
+            "name": "ConfirmationModal",
+            "file": "components/confirmation-modal.tsx",
+            "features": [
+              "Destructive action confirmation",
+              "Two-button layout (Cancel/Confirm)",
+              "Used for sign out, delete operations"
+            ]
+          }
+        ]
+      },
+
+      "dialogModals": {
+        "linkDialog": {
+          "file": "components/markdown/link-dialog-modal.tsx",
+          "purpose": "Create markdown links [text](url)",
+          "inputs": ["Link text", "URL"],
+          "validation": "Real-time validation"
+        },
+        "tableGenerator": {
+          "file": "components/markdown/table-generator-modal.tsx",
+          "purpose": "Visual grid picker for markdown tables",
+          "range": "2-10 rows, 2-8 columns",
+          "preview": "Visual grid representation"
+        }
+      }
+    },
+
+    "10_gestureFeedback": {
+      "name": "Gesture Feedback",
+      "priority": "medium",
+      "implementation": "2025-10-05",
+      "description": "Touch gesture recognition and feedback",
+
+      "longPress": {
+        "trigger": "Long press on note card title",
+        "platform": "Mobile only (iOS/Android)",
+        "check": "Platform.OS !== 'web'",
+        "action": "Opens NoteActionsModal",
+        "location": "components/note-item.tsx",
+        "implementation": "onLongPress={handleLongPress} on TouchableOpacity",
+        "changelogEntry": "2025-10-05 - Mobile Long Press Actions",
+
+        "behavior": {
+          "testNote": "Uses (...) button only",
+          "regularNotes": "Both (...) dropdown menu AND long press gesture",
+          "benefit": "Native mobile gesture pattern for intuitive note management"
+        }
+      },
+
+      "tap": {
+        "trigger": "Single tap",
+        "behavior": "Expand/collapse accordion, select items, navigate",
+        "feedback": "activeOpacity: 0.7"
+      }
+    },
+
+    "11_inputValidation": {
+      "name": "Input Validation Feedback",
+      "priority": "high",
+      "implementation": "2025-10-02",
+      "description": "Real-time validation feedback during user input",
+
+      "characterLimits": {
+        "title": {
+          "maxLength": 200,
+          "counter": "Shows 'current/max' (e.g., '150/200')",
+          "enforcement": "maxLength prop prevents typing beyond limit",
+          "visual": "Red border + red counter when exceeded",
+          "database": "Enforced at database level"
+        },
+        "content": {
+          "maxLength": 50000,
+          "description": "~10 pages of text",
+          "counter": "Character count displayed",
+          "enforcement": "maxLength prop + database constraint"
+        }
+      },
+
+      "realTimeValidation": {
+        "features": [
+          "Live character counting",
+          "Border color changes (normal → red)",
+          "Counter text color changes (normal → red)",
+          "Disable submit when invalid"
+        ]
+      },
+
+      "preprocessing": {
+        "trim": "Auto-trim whitespace before saving",
+        "validation": "Check for empty/whitespace-only input",
+        "feedback": "Clear error messages before save attempt"
+      },
+
+      "twoLayerProtection": {
+        "layer1": "Frontend UX validation (better user experience)",
+        "layer2": "Database constraints (security)",
+        "changelogEntry": "2025-10-02 - Frontend Input Validation + Database Constraints"
+      }
+    },
+
+    "12_themeSystemFeedback": {
+      "name": "Theme System Visual Feedback",
+      "priority": "high",
+      "implementation": "2025-09-30 to 2025-10-02",
+      "description": "Visual feedback from comprehensive theme system",
+
+      "18ColorPalette": {
+        "coreColors": [
+          "background",
+          "surface",
+          "text",
+          "textSecondary",
+          "border",
+          "tint",
+          "icon"
+        ],
+        "phase2Colors": [
+          "elevatedSurface (modals, popovers)",
+          "selectedSurface (active/selected states)",
+          "overlay (semi-transparent backdrops)",
+          "hover (web hover states)",
+          "pressed (active press states)",
+          "disabled (non-interactive elements)",
+          "highlight (selections, notifications)",
+          "linkColor (hyperlinks)",
+          "accentSecondary (visual variety)"
+        ],
+        "totalColors": "18 per theme × 2 modes (light/dark) = 36 colors per theme",
+        "totalThemes": 10,
+        "totalColorValues": "360 color values across all themes"
+      },
+
+      "themePicker": {
+        "preview": "120x80px cards showing 4 colors (background, surface, text, tint)",
+        "toggle": "Light/Dark preview before applying",
+        "grid": "Responsive 2-col mobile, 3-col desktop",
+        "selection": "'Current' badge on active theme",
+        "animation": "Slide-up modal"
+      },
+
+      "colorSchemeToggle": {
+        "options": ["Light", "Dark", "System"],
+        "control": "Segmented control with icons",
+        "feedback": "Background highlight on selected (colors.tint)",
+        "description": "Shows current mode below (e.g., 'Currently using dark mode (automatic)')"
+      },
+
+      "themeMetadata": {
+        "displayName": "User-friendly name (e.g., 'Monochrome', 'Ocean', 'Forest')",
+        "description": "Theme description for picker UI",
+        "example": "Ocean: 'Vibrant teal aesthetic for energetic, modern design'"
+      },
+
+      "10Themes": [
+        "Monochrome (pure cool neutrals)",
+        "Ocean (vibrant teal/turquoise)",
+        "Crimson (rich red aesthetic)",
+        "Sepia (warm vintage aesthetic)",
+        "Nord (cool Arctic-inspired palette)",
+        "Forest (natural green aesthetic)",
+        "Lavender (soft purple aesthetic)",
+        "Amber (warm amber tones)",
+        "Midnight (true black for OLED)",
+        "Rose (soft rose aesthetic)"
+      ]
+    }
+  },
+
+  "consistencyPatterns": {
+    "iconSizes": {
+      "standard": 24,
+      "small": 20,
+      "large": 64,
+      "usage": {
+        "24": "Chevrons, card headers, toolbar buttons",
+        "20": "Action buttons, menu items, inline icons",
+        "64": "Error boundary icon, large feature icons"
+      }
+    },
+
+    "borderRadius": {
+      "card": 12,
+      "button": 8,
+      "input": 8,
+      "modal": 12,
+      "badge": 4
+    },
+
+    "padding": {
+      "card": 16,
+      "button": "16 horizontal, 12 vertical",
+      "modal": 16,
+      "input": 12
+    },
+
+    "activeOpacity": {
+      "standard": 0.7,
+      "usage": "All TouchableOpacity components"
+    },
+
+    "animationDurations": {
+      "fast": "150ms (card header transitions)",
+      "medium": "200ms (accordion toggles)",
+      "slow": "300ms+ (modal presentations)"
+    }
+  },
+
+  "designPrinciples": {
+    "nonBlocking": {
+      "principle": "Use toast notifications instead of blocking modals when possible",
+      "implementation": "Replaced Alert.alert() with toast notifications",
+      "benefit": "Better web compatibility, smoother UX"
+    },
+
+    "gracefulDegradation": {
+      "principle": "Features degrade gracefully across platforms",
+      "examples": [
+        "CSS transitions work on web, instant on React Native",
+        "Long press only on mobile, not web",
+        "Hover states only on web"
+      ]
+    },
+
+    "immediateVisualFeedback": {
+      "principle": "Users should see immediate feedback for all actions",
+      "implementations": [
+        "activeOpacity on tap",
+        "Loading states during async",
+        "Toast notifications after operations",
+        "Color changes on validation"
+      ]
+    },
+
+    "errorRecovery": {
+      "principle": "Always provide a way to recover from errors",
+      "implementations": [
+        "Error boundary with Go Back button",
+        "Error banners with explanations",
+        "Toast errors with actionable messages",
+        "Fallback to default theme on load error"
+      ]
+    },
+
+    "accessibilityFirst": {
+      "principle": "Visual feedback should be accessible",
+      "considerations": [
+        "Don't rely on color alone (use icons + text)",
+        "Provide text labels for all actions",
+        "Use semantic colors (red for destructive, green for success)",
+        "Screen reader support (future enhancement)"
+      ]
+    }
+  },
+
+  "platformDifferences": {
+    "web": {
+      "unique": [
+        "CSS transitions work natively",
+        "Hover states available",
+        "No long press gesture",
+        "PWA install prompts"
+      ]
+    },
+    "mobile": {
+      "unique": [
+        "Long press gesture support",
+        "No hover states",
+        "Native modal animations",
+        "Platform-specific icons (iOS/Android)"
+      ]
+    },
+    "universal": [
+      "Toast notifications",
+      "Loading states",
+      "Active states",
+      "Color-based feedback",
+      "Error handling"
+    ]
+  },
+
+  "futureEnhancements": {
+    "reactNativeAnimations": {
+      "description": "Add React Native Animated API for smooth mobile transitions",
+      "currentState": "Web-only CSS transitions",
+      "priority": "medium"
+    },
+    "hapticFeedback": {
+      "description": "Add haptic feedback on mobile for key interactions",
+      "examples": ["Delete confirmation", "Save success", "Error occurred"],
+      "priority": "low"
+    },
+    "accessibilityStates": {
+      "description": "Add accessibilityState props for screen readers",
+      "example": "accessibilityState={{selected: headerActive}}",
+      "priority": "medium"
+    },
+    "skeletonLoaders": {
+      "description": "Add skeleton loading states for content",
+      "useCases": ["Note list loading", "Theme picker loading"],
+      "priority": "low"
+    },
+    "progressIndicators": {
+      "description": "Add progress bars for long operations",
+      "useCases": ["File uploads", "Bulk operations"],
+      "priority": "low"
+    }
+  },
+
+  "references": {
+    "changelog": "CHANGELOG.md - Complete history of feedback implementations",
+    "components": "docs/COMPONENTS.md - Component documentation",
+    "themes": "constants/theme.ts - Theme color definitions",
+    "implementations": [
+      "improvements/coming-soon/header-color-change.json",
+      "improvements/archived/selectedSurface-addition.json",
+      "improvements/archived/theme-update.json",
+      "improvements/archived/text-focus.json",
+      "improvements/archived/undo-redo.json"
+    ]
+  },
+
+  "statistics": {
+    "totalFeedbackMechanisms": 12,
+    "toastNotificationTypes": 3,
+    "loadingStatePatterns": 3,
+    "animationTypes": 4,
+    "errorHandlingPatterns": 4,
+    "modalTypes": 6,
+    "gestureTypes": 2,
+    "themeColors": 18,
+    "totalThemes": 10,
+    "standardIconSizes": 3,
+    "standardAnimationDurations": 3
+  },
+
+  "notes": [
+    "This inventory should be updated whenever new feedback mechanisms are added",
+    "All new features should follow established patterns documented here",
+    "Consistency is key - reference this document during design and development",
+    "Platform differences should be considered for all feedback implementations",
+    "Always provide fallback options for graceful degradation",
+    "Toast notifications are preferred over blocking modals for most operations",
+    "Visual feedback should be immediate and clear",
+    "Error states should always provide recovery options",
+    "Loading states should disable interactions to prevent user confusion",
+    "Animations should enhance UX, not distract from it (keep them subtle and fast)"
+  ]
+}
