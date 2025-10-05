@@ -56,7 +56,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6a6a6a',
       tabIconSelected: '#4a4a4a',
       elevatedSurface: '#f2f2f0',
-      selectedSurface: '#ff0000',  // TEST: Bright red to verify logic
+      selectedSurface: '#e0e0e0',  // Selected/active state - increased contrast
       overlay: 'rgba(18, 18, 18, 0.5)',
       hover: '#ececec',
       pressed: '#e0e0e0',
@@ -76,7 +76,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b0b0b0',
       tabIconSelected: '#d0d0d0',
       elevatedSurface: '#2a2a2a',
-      selectedSurface: '#ff0000',  // TEST: Bright red to verify logic
+      selectedSurface: '#404040',  // Selected/active state - increased contrast
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#1a1a1a',
       pressed: '#0d0d0d',
@@ -100,7 +100,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#4a7a75',
       tabIconSelected: '#14b8a6',
       elevatedSurface: '#f7fcfb',
-      selectedSurface: '#e0f5f3',
+      selectedSurface: '#c7ebe8',  // Selected/active state - deeper teal tint
       overlay: 'rgba(26, 61, 58, 0.4)',
       hover: '#e0f5f3',
       pressed: '#c7ebe8',
@@ -120,7 +120,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#a5c9c6',
       tabIconSelected: '#5eead4',
       elevatedSurface: '#243a37',
-      selectedSurface: '#2e4744',
+      selectedSurface: '#3a5855',  // Selected/active state - lighter teal for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#1f3330',
       pressed: '#152624',
@@ -144,7 +144,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6d5d4d',
       tabIconSelected: '#8b6f47',
       elevatedSurface: '#fdfcf7',
-      selectedSurface: '#f0e9dd',
+      selectedSurface: '#e0d7ca',  // Selected/active - increased warm contrast
       overlay: 'rgba(26, 22, 18, 0.4)',
       hover: '#ece6dc',
       pressed: '#e0d7ca',
@@ -164,7 +164,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#a89a88',
       tabIconSelected: '#c4a576',
       elevatedSurface: '#322a23',
-      selectedSurface: '#3d342c',
+      selectedSurface: '#4a3e35',  // Selected/active - lighter for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#2f2924',
       pressed: '#251f1a',
@@ -188,7 +188,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#4c566a',
       tabIconSelected: '#5e81ac',
       elevatedSurface: '#ffffff',
-      selectedSurface: '#dde3eb',
+      selectedSurface: '#d0d8e3',  // Selected/active - deeper nordic blue
       overlay: 'rgba(46, 52, 64, 0.4)',
       hover: '#dde3eb',
       pressed: '#cbd5e1',
@@ -208,7 +208,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#d8dee9',
       tabIconSelected: '#88c0d0',
       elevatedSurface: '#434c5e',
-      selectedSurface: '#4c566a',
+      selectedSurface: '#5a6478',  // Selected/active - lighter nordic tone
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#454d60',
       pressed: '#3a4150',
@@ -232,7 +232,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#7a4545',
       tabIconSelected: '#dc143c',
       elevatedSurface: '#fff9f9',
-      selectedSurface: '#ffe8e8',
+      selectedSurface: '#ffd4d4',  // Selected/active - deeper crimson tint
       overlay: 'rgba(61, 26, 26, 0.4)',
       hover: '#ffe8e8',
       pressed: '#ffd4d4',
@@ -252,7 +252,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#c9a5a5',
       tabIconSelected: '#ff6b7a',
       elevatedSurface: '#3a2626',
-      selectedSurface: '#4a3232',
+      selectedSurface: '#5a4040',  // Selected/active - lighter for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#332020',
       pressed: '#281818',
@@ -276,7 +276,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#4a5d47',
       tabIconSelected: '#6b8e5e',
       elevatedSurface: '#f5f9f5',
-      selectedSurface: '#e8f0e8',
+      selectedSurface: '#d9e8d9',  // Selected/active - deeper green tint
       overlay: 'rgba(26, 36, 25, 0.4)',
       hover: '#e8f0e8',
       pressed: '#d9e8d9',
@@ -296,7 +296,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#a5b5a3',
       tabIconSelected: '#8da87f',
       elevatedSurface: '#2d3a2c',
-      selectedSurface: '#364433',
+      selectedSurface: '#465442',  // Selected/active - lighter for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#2a3828',
       pressed: '#1f2a1e',
@@ -320,7 +320,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#5d5466',
       tabIconSelected: '#9b7fb5',
       elevatedSurface: '#f9f7fc',
-      selectedSurface: '#ede8f4',
+      selectedSurface: '#dfd6ea',  // Selected/active - deeper lavender tint
       overlay: 'rgba(30, 26, 36, 0.4)',
       hover: '#ede8f4',
       pressed: '#dfd6ea',
@@ -340,7 +340,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b3a5bf',
       tabIconSelected: '#b699cc',
       elevatedSurface: '#342f3d',
-      selectedSurface: '#3e3847',
+      selectedSurface: '#4e4657',  // Selected/active - lighter for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#2f2838',
       pressed: '#241f2b',
@@ -364,7 +364,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6b5444',
       tabIconSelected: '#d87a3a',
       elevatedSurface: '#fefaf7',
-      selectedSurface: '#f7ede5',
+      selectedSurface: '#eddfd0',  // Selected/active - deeper amber tint
       overlay: 'rgba(45, 31, 20, 0.4)',
       hover: '#f7ede5',
       pressed: '#eddfd0',
@@ -384,7 +384,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b8a594',
       tabIconSelected: '#e69960',
       elevatedSurface: '#352a20',
-      selectedSurface: '#3f3428',
+      selectedSurface: '#4f4438',  // Selected/active - lighter for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#322722',
       pressed: '#261f18',
@@ -408,7 +408,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6e6e73',
       tabIconSelected: '#00d4ff',
       elevatedSurface: '#fafafa',
-      selectedSurface: '#ebebf0',
+      selectedSurface: '#d9d9de',  // Selected/active - deeper grey tint
       overlay: 'rgba(28, 28, 30, 0.4)',
       hover: '#ebebf0',
       pressed: '#d9d9de',
@@ -428,7 +428,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#98989d',
       tabIconSelected: '#00d4ff',
       elevatedSurface: '#2c2c2e',
-      selectedSurface: '#3a3a3c',
+      selectedSurface: '#4a4a4c',  // Selected/active - lighter for OLED visibility
       overlay: 'rgba(0, 0, 0, 0.9)',
       hover: '#2c2c2e',
       pressed: '#1c1c1e',
@@ -452,7 +452,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6b4a54',
       tabIconSelected: '#c76b7a',
       elevatedSurface: '#fefafa',
-      selectedSurface: '#f7e8eb',
+      selectedSurface: '#edd9de',  // Selected/active - deeper rose tint
       overlay: 'rgba(45, 26, 31, 0.4)',
       hover: '#f7e8eb',
       pressed: '#edd9de',
@@ -472,7 +472,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b8a5a9',
       tabIconSelected: '#d98c99',
       elevatedSurface: '#352a2d',
-      selectedSurface: '#3f3336',
+      selectedSurface: '#4f4246',  // Selected/active - lighter for visibility
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#322528',
       pressed: '#261d20',
