@@ -248,6 +248,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript errors related to web CSS strings in React Native styles (non-critical)
 
 ### Removed
+- **Test Note (NOTE-MODAL-TEST)** (2025-10-05)
+  - Removed development test note from All Notes view
+  - Test note was used to demonstrate modal actions during development
+  - All notes now have consistent menu and modal behavior
+  - Simplified loadNotes() function by removing conditional test note injection (37 lines removed)
 - **Legacy Modal Note Editor** (2025-10-04)
   - Removed old modal-based note editor code from notes screen
   - Removed `NoteModal` component imports and state management
