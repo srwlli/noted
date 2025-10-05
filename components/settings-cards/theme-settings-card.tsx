@@ -25,6 +25,7 @@ export function ThemeSettingsCard({ isExpanded, onToggle, onOpenThemePicker }: T
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

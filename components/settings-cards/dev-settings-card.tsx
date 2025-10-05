@@ -18,6 +18,7 @@ export function DevSettingsCard({ isExpanded, onToggle }: DevSettingsCardProps) 
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

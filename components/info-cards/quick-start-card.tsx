@@ -17,6 +17,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

@@ -19,6 +19,7 @@ export function AccountSettingsCard({ isExpanded, onToggle, onSignOut, isSigning
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

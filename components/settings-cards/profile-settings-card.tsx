@@ -19,6 +19,7 @@ export function ProfileSettingsCard({ isExpanded, onToggle }: ProfileSettingsCar
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

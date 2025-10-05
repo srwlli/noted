@@ -21,6 +21,7 @@ export function ContactCard({ isExpanded, onToggle }: ContactCardProps) {
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

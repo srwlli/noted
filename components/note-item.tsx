@@ -118,8 +118,9 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
     <>
       <Card
         isAccordion={false}
+        headerActive={isMenuOpen}
         style={{
-          backgroundColor: isMenuOpen ? colors.selectedSurface : colors.surface,
+          backgroundColor: colors.surface,
         }}
         headerContent={
           <>

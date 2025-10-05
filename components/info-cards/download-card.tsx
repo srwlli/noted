@@ -35,6 +35,7 @@ export function DownloadCard({ isExpanded, onToggle }: DownloadCardProps) {
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

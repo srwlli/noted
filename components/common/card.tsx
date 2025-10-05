@@ -67,6 +67,13 @@ interface CardProps {
    * Use sparingly to maintain consistency.
    */
   style?: ViewStyle;
+
+  /**
+   * If true, header background uses selectedSurface color.
+   * Used to indicate active/expanded state.
+   * @default false
+   */
+  headerActive?: boolean;
 }
 
 export function Card({
@@ -76,6 +83,7 @@ export function Card({
   headerContent,
   children,
   style,
+  headerActive = false,
 }: CardProps) {
   const { colors } = useThemeColors();
 
@@ -95,14 +103,26 @@ export function Card({
       {/* Header - Always visible */}
       {isAccordion && onToggle ? (
         <TouchableOpacity
-          style={[styles.header, { borderBottomColor: colors.border }]}
+          style={[
+            styles.header,
+            {
+              borderBottomColor: colors.border,
+              backgroundColor: headerActive ? colors.selectedSurface : colors.surface,
+            }
+          ]}
           onPress={onToggle}
           activeOpacity={0.7}
         >
           {headerContent}
         </TouchableOpacity>
       ) : (
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+        <View style={[
+          styles.header,
+          {
+            borderBottomColor: colors.border,
+            backgroundColor: headerActive ? colors.selectedSurface : colors.surface,
+          }
+        ]}>
           {headerContent}
         </View>
       )}
@@ -130,6 +150,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderBottomWidth: 1,
+    transition: 'background-color 0.15s ease-out',
   },
   content: {
     padding: 16,

@@ -17,6 +17,7 @@ export function TechStackCard({ isExpanded, onToggle }: TechStackCardProps) {
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons

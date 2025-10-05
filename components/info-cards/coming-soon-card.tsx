@@ -17,6 +17,7 @@ export function ComingSoonCard({ isExpanded, onToggle }: ComingSoonCardProps) {
       isAccordion={true}
       isExpanded={isExpanded}
       onToggle={onToggle}
+      headerActive={isExpanded}
       headerContent={
         <>
           <MaterialIcons
