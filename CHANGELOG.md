@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Mobile Long Press Actions** (2025-10-05)
+  - Added long press gesture on note cards to open actions modal (mobile only)
+  - Long press on note title triggers full NoteActionsModal with 9 actions
+  - Platform check ensures gesture only works on iOS/Android (not web)
+  - Actions modal now available on all notes via long press or (...) button
+  - Test note continues to use (...) button → modal for testing
+  - Regular notes have both (...) dropdown menu AND long press → modal
+  - Provides quick access to Edit, Share, Duplicate, AI Actions, Export, Organization, Copy, Delete, Download
+  - Native mobile gesture pattern for intuitive note management
 - **Unfiled Notes Filter** (2025-10-04)
   - Added "Unfiled" option to folder dropdown menu for viewing notes without folder assignment
   - Shows only notes where folder_id is NULL

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, memo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
@@ -107,6 +107,13 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
     handleMoveToFolder(null);
   }, [handleMoveToFolder]);
 
+  const handleLongPress = useCallback(() => {
+    // Only on mobile (not web)
+    if (Platform.OS !== 'web') {
+      setShowActionsModal(true);
+    }
+  }, []);
+
   return (
     <>
       <Card
@@ -119,6 +126,7 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
             <TouchableOpacity
               style={styles.titleContainer}
               onPress={handleToggleExpanded}
+              onLongPress={handleLongPress}
               activeOpacity={0.7}
             >
               <MaterialIcons
@@ -218,16 +226,14 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
         )}
       </Card>
 
-      {/* Actions Modal (only for test note) - rendered outside Card */}
-      {isTestNote && (
-        <NoteActionsModal
-          visible={showActionsModal}
-          onClose={() => setShowActionsModal(false)}
-          noteId={note.id}
-          noteTitle={note.title}
-          noteContent={note.content || ''}
-        />
-      )}
+      {/* Actions Modal - triggered by (...) button or long press on mobile */}
+      <NoteActionsModal
+        visible={showActionsModal}
+        onClose={() => setShowActionsModal(false)}
+        noteId={note.id}
+        noteTitle={note.title}
+        noteContent={note.content || ''}
+      />
     </>
   );
 }, (prevProps, nextProps) => {
