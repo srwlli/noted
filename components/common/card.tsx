@@ -87,6 +87,10 @@ export function Card({
 }: CardProps) {
   const { colors } = useThemeColors();
 
+  // Debug: Log what colors are being used
+  const headerBgColor = headerActive ? colors.selectedSurface : colors.surface;
+  console.log(`🎨 Card render: headerActive=${headerActive}, using color=${headerBgColor} (selectedSurface=${colors.selectedSurface}, surface=${colors.surface})`);
+
   const shouldShowContent = isAccordion ? isExpanded : true;
 
   return (
@@ -107,7 +111,7 @@ export function Card({
             styles.header,
             {
               borderBottomColor: colors.border,
-              backgroundColor: headerActive ? colors.selectedSurface : colors.surface,
+              backgroundColor: headerBgColor,
             }
           ]}
           onPress={onToggle}
@@ -120,7 +124,7 @@ export function Card({
           styles.header,
           {
             borderBottomColor: colors.border,
-            backgroundColor: headerActive ? colors.selectedSurface : colors.surface,
+            backgroundColor: headerBgColor,
           }
         ]}>
           {headerContent}
@@ -150,7 +154,6 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     borderBottomWidth: 1,
-    transition: 'background-color 0.15s ease-out',
   },
   content: {
     padding: 16,

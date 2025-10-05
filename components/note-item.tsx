@@ -27,9 +27,6 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
 
-  // Check if this is the test note
-  const isTestNote = note.title === 'NOTE-MODAL-TEST';
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -108,17 +105,14 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
   }, [handleMoveToFolder]);
 
   const handleLongPress = useCallback(() => {
-    // Only on mobile (not web)
-    if (Platform.OS !== 'web') {
-      setShowActionsModal(true);
-    }
+    setShowActionsModal(true);
   }, []);
 
   return (
     <>
       <Card
         isAccordion={false}
-        headerActive={isMenuOpen}
+        headerActive={isMenuOpen || showActionsModal}
         style={{
           backgroundColor: colors.surface,
         }}
@@ -140,18 +134,7 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
               </Text>
             </TouchableOpacity>
             <View style={styles.actions}>
-              {isTestNote ? (
-                // Test note: Show button that opens new modal
-                <TouchableOpacity
-                  style={styles.iconButton}
-                  onPress={() => setShowActionsModal(true)}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="more-vert" size={20} color={colors.text} />
-                </TouchableOpacity>
-              ) : (
-                // All other notes: Show existing popup menu
-                <Menu
+              <Menu
                   onOpen={handleMenuOpen}
                   onClose={handleMenuClose}
                 >
@@ -212,7 +195,6 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
                     </MenuOption>
                   </MenuOptions>
                 </Menu>
-              )}
             </View>
           </>
         }

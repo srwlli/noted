@@ -56,7 +56,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#6a6a6a',
       tabIconSelected: '#4a4a4a',
       elevatedSurface: '#f2f2f0',
-      selectedSurface: '#e8e8e6',
+      selectedSurface: '#ff0000',  // TEST: Bright red to verify logic
       overlay: 'rgba(18, 18, 18, 0.5)',
       hover: '#ececec',
       pressed: '#e0e0e0',
@@ -76,7 +76,7 @@ export const Themes: Record<ThemeName, ThemeMetadata> = {
       tabIconDefault: '#b0b0b0',
       tabIconSelected: '#d0d0d0',
       elevatedSurface: '#2a2a2a',
-      selectedSurface: '#363636',
+      selectedSurface: '#ff0000',  // TEST: Bright red to verify logic
       overlay: 'rgba(0, 0, 0, 0.7)',
       hover: '#1a1a1a',
       pressed: '#0d0d0d',
