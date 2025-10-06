@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { LinkDialogModal } from './link-dialog-modal';
+import { ImageDialogModal } from './image-dialog-modal';
 import { TableGeneratorModal } from './table-generator-modal';
 
 interface MarkdownToolbarProps {
@@ -18,12 +19,19 @@ interface MarkdownToolbarProps {
 export function MarkdownToolbar({ onInsert, onInsertText, selectedText = '' }: MarkdownToolbarProps) {
   const { colors } = useThemeColors();
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [showTableModal, setShowTableModal] = useState(false);
 
   const handleInsertLink = (text: string, url: string) => {
     const markdownLink = `[${text}](${url})`;
     onInsertText?.(markdownLink);
     setShowLinkModal(false);
+  };
+
+  const handleInsertImage = (alt: string, url: string) => {
+    const markdownImage = `![${alt}](${url})`;
+    onInsertText?.(markdownImage);
+    setShowImageModal(false);
   };
 
   const handleInsertTable = (table: string) => {
@@ -86,6 +94,13 @@ export function MarkdownToolbar({ onInsert, onInsertText, selectedText = '' }: M
           colors={colors}
         />
 
+        {/* Image */}
+        <ToolbarButton
+          icon="image"
+          onPress={() => setShowImageModal(true)}
+          colors={colors}
+        />
+
         {/* Table */}
         <ToolbarButton
           icon="table-chart"
@@ -100,6 +115,13 @@ export function MarkdownToolbar({ onInsert, onInsertText, selectedText = '' }: M
         selectedText={selectedText}
         onInsert={handleInsertLink}
         onCancel={() => setShowLinkModal(false)}
+      />
+
+      <ImageDialogModal
+        visible={showImageModal}
+        selectedText={selectedText}
+        onInsert={handleInsertImage}
+        onCancel={() => setShowImageModal(false)}
       />
 
       <TableGeneratorModal

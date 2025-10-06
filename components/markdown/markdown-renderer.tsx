@@ -149,6 +149,11 @@ export function MarkdownRenderer({ markdown, scrollable = true }: MarkdownRender
       color: colors.tint,
       textDecorationLine: 'underline',
     },
+    image: {
+      maxWidth: '100%',
+      borderRadius: 8,
+      marginBottom: 12,
+    },
   });
 
   const content = (
