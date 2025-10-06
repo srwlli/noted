@@ -1,11 +1,11 @@
 # ARCHITECTURE.md
 
-**Date:** October 2, 2025
-**Version:** 2.0.0
+**Date:** October 6, 2025
+**Version:** 2.1.0
 
 ## Project Overview
 
-Noted is a Progressive Web App (PWA) built with React Native, Expo Router, and Supabase, designed as a cross-platform note-taking application with folder organization, 10-theme system with 18-color palettes, universal card-based UI, and comprehensive offline support. The project leverages modern React Native development practices with a focus on maintainable, scalable architecture and PWA capabilities.
+Noted is a Progressive Web App (PWA) built with React Native, Expo Router, and Supabase, designed as a cross-platform note-taking application with folder organization, Dashboard with quick access, folder favorites, 10-theme system with 18-color palettes, universal card-based UI, and comprehensive offline support. The project leverages modern React Native development practices with a focus on maintainable, scalable architecture and PWA capabilities.
 
 ## System Topology
 
@@ -33,9 +33,16 @@ Noted is a Progressive Web App (PWA) built with React Native, Expo Router, and S
 ├─────────────────────────────────────────────────────────────────┤
 │                       Screen Layer                             │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  │  Notes + Folders│  │      Info       │  │    Settings     │  │
-│  │   (index.tsx)   │  │   (info.tsx)    │  │ (settings.tsx)  │  │
+│  │    Dashboard    │  │      Notes      │  │      Info       │  │
+│  │  (index.tsx)    │  │   (notes.tsx)   │  │   (info.tsx)    │  │
+│  │ favorite notes, │  │  notes list w/  │  │                 │  │
+│  │ folders, recent │  │ folder filtering│  │                 │  │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘  │
+│  ┌─────────────────┐  ┌─────────────────┐                       │
+│  │     Folders     │  │    Settings     │                       │
+│  │  (folders.tsx)  │  │ (settings.tsx)  │                       │
+│  │ folder mgmt hub │  │                 │                       │
+│  └─────────────────┘  └─────────────────┘                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                     Component Layer                            │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
@@ -114,8 +121,10 @@ AuthProvider
 ```
 Root Stack (_layout.tsx)
 ├── (tabs) - Protected by AuthGuard
-│   ├── index.tsx (Notes with folder filtering)
 │   ├── info.tsx (Information & Quick Start)
+│   ├── notes.tsx (Notes with folder filtering)
+│   ├── index.tsx (Dashboard - favorite notes, folders, recent notes)
+│   ├── folders.tsx (Folder management hub)
 │   └── settings.tsx (Theme & Account settings)
 ├── auth - Public authentication flow
 │   └── index.tsx (Login/Signup)
@@ -130,7 +139,6 @@ Common Components (components/common/)
 └── shared-page-layout.tsx - Page structure with scrolling
 
 Info Cards (components/info-cards/)
-├── coming-soon-card.tsx - Future features list
 ├── tech-stack-card.tsx - Technology overview
 ├── quick-start-card.tsx - App usage guide
 ├── download-card.tsx - PWA installation
@@ -161,7 +169,7 @@ User Selection → ThemeStorage.setTheme → ThemeController →
 **Folder Organization Flow:**
 ```
 User Creates Folder → services/folders.ts → Supabase RLS →
-PostgreSQL folders table → Real-time update → UI refresh
+PostgreSQL folders table (with is_favorite) → Real-time update → UI refresh
 ```
 
 **Note CRUD Flow:**
@@ -192,9 +200,9 @@ Card receives isExpanded prop → Conditional render of children
 **Decision:** Extensive theme library (180 total color values) with semantic color names
 **Rationale:** Provides user choice while maintaining design consistency. 18 colors support advanced UI states (hover, pressed, disabled, overlay). Metadata (displayName, description) enables better UX in theme picker.
 
-### 3. Folder Organization with Nullable folder_id
-**Decision:** Optional folder association with ON DELETE SET NULL
-**Rationale:** Notes remain accessible when folder is deleted (moved to "All Notes" view). Prevents data loss. Supports future nested folders via parent_folder_id self-reference.
+### 3. Folder Organization with Nullable folder_id and Favorites
+**Decision:** Optional folder association with ON DELETE SET NULL and is_favorite support
+**Rationale:** Notes remain accessible when folder is deleted (moved to "All Notes" view). Prevents data loss. Supports future nested folders via parent_folder_id self-reference. Folder favorites enable quick access from Dashboard.
 
 ### 4. Services Layer Architecture
 **Decision:** Centralized data access (services/notes.ts, services/folders.ts) instead of direct Supabase calls
@@ -248,7 +256,8 @@ Card receives isExpanded prop → Conditional render of children
 
 - **Universal Card System:** Single component powers 15+ cards (info, settings, notes) with pixel-perfect consistency
 - **10-Theme System:** 180 color values (10 themes × 18 colors × light/dark) with metadata for rich UX
-- **Folder Organization:** Hierarchical structure with parent_folder_id, ON DELETE SET NULL prevents data loss
+- **Dashboard with Quick Access:** Central hub for favorite notes, favorite folders, and recent notes
+- **Folder Organization:** Hierarchical structure with parent_folder_id, folder favorites support, ON DELETE SET NULL prevents data loss
 - **Services Layer:** Type-safe CRUD operations (notes.ts, folders.ts) abstract database complexity
 - **PWA-First:** Service worker + manifest + custom HTML enables offline-first cross-platform distribution
 - **Memory Optimized:** useCallback + React.memo fix reduces memory usage by 84% (4.5GB → 700MB-1GB)

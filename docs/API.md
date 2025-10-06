@@ -1,7 +1,7 @@
 # Noted API Documentation
 
-**Date**: October 2, 2025
-**Version**: 2.0.0
+**Date**: October 6, 2025
+**Version**: 2.1.0
 
 ## Table of Contents
 
@@ -186,6 +186,7 @@ Content-Type: application/json
     "title": "Meeting Notes",
     "content": "Discussion points from team meeting...",
     "user_id": "user-uuid-here",
+    "is_favorite": true,
     "created_at": "2025-01-20T10:30:00.000000+00:00",
     "updated_at": "2025-01-20T14:45:00.000000+00:00"
   },
@@ -194,6 +195,7 @@ Content-Type: application/json
     "title": "Grocery List",
     "content": "Milk, Bread, Eggs...",
     "user_id": "user-uuid-here",
+    "is_favorite": false,
     "created_at": "2025-01-18T09:15:00.000000+00:00",
     "updated_at": "2025-01-18T09:15:00.000000+00:00"
   }
@@ -258,6 +260,7 @@ Prefer: return=representation
     "title": "Project Ideas",
     "content": "List of potential project ideas to explore...",
     "user_id": "user-uuid-here",
+    "is_favorite": false,
     "created_at": "2025-09-21T12:00:00.000000+00:00",
     "updated_at": "2025-09-21T12:00:00.000000+00:00"
   }
@@ -310,6 +313,76 @@ Delete a note.
 }
 ```
 
+### GET /rest/v1/notes (Filter by Favorites)
+
+Retrieve all favorite notes for the authenticated user.
+
+**Query Parameters:**
+- `is_favorite` (boolean): Filter by favorite status
+- `order` (string): Sort order (e.g., `created_at.desc`, `title.asc`)
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Important Meeting Notes",
+    "content": "Critical discussion points...",
+    "user_id": "user-uuid-here",
+    "is_favorite": true,
+    "created_at": "2025-01-20T10:30:00.000000+00:00",
+    "updated_at": "2025-01-20T14:45:00.000000+00:00"
+  }
+]
+```
+
+**cURL Example:**
+```bash
+curl -X GET "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/notes?is_favorite=eq.true&order=updated_at.desc" \
+  -H "Authorization: Bearer your_supabase_jwt" \
+  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### PATCH /rest/v1/notes?id=eq.{note_id}
+
+Toggle favorite status for a note.
+
+**Request Body:**
+```json
+{
+  "is_favorite": true
+}
+```
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+Content-Type: application/json
+Prefer: return=representation
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Meeting Notes",
+    "content": "Discussion points from team meeting...",
+    "user_id": "user-uuid-here",
+    "is_favorite": true,
+    "created_at": "2025-01-20T10:30:00.000000+00:00",
+    "updated_at": "2025-01-20T14:45:00.000000+00:00"
+  }
+]
+```
+
 ---
 
 ## Folders Endpoints
@@ -332,6 +405,7 @@ Apikey: your_supabase_anon_key
     "name": "Work Notes",
     "user_id": "user-uuid",
     "parent_folder_id": null,
+    "is_favorite": true,
     "created_at": "2025-10-02T10:00:00.000000+00:00",
     "updated_at": "2025-10-02T10:00:00.000000+00:00"
   },
@@ -340,6 +414,7 @@ Apikey: your_supabase_anon_key
     "name": "Personal",
     "user_id": "user-uuid",
     "parent_folder_id": null,
+    "is_favorite": false,
     "created_at": "2025-10-02T11:00:00.000000+00:00",
     "updated_at": "2025-10-02T11:00:00.000000+00:00"
   }
@@ -374,6 +449,7 @@ Prefer: return=representation
     "name": "Project Notes",
     "user_id": "user-uuid",
     "parent_folder_id": null,
+    "is_favorite": false,
     "created_at": "2025-10-02T12:00:00.000000+00:00",
     "updated_at": "2025-10-02T12:00:00.000000+00:00"
   }
@@ -403,6 +479,7 @@ Update folder name.
     "name": "Updated Folder Name",
     "user_id": "user-uuid",
     "parent_folder_id": null,
+    "is_favorite": false,
     "created_at": "2025-10-02T12:00:00.000000+00:00",
     "updated_at": "2025-10-02T13:00:00.000000+00:00"
   }
@@ -415,6 +492,76 @@ Delete a folder. Notes in the folder will have `folder_id` set to `null` (ON DEL
 
 **Response (204):**
 No content
+
+### GET /rest/v1/folders (Filter by Favorites)
+
+Retrieve all favorite folders for the authenticated user.
+
+**Query Parameters:**
+- `is_favorite` (boolean): Filter by favorite status
+- `order` (string): Sort order (e.g., `created_at.desc`, `name.asc`)
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "folder-uuid-1",
+    "name": "Important Work Notes",
+    "user_id": "user-uuid",
+    "parent_folder_id": null,
+    "is_favorite": true,
+    "created_at": "2025-10-02T10:00:00.000000+00:00",
+    "updated_at": "2025-10-02T10:00:00.000000+00:00"
+  }
+]
+```
+
+**cURL Example:**
+```bash
+curl -X GET "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/folders?is_favorite=eq.true&order=name.asc" \
+  -H "Authorization: Bearer your_supabase_jwt" \
+  -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+### PATCH /rest/v1/folders?id=eq.{folder_id}
+
+Toggle favorite status for a folder.
+
+**Request Body:**
+```json
+{
+  "is_favorite": true
+}
+```
+
+**Headers:**
+```
+Authorization: Bearer your_supabase_jwt
+Apikey: your_supabase_anon_key
+Content-Type: application/json
+Prefer: return=representation
+```
+
+**Response (200):**
+```json
+[
+  {
+    "id": "folder-uuid",
+    "name": "Work Notes",
+    "user_id": "user-uuid",
+    "parent_folder_id": null,
+    "is_favorite": true,
+    "created_at": "2025-10-02T12:00:00.000000+00:00",
+    "updated_at": "2025-10-02T13:00:00.000000+00:00"
+  }
+]
+```
 
 ---
 
@@ -551,6 +698,7 @@ CREATE TABLE notes (
   title TEXT NOT NULL,
   content TEXT,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  is_favorite BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -563,6 +711,33 @@ CREATE TABLE notes (
   "title": "string",
   "content": "string",
   "user_id": "uuid",
+  "is_favorite": "boolean",
+  "created_at": "string (ISO 8601 with timezone)",
+  "updated_at": "string (ISO 8601 with timezone)"
+}
+```
+
+### Folder Schema (PostgreSQL via Supabase)
+```sql
+CREATE TABLE folders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  parent_folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
+  is_favorite BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+**JSON Response Schema:**
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "user_id": "uuid",
+  "parent_folder_id": "uuid | null",
+  "is_favorite": "boolean",
   "created_at": "string (ISO 8601 with timezone)",
   "updated_at": "string (ISO 8601 with timezone)"
 }
@@ -807,6 +982,18 @@ export async function getNotesByFolder(folderId: string | null): Promise<Note[]>
   return data || [];
 }
 
+// Get favorite notes
+export async function getFavoriteNotes(): Promise<Note[]> {
+  const { data, error } = await supabase
+    .from('notes')
+    .select('*')
+    .eq('is_favorite', true)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
 // Create note
 export async function createNote(note: CreateNoteRequest): Promise<Note> {
   const { data, error } = await supabase
@@ -847,6 +1034,19 @@ export async function deleteNote(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+}
+
+// Toggle note favorite
+export async function toggleNoteFavorite(id: string, isFavorite: boolean): Promise<Note> {
+  const { data, error } = await supabase
+    .from('notes')
+    .update({ is_favorite: isFavorite })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
 }
 ```
 
@@ -901,17 +1101,56 @@ export async function deleteFolder(id: string): Promise<void> {
 
   if (error) throw error;
 }
+
+// Get favorite folders
+export async function getFavoriteFolders(): Promise<Folder[]> {
+  const { data, error } = await supabase
+    .from('folders')
+    .select('*')
+    .eq('is_favorite', true)
+    .order('name', { ascending: true });
+
+  if (error) throw error;
+  return data || [];
+}
+
+// Toggle folder favorite
+export async function toggleFolderFavorite(id: string, isFavorite: boolean): Promise<Folder> {
+  const { data, error } = await supabase
+    .from('folders')
+    .update({ is_favorite: isFavorite })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
 ```
 
 ### Usage in Components
 
 ```typescript
-import { getNotes, createNote, updateNote, deleteNote } from '@/services/notes';
-import { getFolders, createFolder } from '@/services/folders';
+import {
+  getNotes,
+  createNote,
+  updateNote,
+  deleteNote,
+  getFavoriteNotes,
+  toggleNoteFavorite
+} from '@/services/notes';
+import {
+  getFolders,
+  createFolder,
+  getFavoriteFolders,
+  toggleFolderFavorite
+} from '@/services/folders';
 
 // In component
 const notes = await getNotes();
+const favoriteNotes = await getFavoriteNotes();
 const folders = await getFolders();
+const favoriteFolders = await getFavoriteFolders();
 
 const newNote = await createNote({
   title: 'My Note',
@@ -921,8 +1160,10 @@ const newNote = await createNote({
 
 await updateNote(noteId, { title: 'Updated Title' });
 await deleteNote(noteId);
+await toggleNoteFavorite(noteId, true);
 
 const newFolder = await createFolder('Work Notes');
+await toggleFolderFavorite(folderId, true);
 ```
 
 ---
@@ -931,7 +1172,13 @@ const newFolder = await createFolder('Work Notes');
 
 *This API documentation provides the technical interface reference for the Noted Progressive Web App's Supabase backend, designed to support note-taking with folder organization, 10-theme system, and comprehensive offline support. The services layer provides type-safe abstractions over direct Supabase calls for improved maintainability and error handling.*
 
-**Key Updates in 2.0.0:**
+**Key Updates in 2.1.0:**
+- **Favorites System**: Added `is_favorite` field to both notes and folders with toggle endpoints
+- **Favorite Filtering**: New endpoints to retrieve only favorite notes and folders
+- **Enhanced Services**: Added `getFavoriteNotes()`, `toggleNoteFavorite()`, `getFavoriteFolders()`, and `toggleFolderFavorite()` methods
+- **Dashboard Support**: API now fully supports dashboard favorites display
+
+**Previous Updates (2.0.0):**
 - **Folders Endpoints**: Full CRUD operations for folder management with hierarchical support
 - **Services Layer**: Type-safe abstraction layer (services/notes.ts, services/folders.ts) recommended over direct Supabase calls
 - **Enhanced RLS**: Row-Level Security policies on both notes and folders tables

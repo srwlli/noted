@@ -1,11 +1,11 @@
 # Noted Schema Reference
 
-**Date**: October 2, 2025
-**Schema Version**: 2.0.0
+**Date**: October 6, 2025
+**Schema Version**: 2.1.0
 
 ## Overview
 
-This document defines the data schemas, TypeScript interfaces, validation rules, and database relationships for the Noted application. The app uses Supabase as the backend service with TypeScript for type safety, 10-theme system with 18-color palettes, folder organization, enhanced authentication, and universal card component architecture.
+This document defines the data schemas, TypeScript interfaces, validation rules, and database relationships for the Noted application. The app uses Supabase as the backend service with TypeScript for type safety, 10-theme system with 18-color palettes, folder organization with favorites, Dashboard with quick access, enhanced authentication, and universal card component architecture.
 
 **Referenced Documentation**:
 - README.md: Modern React Native note-taking app with Expo Router and Supabase backend
@@ -41,6 +41,7 @@ CREATE TABLE folders (
   name VARCHAR(255) NOT NULL,
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   parent_folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,
+  is_favorite BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -51,6 +52,7 @@ ALTER TABLE folders ADD CONSTRAINT folders_name_not_empty CHECK (LENGTH(TRIM(nam
 -- Indexes
 CREATE INDEX idx_folders_user_id ON folders(user_id);
 CREATE INDEX idx_folders_parent_id ON folders(parent_folder_id);
+CREATE INDEX idx_folders_user_favorite ON folders(user_id, is_favorite) WHERE is_favorite = true;
 
 -- RLS Policies
 ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
@@ -69,6 +71,7 @@ CREATE TABLE notes (
   content TEXT CHECK (LENGTH(content) <= 50000),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   folder_id UUID REFERENCES folders(id) ON DELETE SET NULL,
+  is_favorite BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -78,6 +81,8 @@ CREATE INDEX idx_notes_user_id ON notes(user_id);
 CREATE INDEX idx_notes_folder_id ON notes(folder_id);
 CREATE INDEX idx_notes_created_at ON notes(created_at DESC);
 CREATE INDEX idx_notes_updated_at ON notes(updated_at DESC);
+CREATE INDEX idx_notes_user_favorite ON notes(user_id, is_favorite) WHERE is_favorite = true;
+CREATE INDEX idx_notes_user_recent ON notes(user_id, updated_at DESC) WHERE is_favorite = false;
 
 -- RLS Policies
 ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
@@ -154,6 +159,7 @@ interface Folder {
   name: string;
   user_id: string;
   parent_folder_id: string | null;
+  is_favorite: boolean;
   created_at: string; // ISO 8601 format
   updated_at: string; // ISO 8601 format
 }
@@ -167,6 +173,7 @@ interface CreateFolderRequest {
 // Folder Update Request
 interface UpdateFolderRequest {
   name?: string;
+  is_favorite?: boolean;
 }
 ```
 
@@ -180,6 +187,7 @@ interface Note {
   content: string;
   user_id: string;
   folder_id: string | null;
+  is_favorite: boolean;
   created_at: string; // ISO 8601 format
   updated_at: string; // ISO 8601 format
 }
@@ -196,6 +204,7 @@ interface UpdateNoteRequest {
   title?: string;
   content?: string;
   folder_id?: string | null;
+  is_favorite?: boolean;
 }
 
 // Notes List Response
@@ -574,10 +583,12 @@ function validateNote(note: CreateNoteRequest): ValidationResult {
 - **folders.user_id**: FOREIGN KEY references auth.users(id) ON DELETE CASCADE
 - **folders.parent_folder_id**: FOREIGN KEY references folders(id) ON DELETE CASCADE (self-reference for nested folders)
 - **folders.name**: NOT NULL constraint with CHECK (LENGTH(TRIM(name)) > 0)
+- **folders.is_favorite**: BOOLEAN NOT NULL DEFAULT false
 - **notes.user_id**: FOREIGN KEY references users(id) ON DELETE CASCADE
 - **notes.folder_id**: FOREIGN KEY references folders(id) ON DELETE SET NULL (nullable)
 - **notes.title**: NOT NULL constraint with CHECK (LENGTH(TRIM(title)) > 0)
 - **notes.content**: CHECK constraint (LENGTH(content) <= 50000)
+- **notes.is_favorite**: BOOLEAN NOT NULL DEFAULT false
 - **user_settings.user_id**: FOREIGN KEY references users(id) ON DELETE CASCADE, UNIQUE constraint
 - **users.email, users.name**: NOT NULL constraints
 
@@ -649,16 +660,18 @@ interface SupabaseConfig {
 
 ---
 
-**Date**: October 2, 2025
-**Schema Version**: 2.0.0
+**Date**: October 6, 2025
+**Schema Version**: 2.1.0
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 This schema reference provides comprehensive data structure documentation for the Noted application, including:
 
 - **10 Theme System**: 18-color palettes with light/dark modes (monochrome, ocean, sepia, nord, crimson, forest, lavender, amber, midnight, rose)
-- **Folder Organization**: Hierarchical folder structure with parent-child relationships and ON DELETE SET NULL cascading
-- **Universal Card Component**: Standardized accordion UI with consistent props across info, settings, and note cards
+- **Folder Organization**: Hierarchical folder structure with parent-child relationships, favorites support, and ON DELETE SET NULL cascading
+- **Note & Folder Favorites**: is_favorite boolean fields with partial indexes for efficient Dashboard queries
+- **Dashboard Support**: Optimized queries for favorite notes, favorite folders, and recent non-favorite notes
+- **Universal Card Component**: Standardized accordion UI with consistent props across info, folders, settings, and note cards
 - **Input Validation**: Database-level constraints (title: 200 chars, content: 50,000 chars, folder name: 255 chars)
 - **Type Safety**: Complete TypeScript interfaces for all data structures, API responses, and component props
 - **Row-Level Security**: Supabase RLS policies ensuring users can only access their own data

@@ -1,14 +1,14 @@
 # Noted Component Library
 
 **Framework**: React Native + Expo
-**Version**: 2.0.0
-**Date**: October 2, 2025
+**Version**: 2.1.0
+**Date**: October 6, 2025
 
 ---
 
 ## Overview
 
-Component library reference for the Noted Progressive Web App. All components follow a universal card-based architecture supporting **10 themes** (Monochrome, Ocean, Sepia, Nord, Crimson, Forest, Lavender, Amber, Midnight, Rose) with light/dark variants and an **18-color system**. Components are built with TypeScript, Material Design Icons, and integrated theme management with folder organization support.
+Component library reference for the Noted Progressive Web App. All components follow a universal card-based architecture supporting **10 themes** (Monochrome, Ocean, Sepia, Nord, Crimson, Forest, Lavender, Amber, Midnight, Rose) with light/dark variants and an **18-color system**. Components are built with TypeScript, Material Design Icons, and integrated theme management with folder organization and favorites system. The app features a Dashboard landing page with favorite folders and recent notes for quick access.
 
 **Referenced Documentation:**
 - **README.md**: Setup, quickstart, and usage examples
@@ -22,13 +22,14 @@ Component library reference for the Noted Progressive Web App. All components fo
 1. [Theme System](#theme-system)
 2. [Universal Card Component](#universal-card-component)
 3. [Layout Components](#layout-components)
-4. [Info Card Components](#info-card-components)
-5. [Settings Card Components](#settings-card-components)
-6. [Note Components](#note-components)
-7. [Modal Components](#modal-components)
-8. [Hooks](#hooks)
-9. [Services Layer](#services-layer)
-10. [State Management](#state-management)
+4. [Screen Components](#screen-components)
+5. [Info Card Components](#info-card-components)
+6. [Settings Card Components](#settings-card-components)
+7. [Note Components](#note-components)
+8. [Modal Components](#modal-components)
+9. [Hooks](#hooks)
+10. [Services Layer](#services-layer)
+11. [State Management](#state-management)
 
 ---
 
@@ -270,6 +271,131 @@ Shared header component with refresh, folder dropdown, and new note buttons.
 - Refresh button
 - Theme-aware styling
 - Material Icons integration
+
+---
+
+## Screen Components
+
+### Dashboard (index.tsx)
+
+Main dashboard screen displaying favorite folders and recent notes. Replaces the previous notes list as the app's landing page.
+
+**Location**: `app/(tabs)/index.tsx`
+
+**Features:**
+- **Favorites Section**: Quick access to starred folders with folder card display
+- **Recent Notes Section**: 5 most recently updated notes with timestamps
+- **Empty States**: Friendly messaging when no favorites or notes exist
+- **Smart Navigation**: Taps navigate to folder view or note detail
+- **Theme Integration**: Full theme support with dynamic colors
+- **Tab Navigation**: Accessible via Dashboard tab (center position)
+
+**Key Functions:**
+```typescript
+// Fetches favorite folders (is_favorite = true)
+const favoriteFolders = await getFavoriteFolders();
+
+// Fetches 5 most recent notes across all folders
+const recentNotes = await getNotes(); // Sorted by updated_at DESC, limited to 5
+```
+
+**Usage:**
+```typescript
+// Dashboard renders automatically at root (/)
+// Users see favorites + recent notes on app launch
+// Tap folder card → Navigate to folder detail
+// Tap note card → Navigate to note detail
+```
+
+---
+
+### Notes List (notes.tsx)
+
+Dedicated notes list screen with folder filtering and comprehensive note management.
+
+**Location**: `app/(tabs)/notes.tsx`
+
+**Features:**
+- **Folder Filtering**: Filter notes by selected folder from dropdown
+- **All Notes View**: Display all notes when no folder selected
+- **Full CRUD Operations**: Create, read, update, delete notes
+- **Inline Editing**: Edit notes directly in the list
+- **Empty States**: Contextual messages for empty folders or no notes
+- **Theme-Aware**: Dynamic theming across all UI elements
+
+**State Management:**
+```typescript
+const [notes, setNotes] = useState<Note[]>([]);
+const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+// Filter notes by folder
+const filteredNotes = selectedFolder
+  ? notes.filter(note => note.folder_id === selectedFolder)
+  : notes;
+```
+
+**Usage:**
+```typescript
+// Access via Notes tab (second position)
+// Select folder from dropdown to filter
+// Create new note with folder context
+// Edit/delete notes inline
+```
+
+---
+
+### Folders Screen (folders.tsx)
+
+Dedicated folder management hub with favorites system and comprehensive folder operations.
+
+**Location**: `app/(tabs)/folders.tsx`
+
+**Features:**
+- **Folder Favorites**: Star/unstar folders for Dashboard quick access
+- **Folder Cards**: Visual folder display with star indicators
+- **Folder CRUD**: Create, rename, delete folders
+- **Note Counts**: Display number of notes per folder
+- **Empty State**: Encouragement to create first folder
+- **Theme Integration**: Full theme support
+
+**Folder Card Features:**
+```typescript
+// Star icon toggles is_favorite status
+<TouchableOpacity onPress={() => toggleFavorite(folder.id)}>
+  <MaterialIcons
+    name={folder.is_favorite ? "star" : "star-border"}
+    size={24}
+    color={colors.tint}
+  />
+</TouchableOpacity>
+
+// Folder actions: Rename, Delete, View Notes
+```
+
+**Key Functions:**
+```typescript
+// Toggle folder favorite status
+const toggleFavorite = async (folderId: string) => {
+  await toggleFavorite(folderId);
+  // Refreshes folder list to show updated star state
+};
+
+// Get favorite folders for Dashboard
+const favorites = folders.filter(f => f.is_favorite);
+```
+
+**Usage:**
+```typescript
+// Access via Folders tab (fourth position)
+// Tap star to add/remove from Dashboard favorites
+// Tap folder card to view folder notes
+// Long press for rename/delete options
+```
+
+**Tab Navigation Order:**
+```
+Info (1) → Notes (2) → Dashboard (3) → Folders (4) → Settings (5)
+```
 
 ---
 
@@ -1006,30 +1132,58 @@ await deleteNote(noteId);
 
 ### Folders Service
 
-Centralized data access layer for folder CRUD operations.
+Centralized data access layer for folder CRUD operations with favorites support.
 
 **Location**: `services/folders.ts`
+
+**Folder Interface:**
+```typescript
+interface Folder {
+  id: string;
+  name: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  is_favorite: boolean;  // New: favorite status for Dashboard
+}
+```
 
 **Functions:**
 ```typescript
 async function getFolders(): Promise<Folder[]>
+async function getFavoriteFolders(): Promise<Folder[]>  // New: Get only favorites
 async function createFolder(name: string): Promise<Folder>
 async function updateFolder(id: string, name: string): Promise<Folder>
 async function deleteFolder(id: string): Promise<void>
+async function toggleFavorite(id: string): Promise<Folder>  // New: Toggle is_favorite
 ```
 
 **Usage:**
 ```typescript
-import { getFolders, createFolder, updateFolder, deleteFolder } from '@/services/folders';
+import {
+  getFolders,
+  getFavoriteFolders,
+  createFolder,
+  updateFolder,
+  deleteFolder,
+  toggleFavorite
+} from '@/services/folders';
 
 // Get all folders
 const folders = await getFolders();
 
-// Create folder
+// Get favorite folders for Dashboard
+const favorites = await getFavoriteFolders();
+
+// Create folder (is_favorite defaults to false)
 const newFolder = await createFolder('Work Notes');
 
 // Rename folder
 await updateFolder(folderId, 'Work Projects');
+
+// Toggle favorite status
+const updatedFolder = await toggleFavorite(folderId);
+console.log(updatedFolder.is_favorite); // true or false
 
 // Delete folder (notes will be set to folder_id = null)
 await deleteFolder(folderId);
@@ -1222,8 +1376,19 @@ interface Note {
   title: string;
   content: string;
   user_id: string;
+  folder_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Folder Types
+interface Folder {
+  id: string;
+  name: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+  is_favorite: boolean;  // Favorite status for Dashboard display
 }
 
 // Auth Types
@@ -1362,11 +1527,20 @@ export default function NotesPage() {
 This component library is designed for AI-assisted development. All components follow the Universal Card pattern, services layer abstraction, and 10-theme system. Copy-paste examples are production-ready and follow React Native + Expo + PWA best practices. When extending this library, use the Card component for all card-based UIs, access data via services layer (not direct Supabase), and leverage the 18-color theme system.
 
 **Version History:**
+- 2.1.0 (Oct 6, 2025): Dashboard with favorites, folder favorites system, dedicated Folders screen, tab navigation reorder
 - 2.0.0 (Oct 2, 2025): Universal Card component, 10 themes (18 colors each), folder organization, services layer, PWA support, memory leak fix
 - 1.3.0 (Sept 30, 2025): 17-color system expansion, 3 new themes (Sepia, Nord, Bear Red Graphite)
 - 1.2.0 (Sept 27, 2025): Multi-theme system (Greyscale + Apple Notes), Sonner toast integration
 - 1.1.0: Initial authentication and notes CRUD
 - 1.0.0: Base component library
+
+**Key Updates in 2.1.0:**
+- **Dashboard Screen**: New landing page with favorite folders and recent notes (replaces notes list at index)
+- **Folder Favorites**: Star/unstar folders for Dashboard quick access via is_favorite field
+- **Dedicated Folders Screen**: Comprehensive folder management hub with favorites toggle
+- **Notes Screen Separation**: Dedicated notes.tsx screen with folder filtering
+- **Tab Navigation Update**: Info → Notes → Dashboard → Folders → Settings
+- **Service Layer Expansion**: getFavoriteFolders() and toggleFavorite() methods added
 
 **Key Updates in 2.0.0:**
 - **Universal Card Component**: Single component powers 15+ cards (info, settings, notes) with pixel-perfect consistency

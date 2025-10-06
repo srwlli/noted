@@ -1,12 +1,12 @@
 # Noted
 
-**Date:** October 2, 2025
+**Date:** October 6, 2025
 **Version:** 1.0.0
 **Maintainer:** willh
 
 ## Overview
 
-Noted is a modern Progressive Web App (PWA) note-taking application built with React Native, Expo Router, and Supabase. The app features a universal card-based interface with 10 theme options, folder organization, dark/light mode support, user authentication, and full offline capabilities. Built with TypeScript and Material Design Icons, optimized for mobile, desktop, and web platforms.
+Noted is a modern Progressive Web App (PWA) note-taking application built with React Native, Expo Router, and Supabase. The app features a universal card-based interface with 10 theme options, folder organization with favorites, Dashboard with quick access, dark/light mode support, user authentication, and full offline capabilities. Built with TypeScript and Material Design Icons, optimized for mobile, desktop, and web platforms.
 
 ## Prerequisites
 
@@ -70,13 +70,20 @@ const newNote = await createNote({
 
 ### Folder Management
 ```typescript
-import { createFolder, getFolders } from '@/services/folders';
+import { createFolder, getFolders, getFavoriteFolders, toggleFavorite } from '@/services/folders';
 
 // Create a new folder
 const folder = await createFolder('Work Notes');
 
 // Get all folders for current user
 const folders = await getFolders();
+
+// Get favorite folders only
+const favoriteFolders = await getFavoriteFolders();
+
+// Toggle folder favorite status
+await toggleFavorite(folderId, true); // Add to favorites
+await toggleFavorite(folderId, false); // Remove from favorites
 ```
 
 ### Theme Integration
@@ -128,29 +135,34 @@ if (!user) {
 noted/
 ├── app/                    # Expo Router pages
 │   ├── (tabs)/            # Tab navigation screens
-│   │   ├── index.tsx      # Notes list screen with folder filtering
+│   │   ├── index.tsx      # Dashboard (home) - favorite notes, folders, recent notes
+│   │   ├── notes.tsx      # Notes list screen with folder filtering
 │   │   ├── info.tsx       # Information and quick start screen
+│   │   ├── folders.tsx    # Folders management and navigation hub
 │   │   └── settings.tsx   # Theme and account settings
 │   ├── auth/              # Authentication screens
+│   ├── note-editor/       # Note editor screens (new, edit, test)
 │   ├── +html.tsx          # Custom HTML template for PWA
 │   └── _layout.tsx        # Root layout with theme providers
 ├── components/            # Reusable UI components
 │   ├── common/            # Shared components (Card, Header, Layout)
 │   ├── info-cards/        # Info page accordion cards
 │   ├── settings-cards/    # Settings page cards
-│   └── note-item.tsx      # Individual note card component
+│   ├── note-item.tsx      # Individual note card component
+│   └── folder-modal.tsx   # Folder creation/editing modal
 ├── contexts/              # React Context providers
 │   ├── auth-context.tsx   # User authentication state
 │   └── theme-controller.tsx # Theme management
 ├── services/              # Backend service layer
-│   ├── notes.ts           # Note CRUD operations
-│   └── folders.ts         # Folder management
+│   ├── notes.ts           # Note CRUD operations (with favorites)
+│   └── folders.ts         # Folder management (with favorites)
 ├── hooks/                 # Custom React hooks
 ├── lib/                   # Utility libraries
 │   └── theme-storage.ts   # Type-safe AsyncStorage for themes
 ├── constants/             # App constants and themes
 │   └── theme.ts           # 10 themes with 18 colors each
 ├── supabase/              # Database migrations and config
+│   └── migrations/        # SQL migration files
 └── assets/                # Images, icons, and static files
 ```
 
@@ -243,10 +255,14 @@ npx expo run:ios --clear
 
 ## Key Features
 
+- **Dashboard Home:** Quick access to favorite notes, favorite folders, and 3 most recent notes
 - **10 Theme System:** Monochrome, Ocean, Sepia, Nord, Crimson, Forest, Lavender, Amber, Midnight, Rose
 - **18-Color Palette:** Each theme includes 18 semantic colors (background, surface, text, tint, etc.)
-- **Folder Organization:** Create folders, filter notes by folder, "All Notes" default view
-- **Universal Card Component:** Consistent accordion UI across info, notes, and settings pages
+- **Folder Organization:** Create folders, filter notes by folder, "All Notes" and "Unfiled" views
+- **Folder Favorites:** Mark folders as favorites for quick Dashboard access
+- **Note Favorites:** Star notes to pin them to top of Dashboard
+- **Folders Tab:** Dedicated tab for managing all folders with favorite toggle
+- **Universal Card Component:** Consistent accordion UI across info, notes, folders, and settings pages
 - **Progressive Web App:** Install on iOS, Android, and desktop with offline support
 - **Input Validation:** Title (200 chars), content (50,000 chars) with real-time feedback
 - **Memory Optimized:** Fixed critical memory leak (4.5GB → 700MB-1GB stable)
