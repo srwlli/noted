@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Image Upload with Supabase Storage** (2025-10-06)
+  - Implemented full image upload functionality allowing users to upload images from their device
+  - Users can now upload images from photo library or paste image URLs (Google Drive, direct links)
+  - Added "Upload from Device" button in image dialog modal with loading state
+  - Supabase Storage bucket created (note-images) with RLS policies for user-scoped access
+  - 5MB file size limit with validation and user-friendly error messages
+  - File extension validation from blob MIME type (JPEG, PNG, GIF, WebP supported)
+  - Auto-fill URL field after successful upload with toast notifications
+  - Platform-specific permission handling (iOS/Android photo library, Web file picker)
+  - TypeScript type safety with custom interfaces (UploadImageResult, UploadImageOptions, ImageUploadError)
+  - Race condition prevention using mountedRef pattern for async operations
+  - Fixed Google Drive image rendering by adding allowedImageHandlers prop to markdown renderer
+  - Image storage organized by user: {userId}/{timestamp}_{random}.{ext} for collision prevention
+  - Public bucket with RLS policies (simpler than signed URLs, still secure)
+  - 3 RLS policies created: INSERT, SELECT, DELETE using SPLIT_PART for path validation
+  - New files: services/images.ts (upload service), supabase/migrations/20251006204911_add_image_storage.sql
+  - Modified files: package.json (expo-image-picker), image-dialog-modal.tsx (upload UI), markdown-renderer.tsx (allowedImageHandlers)
+  - User testing completed successfully on iOS/Android/Web platforms
 - **Image Upload Implementation Plan** (2025-10-06)
   - Comprehensive implementation plan for image upload with Supabase Storage integration
   - Phase 1: Google Drive URL fix with allowedImageHandlers prop
