@@ -1,0 +1,641 @@
+{
+  "feature": "Image Upload with Supabase Storage Integration",
+  "version": "1.0",
+  "dateCreated": "2025-10-06",
+  "status": "ready_for_implementation",
+  "priority": "high",
+
+  "executiveSummary": {
+    "goal": "Enable users to upload images from their device and insert into notes, plus fix Google Drive image URL rendering",
+    "approach": "Add expo-image-picker + Supabase Storage bucket + update image dialog modal",
+    "scope": [
+      "Fix Google Drive URL rendering (allowedImageHandlers)",
+      "Add image upload button to image dialog",
+      "Create Supabase Storage bucket with RLS policies",
+      "Create image upload service",
+      "Handle platform permissions (iOS/Android/Web)"
+    ],
+    "nonBreaking": true,
+    "additive": "Feature adds upload option alongside existing URL input - no changes to current functionality"
+  },
+
+  "riskAssessment": {
+    "overall": "Low-Medium Risk",
+    "risks": [
+      {
+        "risk": "expo-image-picker package compatibility",
+        "severity": "Low",
+        "mitigation": "Mature Expo package with extensive documentation and community support",
+        "likelihood": "Very Low"
+      },
+      {
+        "risk": "Supabase Storage setup",
+        "severity": "Low",
+        "mitigation": "Well-documented API, already using Supabase for database",
+        "likelihood": "Low"
+      },
+      {
+        "risk": "Platform permissions (iOS photo library, Android storage)",
+        "severity": "Medium",
+        "mitigation": "expo-image-picker handles permissions automatically on modern OS versions",
+        "likelihood": "Medium",
+        "notes": "May require app.json configuration updates for iOS Info.plist"
+      },
+      {
+        "risk": "Image size/performance issues",
+        "severity": "Medium",
+        "mitigation": "Implement max file size check (5MB), image compression before upload",
+        "likelihood": "Low"
+      },
+      {
+        "risk": "Storage costs",
+        "severity": "Low",
+        "mitigation": "Supabase free tier: 1GB storage (500-1000 images), can add limits",
+        "likelihood": "Low"
+      },
+      {
+        "risk": "Backward compatibility",
+        "severity": "Very Low",
+        "mitigation": "Purely additive - existing URL input unchanged",
+        "likelihood": "None"
+      },
+      {
+        "risk": "Google Drive URL transformation breaking existing images",
+        "severity": "Low",
+        "mitigation": "Only transforms drive.google.com URLs, leaves all others untouched",
+        "likelihood": "Very Low"
+      }
+    ],
+    "rollbackPlan": {
+      "if": "Critical issues discovered during testing",
+      "then": "Remove upload button from UI, keep URL input working",
+      "data": "Images already uploaded remain accessible via URL",
+      "ease": "Easy - UI-only rollback, no data migration needed"
+    }
+  },
+
+  "difficultyAssessment": {
+    "overall": "Medium Complexity",
+    "breakdown": {
+      "packageInstallation": {
+        "difficulty": "Easy",
+        "tasks": ["npm install expo-image-picker", "Verify no peer dependency conflicts"],
+        "complexity": "⭐ Very Easy"
+      },
+      "supabaseMigration": {
+        "difficulty": "Easy",
+        "tasks": ["Create migration file", "Write Storage policy SQL", "Apply with npx supabase db push"],
+        "complexity": "⭐⭐ Easy",
+        "notes": "Follow existing migration pattern (see migrations/20251006000000_add_folder_favorites.sql)"
+      },
+      "imageUploadService": {
+        "difficulty": "Easy-Medium",
+        "tasks": ["Create services/images.ts", "Implement uploadImage() method", "Generate unique filenames", "Handle errors"],
+        "complexity": "⭐⭐⭐ Medium",
+        "notes": "Follow existing service pattern (see services/notes.ts)"
+      },
+      "uiChanges": {
+        "difficulty": "Easy",
+        "tasks": ["Add 'Upload' button to image modal", "Handle image picker flow", "Show loading state", "Display errors"],
+        "complexity": "⭐⭐ Easy",
+        "notes": "Similar to link-dialog-modal.tsx pattern"
+      },
+      "permissionsHandling": {
+        "difficulty": "Medium",
+        "tasks": ["Request photo library access", "Handle permission denied", "Update app.json if needed"],
+        "complexity": "⭐⭐⭐ Medium",
+        "notes": "expo-image-picker handles most of this automatically"
+      },
+      "testing": {
+        "difficulty": "Medium",
+        "tasks": ["Test on iOS device/simulator", "Test on Android device/emulator", "Test on Web", "Test various image formats"],
+        "complexity": "⭐⭐⭐ Medium",
+        "notes": "Requires testing across all three platforms"
+      }
+    },
+    "estimatedComplexity": "Straightforward implementation following established patterns"
+  },
+
+  "currentStateAnalysis": {
+    "existing": {
+      "imageDialogModal": {
+        "file": "components/markdown/image-dialog-modal.tsx",
+        "functionality": "Manual URL input only",
+        "inputs": ["Alt text field", "URL field"],
+        "outputs": "Generates ![alt](url) markdown"
+      },
+      "markdownRenderer": {
+        "file": "components/markdown/markdown-renderer.tsx",
+        "functionality": "Renders markdown with react-native-markdown-display",
+        "issue": "Missing allowedImageHandlers prop - Google Drive URLs not rendering"
+      },
+      "supabaseSetup": {
+        "file": "lib/supabase.ts",
+        "status": "Working Supabase client with auth",
+        "migrations": "6 migrations applied successfully"
+      },
+      "servicesPattern": {
+        "example": "services/notes.ts",
+        "pattern": "Export service object with async methods",
+        "auth": "Uses supabase.auth.getUser() for user_id"
+      }
+    },
+    "missing": {
+      "imagePicker": "No expo-image-picker package installed",
+      "storageService": "No services/images.ts for uploads",
+      "storageBucket": "No 'note-images' bucket in Supabase",
+      "rlsPolicies": "No Storage RLS policies defined",
+      "uploadUI": "No upload button in image dialog"
+    },
+    "impact": {
+      "affectedFiles": [
+        "package.json (add dependency)",
+        "components/markdown/image-dialog-modal.tsx (add upload button)",
+        "components/markdown/markdown-renderer.tsx (add allowedImageHandlers)",
+        "services/images.ts (NEW FILE - upload service)",
+        "supabase/migrations/20251006120000_add_image_storage.sql (NEW FILE)"
+      ],
+      "unaffectedFiles": [
+        "lib/supabase.ts (no changes needed)",
+        "services/notes.ts (no changes needed)",
+        "markdown-toolbar-dropdown.tsx (no changes needed)"
+      ],
+      "breakingChanges": "None - purely additive feature"
+    }
+  },
+
+  "supabaseStorageSetup": {
+    "bucket": {
+      "name": "note-images",
+      "public": false,
+      "fileSizeLimit": 5242880,
+      "allowedMimeTypes": ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"]
+    },
+    "fileNamingConvention": {
+      "pattern": "{user_id}/{timestamp}_{random}.{ext}",
+      "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890/1728234567890_x7k2p9.jpg",
+      "benefits": ["Prevents collisions", "User-scoped organization", "Easy to query user's images"]
+    },
+    "rlsPolicies": [
+      {
+        "name": "Users can upload to their own folder",
+        "operation": "INSERT",
+        "using": "bucket_id = 'note-images' AND (storage.foldername(name))[1] = auth.uid()::text"
+      },
+      {
+        "name": "Users can read their own images",
+        "operation": "SELECT",
+        "using": "bucket_id = 'note-images' AND (storage.foldername(name))[1] = auth.uid()::text"
+      },
+      {
+        "name": "Users can delete their own images",
+        "operation": "DELETE",
+        "using": "bucket_id = 'note-images' AND (storage.foldername(name))[1] = auth.uid()::text"
+      }
+    ],
+    "migration": {
+      "filename": "supabase/migrations/20251006120000_add_image_storage.sql",
+      "createCommand": "npx supabase migration new add_image_storage",
+      "applyCommand": "npx supabase db push",
+      "verifyCommand": "npx supabase db status"
+    }
+  },
+
+  "architectureDesign": {
+    "dataFlow": {
+      "upload": [
+        "1. User taps 'Upload Image' button in ImageDialogModal",
+        "2. expo-image-picker.launchImageLibraryAsync() opens photo picker",
+        "3. User selects image from device",
+        "4. imagesService.uploadImage(uri, userId) called",
+        "5. Service uploads to Supabase Storage bucket: note-images/{userId}/{timestamp}_{random}.ext",
+        "6. Supabase returns public URL: https://[project].supabase.co/storage/v1/object/public/note-images/...",
+        "7. URL auto-filled into 'Image URL' field",
+        "8. User enters alt text and clicks 'Insert'",
+        "9. Markdown generated: ![alt](url)",
+        "10. Image renders in preview mode"
+      ],
+      "render": [
+        "1. MarkdownRenderer receives markdown with ![alt](url)",
+        "2. react-native-markdown-display parses image syntax",
+        "3. Checks URL against allowedImageHandlers: ['data', 'http', 'https']",
+        "4. If Google Drive URL detected, transforms to direct image URL",
+        "5. Renders native Image component with URL"
+      ]
+    },
+    "componentInteractions": {
+      "ImageDialogModal": {
+        "imports": ["expo-image-picker", "services/images", "toast (error handling)"],
+        "newState": ["uploading: boolean", "uploadError: string | null"],
+        "newHandlers": ["handleUploadImage()", "handleImageSelected()"],
+        "ui": "Add 'Upload from Device' button above URL input with camera icon"
+      },
+      "imagesService": {
+        "exports": {
+          "uploadImage": {
+            "params": ["imageUri: string", "userId: string"],
+            "returns": "Promise<string> (public URL)",
+            "errors": ["FileTooLargeError", "UnsupportedFormatError", "UploadFailedError"]
+          },
+          "deleteImage": {
+            "params": ["imageUrl: string"],
+            "returns": "Promise<void>",
+            "notes": "Extract path from URL, call supabase.storage.from('note-images').remove([path])"
+          }
+        }
+      },
+      "MarkdownRenderer": {
+        "changes": {
+          "addProp": "allowedImageHandlers={['data', 'http', 'https']}",
+          "transformUrls": "Optional: Add helper to transform Google Drive share URLs to direct image URLs"
+        }
+      }
+    }
+  },
+
+  "codeChanges": {
+    "phase1_setup": {
+      "package.json": {
+        "change": "Add expo-image-picker to dependencies",
+        "line": 28,
+        "addition": "\"expo-image-picker\": \"~16.0.8\",",
+        "command": "npm install expo-image-picker",
+        "verification": "Package appears in package.json and node_modules"
+      },
+      "supabase/migrations/20251006120000_add_image_storage.sql": {
+        "change": "CREATE NEW FILE",
+        "content": "See migrationSQL section below",
+        "createCommand": "npx supabase migration new add_image_storage",
+        "applyCommand": "npx supabase db push"
+      }
+    },
+    "phase2_services": {
+      "services/images.ts": {
+        "change": "CREATE NEW FILE",
+        "purpose": "Handle image uploads to Supabase Storage",
+        "exports": ["imagesService object with uploadImage() and deleteImage() methods"],
+        "pattern": "Follow services/notes.ts structure",
+        "seeCodeSection": "servicesCode"
+      }
+    },
+    "phase3_ui": {
+      "components/markdown/image-dialog-modal.tsx": {
+        "changes": [
+          {
+            "location": "Imports section (line 1-4)",
+            "add": [
+              "import * as ImagePicker from 'expo-image-picker';",
+              "import { imagesService } from '@/services/images';",
+              "import { supabase } from '@/lib/supabase';",
+              "import { toast } from 'sonner-native';"
+            ]
+          },
+          {
+            "location": "State section (line 19-20)",
+            "add": [
+              "const [uploading, setUploading] = useState(false);"
+            ]
+          },
+          {
+            "location": "Before handleInsert function (line 37)",
+            "add": "See handleUploadImage function in codeExamples"
+          },
+          {
+            "location": "JSX - between header and Alt Text input (line 74)",
+            "add": "See Upload button JSX in codeExamples"
+          }
+        ],
+        "seeCodeSection": "imageDialogModalCode"
+      },
+      "components/markdown/markdown-renderer.tsx": {
+        "changes": [
+          {
+            "location": "Markdown component (line 160)",
+            "change": "Add allowedImageHandlers prop",
+            "before": "<Markdown style={markdownStyles}>\n  {markdown || ''}\n</Markdown>",
+            "after": "<Markdown\n  style={markdownStyles}\n  allowedImageHandlers={['data', 'http', 'https']}\n>\n  {markdown || ''}\n</Markdown>"
+          }
+        ],
+        "optionalEnhancement": {
+          "feature": "Google Drive URL transformation",
+          "description": "Detect and transform Google Drive sharing URLs to direct image URLs",
+          "implementation": "See googleDriveHelper in codeExamples",
+          "priority": "Optional - can add if Google Drive URLs still don't render after allowedImageHandlers fix"
+        }
+      }
+    }
+  },
+
+  "migrationSQL": "-- Migration: Add Supabase Storage for note images\n-- Created: 2025-10-06\n-- Purpose: Enable users to upload images from their device and store in Supabase Storage\n\n-- Create storage bucket for note images\nINSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)\nVALUES (\n  'note-images',\n  'note-images',\n  false, -- Private bucket (users can only access their own images)\n  5242880, -- 5MB max file size\n  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']\n)\nON CONFLICT (id) DO NOTHING;\n\n-- RLS Policy: Users can upload to their own folder\nCREATE POLICY \"Users can upload images to their own folder\"\nON storage.objects\nFOR INSERT\nWITH CHECK (\n  bucket_id = 'note-images' AND\n  (storage.foldername(name))[1] = auth.uid()::text\n);\n\n-- RLS Policy: Users can view their own images\nCREATE POLICY \"Users can view their own images\"\nON storage.objects\nFOR SELECT\nUSING (\n  bucket_id = 'note-images' AND\n  (storage.foldername(name))[1] = auth.uid()::text\n);\n\n-- RLS Policy: Users can delete their own images\nCREATE POLICY \"Users can delete their own images\"\nON storage.objects\nFOR DELETE\nUSING (\n  bucket_id = 'note-images' AND\n  (storage.foldername(name))[1] = auth.uid()::text\n);\n\n-- Add comment for documentation\nCOMMENT ON TABLE storage.buckets IS 'note-images bucket stores user-uploaded images for markdown notes';",
+
+  "codeExamples": {
+    "servicesCode": "// services/images.ts\nimport { supabase } from '@/lib/supabase';\n\nexport const imagesService = {\n  /**\n   * Upload image to Supabase Storage\n   * @param imageUri - Local file URI from image picker\n   * @param userId - Current user's ID\n   * @returns Public URL of uploaded image\n   */\n  async uploadImage(imageUri: string, userId: string): Promise<string> {\n    try {\n      // Generate unique filename\n      const timestamp = Date.now();\n      const randomString = Math.random().toString(36).substring(2, 9);\n      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';\n      const fileName = `${timestamp}_${randomString}.${fileExt}`;\n      const filePath = `${userId}/${fileName}`;\n\n      // Convert URI to blob for upload\n      const response = await fetch(imageUri);\n      const blob = await response.blob();\n\n      // Check file size (5MB limit)\n      if (blob.size > 5242880) {\n        throw new Error('Image must be less than 5MB');\n      }\n\n      // Upload to Supabase Storage\n      const { data, error } = await supabase.storage\n        .from('note-images')\n        .upload(filePath, blob, {\n          contentType: `image/${fileExt}`,\n          cacheControl: '3600',\n          upsert: false\n        });\n\n      if (error) throw error;\n\n      // Get public URL\n      const { data: { publicUrl } } = supabase.storage\n        .from('note-images')\n        .getPublicUrl(filePath);\n\n      return publicUrl;\n    } catch (error) {\n      console.error('Image upload failed:', error);\n      throw error;\n    }\n  },\n\n  /**\n   * Delete image from Supabase Storage\n   * @param imageUrl - Full public URL of image\n   */\n  async deleteImage(imageUrl: string): Promise<void> {\n    try {\n      // Extract file path from URL\n      // URL format: https://[project].supabase.co/storage/v1/object/public/note-images/[userId]/[filename]\n      const urlParts = imageUrl.split('/note-images/');\n      if (urlParts.length !== 2) {\n        throw new Error('Invalid image URL format');\n      }\n      const filePath = urlParts[1];\n\n      const { error } = await supabase.storage\n        .from('note-images')\n        .remove([filePath]);\n\n      if (error) throw error;\n    } catch (error) {\n      console.error('Image deletion failed:', error);\n      throw error;\n    }\n  }\n};",
+
+    "imageDialogModalCode": "// Add to image-dialog-modal.tsx\n\n// 1. New imports (add to top of file)\nimport * as ImagePicker from 'expo-image-picker';\nimport { imagesService } from '@/services/images';\nimport { supabase } from '@/lib/supabase';\nimport { toast } from 'sonner-native';\n\n// 2. New state (add with other useState calls)\nconst [uploading, setUploading] = useState(false);\n\n// 3. New handler function (add before handleInsert)\nconst handleUploadImage = async () => {\n  try {\n    // Request permissions (handled automatically by expo-image-picker on modern OS)\n    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();\n    \n    if (!permissionResult.granted) {\n      toast.error('Permission to access photos is required');\n      return;\n    }\n\n    // Launch image picker\n    const result = await ImagePicker.launchImageLibraryAsync({\n      mediaTypes: ['images'],\n      allowsEditing: true,\n      quality: 0.8, // Compress to reduce file size\n      aspect: [16, 9],\n    });\n\n    if (result.canceled) return;\n\n    // Get user ID\n    const { data: { user } } = await supabase.auth.getUser();\n    if (!user) {\n      toast.error('You must be logged in to upload images');\n      return;\n    }\n\n    // Upload image\n    setUploading(true);\n    const imageUrl = await imagesService.uploadImage(result.assets[0].uri, user.id);\n    \n    // Auto-fill URL field\n    setImageUrl(imageUrl);\n    toast.success('Image uploaded successfully');\n  } catch (error: any) {\n    console.error('Upload error:', error);\n    toast.error(error.message || 'Failed to upload image');\n  } finally {\n    setUploading(false);\n  }\n};\n\n// 4. Upload button JSX (add between header and Alt Text input, around line 74)\n{/* Upload Button */}\n<TouchableOpacity\n  style={[\n    styles.uploadButton,\n    {\n      backgroundColor: colors.background,\n      borderColor: colors.border,\n    },\n    uploading && styles.buttonDisabled,\n  ]}\n  onPress={handleUploadImage}\n  activeOpacity={0.7}\n  disabled={uploading}\n>\n  <MaterialIcons\n    name=\"photo-library\"\n    size={20}\n    color={uploading ? colors.textSecondary : colors.tint}\n  />\n  <Text\n    style={[\n      styles.uploadButtonText,\n      { color: uploading ? colors.textSecondary : colors.text },\n    ]}\n  >\n    {uploading ? 'Uploading...' : 'Upload from Device'}\n  </Text>\n</TouchableOpacity>\n\n<Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>\n\n// 5. New styles (add to StyleSheet.create)\nuploadButton: {\n  flexDirection: 'row',\n  alignItems: 'center',\n  justifyContent: 'center',\n  gap: 8,\n  padding: 14,\n  borderRadius: 8,\n  borderWidth: 1,\n  marginBottom: 12,\n},\ndividerText: {\n  textAlign: 'center',\n  fontSize: 14,\n  fontWeight: '500',\n  marginBottom: 12,\n},\nuploadButtonText: {\n  fontSize: 16,\n  fontWeight: '600',\n},",
+
+    "markdownRendererCode": "// components/markdown/markdown-renderer.tsx\n// Change at line 160\n\n// BEFORE:\nconst content = (\n  <Markdown style={markdownStyles}>\n    {markdown || ''}\n  </Markdown>\n);\n\n// AFTER:\nconst content = (\n  <Markdown\n    style={markdownStyles}\n    allowedImageHandlers={['data', 'http', 'https']}\n  >\n    {markdown || ''}\n  </Markdown>\n);",
+
+    "googleDriveHelper": "// Optional: Helper to transform Google Drive URLs\n// Add to utils/image-helpers.ts if Google Drive URLs still don't render\n\nexport function transformGoogleDriveUrl(url: string): string {\n  // Check if it's a Google Drive sharing link\n  const driveMatch = url.match(/drive\\.google\\.com\\/file\\/d\\/([a-zA-Z0-9_-]+)/);\n  \n  if (driveMatch) {\n    const fileId = driveMatch[1];\n    // Transform to direct image URL\n    return `https://drive.google.com/uc?export=view&id=${fileId}`;\n  }\n  \n  return url; // Return original URL if not Google Drive\n}\n\n// Then in image-dialog-modal.tsx handleInsert:\nconst transformedUrl = transformGoogleDriveUrl(imageUrl.trim());\nonInsert(altText.trim(), transformedUrl);"
+  },
+
+  "implementationChecklist": {
+    "phase1_setup": {
+      "name": "Setup & Installation",
+      "tasks": [
+        {
+          "task": "Install expo-image-picker package",
+          "command": "npm install expo-image-picker",
+          "verification": "Check package.json dependencies and node_modules",
+          "status": "pending"
+        },
+        {
+          "task": "Create Supabase migration file",
+          "command": "npx supabase migration new add_image_storage",
+          "verification": "File created: supabase/migrations/20251006120000_add_image_storage.sql",
+          "status": "pending"
+        },
+        {
+          "task": "Write migration SQL",
+          "details": "Copy migrationSQL content into migration file",
+          "verification": "SQL includes bucket creation and 3 RLS policies",
+          "status": "pending"
+        },
+        {
+          "task": "Apply migration to database",
+          "command": "npx supabase db push",
+          "verification": "No errors, npx supabase db status shows migration applied",
+          "status": "pending"
+        },
+        {
+          "task": "Verify bucket created",
+          "details": "Check Supabase Dashboard → Storage → Buckets",
+          "verification": "note-images bucket visible with correct settings",
+          "status": "pending"
+        }
+      ]
+    },
+    "phase2_implementation": {
+      "name": "Code Implementation",
+      "tasks": [
+        {
+          "task": "Create services/images.ts",
+          "details": "Copy servicesCode from codeExamples",
+          "verification": "File exports imagesService with uploadImage() and deleteImage() methods",
+          "status": "pending"
+        },
+        {
+          "task": "Update image-dialog-modal.tsx - imports",
+          "details": "Add expo-image-picker, imagesService, supabase, toast imports",
+          "verification": "4 new imports added at top of file",
+          "status": "pending"
+        },
+        {
+          "task": "Update image-dialog-modal.tsx - state",
+          "details": "Add uploading state: useState(false)",
+          "verification": "uploading state declared",
+          "status": "pending"
+        },
+        {
+          "task": "Update image-dialog-modal.tsx - handler",
+          "details": "Add handleUploadImage function before handleInsert",
+          "verification": "Function handles image picker, upload, and URL auto-fill",
+          "status": "pending"
+        },
+        {
+          "task": "Update image-dialog-modal.tsx - JSX",
+          "details": "Add Upload button and divider between header and Alt Text input",
+          "verification": "Button visible with photo-library icon",
+          "status": "pending"
+        },
+        {
+          "task": "Update image-dialog-modal.tsx - styles",
+          "details": "Add uploadButton, uploadButtonText, dividerText styles",
+          "verification": "3 new styles in StyleSheet.create",
+          "status": "pending"
+        },
+        {
+          "task": "Update markdown-renderer.tsx",
+          "details": "Add allowedImageHandlers prop to Markdown component",
+          "verification": "Prop set to ['data', 'http', 'https']",
+          "status": "pending"
+        }
+      ]
+    },
+    "phase3_user_testing": {
+      "name": "⚠️ USER TESTING REQUIRED",
+      "agentBehavior": "STOP HERE - Prompt user with testing instructions below",
+      "instructions": {
+        "message": "Implementation complete. Please test the following scenarios before committing:",
+        "tests": [
+          {
+            "test": "Upload image from device",
+            "steps": [
+              "1. Open note editor",
+              "2. Tap formatting button → Image button",
+              "3. Tap 'Upload from Device' button",
+              "4. Select an image from photo library",
+              "5. Verify image URL auto-fills in URL field",
+              "6. Enter alt text and tap Insert",
+              "7. Switch to Preview mode",
+              "8. Verify image renders correctly"
+            ],
+            "platforms": ["iOS", "Android", "Web"],
+            "expectedResult": "Image uploads successfully and renders in preview"
+          },
+          {
+            "test": "Google Drive URL (manual input)",
+            "steps": [
+              "1. Get a Google Drive image sharing link",
+              "2. Open image dialog",
+              "3. Paste URL in 'Image URL' field",
+              "4. Enter alt text and tap Insert",
+              "5. Switch to Preview mode",
+              "6. Verify image renders"
+            ],
+            "platforms": ["All"],
+            "expectedResult": "Google Drive images now render (previously broken)"
+          },
+          {
+            "test": "Regular URL still works",
+            "steps": [
+              "1. Open image dialog",
+              "2. Enter https://example.com/image.jpg in URL field",
+              "3. Enter alt text and tap Insert",
+              "4. Switch to Preview mode"
+            ],
+            "platforms": ["All"],
+            "expectedResult": "Regular image URLs continue to work (no regression)"
+          },
+          {
+            "test": "Upload error handling",
+            "steps": [
+              "1. Try uploading a very large image (>5MB)",
+              "2. Verify error toast appears",
+              "3. Try upload when not logged in (if possible)",
+              "4. Verify error handling"
+            ],
+            "platforms": ["Any"],
+            "expectedResult": "Errors display user-friendly messages"
+          },
+          {
+            "test": "Permissions handling",
+            "steps": [
+              "1. First upload attempt should request photo library permission",
+              "2. Deny permission",
+              "3. Verify error message",
+              "4. Grant permission in settings",
+              "5. Try upload again",
+              "6. Verify upload works"
+            ],
+            "platforms": ["iOS", "Android"],
+            "expectedResult": "Permission flow works correctly"
+          }
+        ],
+        "reportFormat": {
+          "ifTestsPass": "Reply: 'Tests passed - ready to commit'",
+          "ifIssuesFound": "Reply with details: 'Issue found: [describe problem]'"
+        }
+      }
+    },
+    "phase4_finalize": {
+      "name": "Finalize (Only After User Approval)",
+      "precondition": "User must confirm tests passed",
+      "tasks": [
+        {
+          "task": "Git add all changes",
+          "command": "git add package.json package-lock.json services/images.ts components/markdown/image-dialog-modal.tsx components/markdown/markdown-renderer.tsx supabase/migrations/20251006120000_add_image_storage.sql",
+          "status": "pending"
+        },
+        {
+          "task": "Git commit with detailed message",
+          "command": "See commitMessage below",
+          "status": "pending"
+        },
+        {
+          "task": "Git push to remote",
+          "command": "git push",
+          "status": "pending"
+        }
+      ],
+      "commitMessage": "Add image upload with Supabase Storage integration\n\nImplemented full image upload functionality allowing users to upload images from their device and insert into notes. Also fixed Google Drive image URL rendering.\n\nFeatures:\n- Image upload from device photo library (expo-image-picker)\n- Supabase Storage bucket with RLS policies\n- 5MB file size limit with user-friendly error handling\n- Auto-fill URL field after successful upload\n- Support for JPEG, PNG, GIF, WebP formats\n- Fixed Google Drive image rendering (allowedImageHandlers)\n- Platform permissions handling (iOS/Android/Web)\n\nNew files:\n- services/images.ts - Image upload service\n- supabase/migrations/20251006120000_add_image_storage.sql - Storage bucket and RLS policies\n\nModified files:\n- package.json - Added expo-image-picker dependency\n- components/markdown/image-dialog-modal.tsx - Added upload button and logic\n- components/markdown/markdown-renderer.tsx - Added allowedImageHandlers prop\n\nTesting:\n- ✅ Image upload works on iOS/Android/Web\n- ✅ Google Drive URLs now render\n- ✅ Regular URLs still work\n- ✅ Error handling tested\n- ✅ Permissions flow verified\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>"
+    }
+  },
+
+  "testingInstructions": {
+    "platforms": {
+      "ios": {
+        "setup": "Run on iOS simulator or physical device",
+        "notes": "Photo library permissions may require app restart on first request"
+      },
+      "android": {
+        "setup": "Run on Android emulator or physical device",
+        "notes": "Storage permissions handled automatically on Android 11+"
+      },
+      "web": {
+        "setup": "Run npx expo start --web",
+        "notes": "File picker dialog instead of photo library"
+      }
+    },
+    "edgeCases": [
+      "Very large images (>5MB)",
+      "Unsupported formats (e.g., .bmp, .tiff)",
+      "Slow network connection during upload",
+      "User not authenticated",
+      "Permission denied scenarios",
+      "Google Drive URLs with various formats"
+    ]
+  },
+
+  "troubleshooting": {
+    "uploadFails": {
+      "symptom": "Upload button shows error",
+      "possibleCauses": [
+        "Supabase migration not applied",
+        "RLS policies blocking upload",
+        "File too large",
+        "User not authenticated"
+      ],
+      "solutions": [
+        "Run: npx supabase db status (verify migration)",
+        "Check Supabase Dashboard → Storage → Policies",
+        "Check console logs for specific error",
+        "Verify user is logged in: supabase.auth.getUser()"
+      ]
+    },
+    "imagesNotRendering": {
+      "symptom": "Images don't show in preview mode",
+      "possibleCauses": [
+        "allowedImageHandlers not set",
+        "URL format not recognized",
+        "CORS issues (Web)",
+        "Image URL expired or broken"
+      ],
+      "solutions": [
+        "Verify markdown-renderer.tsx has allowedImageHandlers prop",
+        "Check URL starts with http, https, or data",
+        "Test URL directly in browser",
+        "Check Network tab for failed requests"
+      ]
+    },
+    "permissionsDenied": {
+      "symptom": "Can't access photo library",
+      "possibleCauses": [
+        "User denied permission",
+        "app.json missing permission keys (iOS)"
+      ],
+      "solutions": [
+        "Guide user to Settings → App → Permissions",
+        "Add to app.json: ios.infoPlist.NSPhotoLibraryUsageDescription"
+      ]
+    }
+  },
+
+  "futureEnhancements": {
+    "phase2": [
+      {
+        "feature": "Image compression",
+        "description": "Compress images before upload to reduce storage costs",
+        "package": "expo-image-manipulator"
+      },
+      {
+        "feature": "Image gallery",
+        "description": "Browse previously uploaded images for re-use",
+        "implementation": "Query storage.objects filtered by user_id"
+      },
+      {
+        "feature": "Drag and drop (Web)",
+        "description": "Allow dragging images into note editor",
+        "implementation": "Add drop zone to MarkdownEditor"
+      },
+      {
+        "feature": "Camera capture",
+        "description": "Take photo with camera and insert",
+        "package": "expo-image-picker.launchCameraAsync()"
+      },
+      {
+        "feature": "Image deletion",
+        "description": "Delete unused images from storage",
+        "implementation": "Scan notes for image URLs, delete orphaned images"
+      }
+    ]
+  },
+
+  "reviews": {
+    "codexReview": {
+      "reviewer": "Codex",
+      "date": "",
+      "status": "pending",
+      "findings": [],
+      "recommendations": [],
+      "approved": null
+    },
+    "claudeReview": {
+      "reviewer": "Claude",
+      "date": "",
+      "status": "pending",
+      "findings": [],
+      "recommendations": [],
+      "approved": null
+    }
+  }
+}
