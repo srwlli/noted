@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Image Upload Implementation Plan** (2025-10-06)
+  - Comprehensive implementation plan for image upload with Supabase Storage integration
+  - Phase 1: Google Drive URL fix with allowedImageHandlers prop
+  - Phase 2: Device image upload using expo-image-picker
+  - Supabase Storage bucket configuration with RLS policies for user-scoped private storage
+  - 5MB file size limit with validation and compression
+  - Platform permissions handling (iOS photo library, Android storage, Web file picker)
+  - Complete code examples: services/images.ts, updated image-dialog-modal.tsx, markdown-renderer.tsx
+  - Step-by-step implementation checklist with user testing gate before commit/push
+  - Risk assessment: Low-Medium risk with detailed mitigation strategies
+  - Difficulty assessment: Medium complexity with breakdown by task
+  - Troubleshooting guide for common issues
+  - File: improvements/image-upload-implementation.json (641 lines, ready for agent execution)
+- **Image Button in Markdown Toolbar** (2025-10-06)
+  - Added image button to markdown toolbar dropdown for inserting images into notes
+  - Button positioned between Link and Table buttons with image icon
+  - Opens ImageDialogModal with two input fields: Alt Text and Image URL
+  - Generates markdown syntax: `![alt](url)` for image insertion
+  - Modal features: Alt text pre-fill from selection, URL validation, theme-aware styling
+  - Components updated: markdown-toolbar-dropdown.tsx (actual toolbar used by editor)
+  - Note: Initially added to wrong component (markdown-toolbar.tsx), then corrected
+  - Fixed issue where button wasn't visible in note editor (commit 7c1e674)
+  - Image rendering in preview mode enabled
 - **Dashboard Folder Menu Integration** (2025-10-06)
   - Added folder dropdown controls to the Dashboard header for parity with Notes/Folders tabs
   - Reused FolderModal and delete confirmation so folder CRUD works from the home screen
@@ -318,6 +341,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript errors related to web CSS strings in React Native styles (non-critical)
 
 ### Removed
+- **Unused Markdown Toolbar Component** (2025-10-06)
+  - Archived markdown-toolbar.tsx to improvements/archived/ (never integrated into codebase)
+  - Component was part of original markdown editor plan but replaced by dropdown pattern
+  - Dropdown toolbar (markdown-toolbar-dropdown.tsx) chosen for better mobile UX
+  - Original design: Always-visible inline toolbar above keyboard (KeyboardAvoidingView)
+  - Dropdown benefits: Saves screen space, on-demand display, better platform consistency
+  - Component remains complete with all 9 buttons (B, I, H1, H2, List, Code, Link, Image, Table)
+  - Created comprehensive documentation: improvements/archived/markdown-toolbar-ARCHIVED.md
+  - Documentation includes: why archived, original purpose, replacement rationale, re-implementation guide
+  - Component can be restored if needed for web platform or user preference settings
+  - Git history preserved via `git mv` (not deleted)
 - **Test Note (NOTE-MODAL-TEST)** (2025-10-05)
   - Removed development test note from All Notes view
   - Test note was used to demonstrate modal actions during development
@@ -332,6 +366,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
+- **Folder Dropdown Not Loading on Dashboard and Notes** (2025-10-06)
+  - Fixed folder dropdown being empty on Dashboard and Notes tabs
+  - Root cause: useEffect dependency array was incomplete, missing onFolderSelect prop
+  - When parent components finished loading, they passed onFolderSelect but effect didn't re-run
+  - Wrapped loadFolders in useCallback for stable function reference
+  - Added onFolderSelect and loadFolders to useEffect dependency array
+  - Effect now properly triggers when prop becomes available
+  - Folders now load correctly on all tabs (Dashboard, Notes, Folders)
+  - Fixed in common-header.tsx with atomic, modular approach
 - **Toast Notifications Blocked by Modal** (2025-10-06)
   - Fixed toast notifications being hidden behind NoteActionsModal bottom sheet
   - Changed toast position to `top-center` for all modal-triggered actions
