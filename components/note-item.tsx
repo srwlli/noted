@@ -6,7 +6,7 @@ import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-m
 import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Card } from '@/components/common/card';
-import { Note } from '@/services/notes';
+import { notesService, Note } from '@/services/notes';
 import { foldersService, Folder } from '@/services/folders';
 import { USE_MARKDOWN_EDITOR } from '@/config/features';
 import { toast } from 'sonner-native';
@@ -17,15 +17,17 @@ interface NoteItemProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onMoveToFolder?: () => void;
+  onFavoriteToggle?: () => void;
 }
 
-export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteItemProps) => {
+export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavoriteToggle }: NoteItemProps) => {
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(note.is_favorite);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -34,6 +36,11 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
       setIsExpanded(false);
     };
   }, []);
+
+  // Sync local state when note.is_favorite changes from parent
+  useEffect(() => {
+    setIsFavorite(note.is_favorite);
+  }, [note.is_favorite]);
 
   // Load folders when menu opens
   useEffect(() => {
@@ -108,6 +115,19 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
     setShowActionsModal(true);
   }, []);
 
+  const handleToggleFavorite = useCallback(async () => {
+    try {
+      const newFavoriteState = !isFavorite;
+      await notesService.toggleFavorite(note.id, newFavoriteState);
+      setIsFavorite(newFavoriteState);
+      toast.success(newFavoriteState ? 'Added to Favorites' : 'Removed from Favorites');
+      onFavoriteToggle?.();
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      toast.error('Failed to update favorite');
+    }
+  }, [note.id, isFavorite, onFavoriteToggle]);
+
   return (
     <>
       <Card
@@ -159,6 +179,12 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
                     <MenuOption onSelect={handleEdit} customStyles={{ optionWrapper: styles.menuItem }}>
                       <MaterialIcons name="edit" size={20} color={colors.text} />
                       <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
+                    </MenuOption>
+                    <MenuOption onSelect={handleToggleFavorite} customStyles={{ optionWrapper: styles.menuItem }}>
+                      <MaterialIcons name={isFavorite ? 'star' : 'star-border'} size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>
+                        {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                      </Text>
                     </MenuOption>
                     <MenuOption onSelect={handleCopy} customStyles={{ optionWrapper: styles.menuItem }}>
                       <MaterialIcons name="content-copy" size={20} color={colors.text} />
@@ -216,6 +242,8 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder }: NoteIt
         noteId={note.id}
         noteTitle={note.title}
         noteContent={note.content || ''}
+        isFavorite={isFavorite}
+        onToggleFavorite={handleToggleFavorite}
       />
     </>
   );

@@ -6,6 +6,7 @@ export interface Note {
   title: string;
   content: string;
   folder_id: string | null;
+  is_favorite: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -106,5 +107,40 @@ export const notesService = {
       if (error) throw error;
       return data as Note[];
     }
+  },
+
+  // Toggle favorite status of a note
+  async toggleFavorite(noteId: string, isFavorite: boolean) {
+    const { error } = await supabase
+      .from('notes')
+      .update({ is_favorite: isFavorite })
+      .eq('id', noteId);
+
+    if (error) throw error;
+  },
+
+  // Get all favorited notes for Dashboard
+  async getFavoriteNotes() {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('is_favorite', true)
+      .order('updated_at', { ascending: false });
+
+    if (error) throw error;
+    return data as Note[];
+  },
+
+  // Get recent non-favorite notes for Dashboard "Last 3" section
+  async getRecentNonFavoriteNotes(limit: number = 3) {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('is_favorite', false)
+      .order('updated_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data as Note[];
   }
 };

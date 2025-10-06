@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dashboard with Favorites and Recent Notes** (2025-10-05)
+  - New Dashboard tab as home page (index route) with 'home' icon
+  - Favorites section displays favorited notes without header for clean design
+  - Last 3 section shows 3 most recently modified non-favorite notes with header
+  - Notes in favorites excluded from Last 3 to avoid duplication
+  - Empty state cards for new users: "Add fav for quick access" and "Last 3 notes here"
+  - Empty state dismisses when user adds notes or favorites
+  - Auto-refresh via useFocusEffect hook when Dashboard tab gains focus
+  - Database migration adds is_favorite boolean column with 2 performance indexes
+  - Partial index on (user_id, is_favorite) for fast favorite queries
+  - Partial index on (user_id, updated_at DESC) for Last 3 query optimization
+  - 'Add to Favorites' action in popup menu (...) with star/star-border icon
+  - 'Favorite' primary action card in long-press modal with dynamic label
+  - Toast confirmation when toggling favorite status (sonner-native)
+  - User stays on current note when favoriting (not redirected)
+  - State synchronization ensures favorite icon reflects actual status
+  - Service methods: toggleFavorite(), getFavoriteNotes(), getRecentNonFavoriteNotes()
+  - Tab navigation updated: Dashboard → Info → Notes → Settings
+  - Notes list moved from index to dedicated 'notes' route
+  - Migration file: 20251005000000_add_is_favorite_column.sql
 - **Mobile Long Press Actions** (2025-10-05)
   - Added long press gesture on note cards to open actions modal (mobile only)
   - Long press on note title triggers full NoteActionsModal with 9 actions

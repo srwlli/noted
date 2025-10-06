@@ -10,9 +10,11 @@ interface NoteActionsModalProps {
   noteId: string;
   noteTitle: string;
   noteContent: string;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, isFavorite, onToggleFavorite }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
   const [title, setTitle] = useState(noteTitle);
 
@@ -21,8 +23,10 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   };
 
   // Primary actions
+  const favoriteIcon = (isFavorite ? 'star' : 'star-border') as 'star' | 'star-border';
   const primaryActions = [
     { icon: 'edit' as const, label: 'Edit', onPress: showComingSoon, disabled: false },
+    { icon: favoriteIcon, label: isFavorite ? 'Unfavorite' : 'Favorite', onPress: onToggleFavorite, disabled: false },
     { icon: 'share' as const, label: 'Share', onPress: showComingSoon, disabled: false },
     { icon: 'content-copy' as const, label: 'Duplicate', onPress: showComingSoon, disabled: false },
   ];
