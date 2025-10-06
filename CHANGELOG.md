@@ -8,18 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Folders Tab with Quick Access** (2025-10-06)
+  - Transformed "Soon" placeholder tab into dedicated Folders hub
+  - Tab 4 of 5 (Info → Notes → Dashboard → Folders → Settings) for thumb-accessible navigation
+  - Vertical list of folder cards showing all user folders
+  - Tap folder card to navigate to Notes tab with that folder selected
+  - Empty state with "Create Folder" CTA button for new users
+  - Pull-to-refresh support for manual folder list reload
+  - Cross-tab synchronization via folderRefreshTrigger (folder dropdown updates everywhere)
+  - Folder cards show icon + name only (no body content when collapsed)
+  - (...) menu on each folder card with Rename, Add/Remove Favorites, Delete options
+  - Folder creation, renaming, and deletion via FolderModal and ConfirmationModal
+  - Loading spinner during initial data fetch
+  - Error message display with retry capability
+  - Comprehensive JSDoc and inline comments for maintainability
+  - Tab icon changed from schedule (clock) to folder
+  - Phase 1 implementation complete (Phase 2: note counts, timestamps, special cards planned)
+- **Folder Favorites System** (2025-10-06)
+  - Add folders to favorites via (...) menu in Folders tab
+  - Star icon (★/☆) indicates favorite status in menu
+  - Toggle favorite status with toast notifications (top-center position)
+  - Favorite folders appear on Dashboard below recent notes
+  - Dashboard divider separates notes and folders sections
+  - Tap favorite folder card on Dashboard to navigate to Notes tab
+  - Database field: is_favorite boolean on folders table
+  - Service methods: getFavoriteFolders(), toggleFavorite(folderId, isFavorite)
+  - Parallel loading of notes and folders on Dashboard (Promise.all for performance)
+  - State synchronization ensures favorite icon reflects actual status
+  - Folder cards on Dashboard match Folders tab design (icon + name, header only)
 - **Auto-Assign Notes to Folder** (2025-10-06)
   - New notes created while viewing a folder are automatically assigned to that folder
   - Folder ID passed via URL parameter from Notes page to note editor
   - "All Notes" and "Unfiled" views create notes without folder assignment
   - Seamless organization workflow: select folder → create note → note appears in that folder
   - Reduces manual "Move to Folder" actions after note creation
-- **Coming Soon Tab** (2025-10-06)
-  - New "Soon" tab route with placeholder card for upcoming features
-  - Tab reordered to center Dashboard: Info → Notes → Dashboard → Soon → Settings
-  - Dashboard now at position 3 of 5 for ergonomic thumb access
-  - Uses 'schedule' icon (clock) to represent future features
-  - Consistent card styling with SharedPageLayout integration
 - **Dashboard with Favorites and Recent Notes** (2025-10-05)
   - New Dashboard tab as home page (index route) with 'home' icon
   - Favorites section displays favorited notes without header for clean design
