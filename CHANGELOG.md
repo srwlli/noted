@@ -384,6 +384,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
+- **Dashboard Note Delete Functionality** (2025-10-06)
+  - Fixed delete button appearing but not working on Dashboard note cards
+  - Added deleteNote state variable to Dashboard component
+  - Added confirmDeleteNote handler matching Notes page implementation
+  - Added onDelete prop to all NoteItem components (favorite notes and recent notes)
+  - Added ConfirmationModal for note deletion with "This action cannot be undone" warning
+  - Root cause: Dashboard was missing delete callback wiring despite delete button being rendered
+  - Note cards now have consistent functionality across all tabs (Dashboard, Notes, Folders)
 - **Folder Dropdown Not Loading on Dashboard and Notes** (2025-10-06)
   - Fixed folder dropdown being empty on Dashboard and Notes tabs
   - Root cause: useEffect dependency array was incomplete, missing onFolderSelect prop

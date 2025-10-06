@@ -40,6 +40,7 @@ export default function DashboardScreen() {
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null); // Folder being edited
   const [deleteFolder, setDeleteFolder] = useState<string | null>(null); // Folder pending deletion
   const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0); // Sync trigger for header dropdown
+  const [deleteNote, setDeleteNote] = useState<Note | null>(null); // Note pending deletion
 
   /**
    * Load dashboard data: favorite notes, recent notes, and favorite folders
@@ -141,6 +142,19 @@ export default function DashboardScreen() {
     }
   };
 
+  const confirmDeleteNote = async () => {
+    if (!deleteNote) return;
+
+    try {
+      await notesService.deleteNote(deleteNote.id);
+      setDeleteNote(null);
+      loadDashboardData();
+    } catch (err) {
+      console.error('Failed to delete note:', err);
+      Alert.alert('Error', 'Failed to delete note');
+    }
+  };
+
   if (loading) {
     return (
       <SharedPageLayout>
@@ -227,6 +241,7 @@ export default function DashboardScreen() {
                 key={note.id}
                 note={note}
                 onFavoriteToggle={loadDashboardData}
+                onDelete={() => setDeleteNote(note)}
               />
             ))}
           </View>
@@ -269,6 +284,7 @@ export default function DashboardScreen() {
                 key={note.id}
                 note={note}
                 onFavoriteToggle={loadDashboardData}
+                onDelete={() => setDeleteNote(note)}
               />
             ))}
           </View>
@@ -291,6 +307,17 @@ export default function DashboardScreen() {
         confirmStyle="destructive"
         onConfirm={confirmDeleteFolder}
         onCancel={() => setDeleteFolder(null)}
+      />
+
+      <ConfirmationModal
+        visible={!!deleteNote}
+        title="Delete Note"
+        message={`Are you sure you want to delete "${deleteNote?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmStyle="destructive"
+        onConfirm={confirmDeleteNote}
+        onCancel={() => setDeleteNote(null)}
       />
     </SharedPageLayout>
   );
