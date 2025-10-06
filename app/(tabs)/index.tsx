@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { NoteItem } from '@/components/note-item';
 import { Card } from '@/components/common/card';
 import { notesService, Note } from '@/services/notes';
+import { foldersService, Folder } from '@/services/folders';
+import { FolderModal } from '@/components/folder-modal';
+import { ConfirmationModal } from '@/components/confirmation-modal';
 
 export default function DashboardScreen() {
   const { colors } = useThemeColors();
@@ -15,6 +19,11 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
+  const [deleteFolder, setDeleteFolder] = useState<string | null>(null);
+  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);
 
   // Load dashboard data
   const loadDashboardData = async () => {
@@ -50,6 +59,55 @@ export default function DashboardScreen() {
     loadDashboardData();
   };
 
+  const handleFolderSelect = (folderId: string | null) => {
+    setSelectedFolderId(folderId);
+    router.push({
+      pathname: '/(tabs)/notes',
+      params: folderId ? { folderId } : {},
+    });
+  };
+
+  const handleNewFolder = () => {
+    setEditingFolder(null);
+    setShowFolderModal(true);
+  };
+
+  const handleRenameFolder = (folder: Folder) => {
+    setEditingFolder(folder);
+    setShowFolderModal(true);
+  };
+
+  const handleFolderModalClose = () => {
+    setShowFolderModal(false);
+    setEditingFolder(null);
+  };
+
+  const handleFolderModalSuccess = () => {
+    setShowFolderModal(false);
+    setEditingFolder(null);
+    setFolderRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleDeleteFolder = (folderId: string) => {
+    setDeleteFolder(folderId);
+  };
+
+  const confirmDeleteFolder = async () => {
+    if (!deleteFolder) return;
+
+    try {
+      await foldersService.deleteFolder(deleteFolder);
+      if (selectedFolderId === deleteFolder) {
+        setSelectedFolderId(null);
+      }
+      setDeleteFolder(null);
+      setFolderRefreshTrigger(prev => prev + 1);
+    } catch (err) {
+      console.error('Failed to delete folder:', err);
+      Alert.alert('Error', 'Failed to delete folder');
+    }
+  };
+
   if (loading) {
     return (
       <SharedPageLayout>
@@ -63,7 +121,16 @@ export default function DashboardScreen() {
   const showEmptyState = favoriteNotes.length === 0 && recentNotes.length === 0;
 
   return (
-    <SharedPageLayout onRefresh={handleRefresh} refreshing={refreshing}>
+    <SharedPageLayout
+      onRefresh={handleRefresh}
+      refreshing={refreshing}
+      onFolderSelect={handleFolderSelect}
+      onNewFolder={handleNewFolder}
+      onRenameFolder={handleRenameFolder}
+      onDeleteFolder={handleDeleteFolder}
+      selectedFolderId={selectedFolderId}
+      folderRefreshTrigger={folderRefreshTrigger}
+    >
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -146,6 +213,24 @@ export default function DashboardScreen() {
           </View>
         )}
       </ScrollView>
+      <FolderModal
+        visible={showFolderModal}
+        onClose={handleFolderModalClose}
+        onSuccess={handleFolderModalSuccess}
+        onDelete={editingFolder ? () => handleDeleteFolder(editingFolder.id) : undefined}
+        initialFolder={editingFolder ? { id: editingFolder.id, name: editingFolder.name } : undefined}
+      />
+
+      <ConfirmationModal
+        visible={!!deleteFolder}
+        title="Delete Folder"
+        message="Are you sure you want to delete this folder? Notes in this folder will not be deleted."
+        confirmText="Delete"
+        cancelText="Cancel"
+        confirmStyle="destructive"
+        onConfirm={confirmDeleteFolder}
+        onCancel={() => setDeleteFolder(null)}
+      />
     </SharedPageLayout>
   );
 }
@@ -174,7 +259,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     borderBottomWidth: 1,
-    marginTop: 12,
+    marginTop: 0,
     marginBottom: 12,
   },
   emptyCardHeader: {

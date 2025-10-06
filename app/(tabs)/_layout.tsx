@@ -64,11 +64,11 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="soon"
-          key="soon-tab"
+          name="folders"
+          key="folders-tab"
           options={{
-            title: 'Soon',
-            tabBarIcon: ({ color }) => <MaterialIcons size={24} name="schedule" color={color} />,
+            title: 'Folders',
+            tabBarIcon: ({ color }) => <MaterialIcons size={24} name="folder" color={color} />,
           }}
         />
         <Tabs.Screen

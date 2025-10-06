@@ -54,6 +54,21 @@ export default function NotesScreen() {
     return () => { cancelled = true; };
   }, [selectedFolderId]);
 
+  useEffect(() => {
+    const folderParam = params.folderId;
+    if (folderParam === undefined) {
+      return;
+    }
+
+    const value = Array.isArray(folderParam) ? folderParam[0] : folderParam;
+    const normalized = value === '' ? null : value;
+
+    setSelectedFolderId(prev => {
+      const next = normalized === 'null' || normalized === 'all' ? null : normalized;
+      return prev === next ? prev : next;
+    });
+  }, [params.folderId]);
+
   const loadNotes = async () => {
     try {
       setError(null);
