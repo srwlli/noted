@@ -1,0 +1,542 @@
+{
+  "title": "Transform Soon Tab into Folders Hub",
+  "date": "2025-10-06",
+  "priority": "MEDIUM-HIGH",
+  "status": "planned",
+  "summary": "Convert underutilized 'Soon' tab into dedicated Folders tab for quick folder access, better organization, and rich metadata display",
+
+  "currentState": {
+    "folderDisplay": {
+      "location": "CommonHeader dropdown menu (common-header.tsx:102-179)",
+      "structure": "Dropdown with All Notes, Unfiled, user folders, and New Folder option",
+      "limitations": [
+        "Hidden by default - requires click to see folders",
+        "Only visible on Notes page (where onFolderSelect prop passed)",
+        "No folder metadata (note counts, timestamps)",
+        "Cramped dropdown with limited space",
+        "No visual preview - text list only",
+        "Requires multiple taps (open menu → select → close)"
+      ]
+    },
+    "soonTab": {
+      "file": "app/(tabs)/soon.tsx",
+      "purpose": "Placeholder for future features",
+      "tabPosition": "4 of 5 (Info → Notes → Dashboard → Soon → Settings)",
+      "icon": "schedule (clock)",
+      "content": "Simple card with 'Coming Soon' message",
+      "utilization": "Minimal - just placeholder text"
+    }
+  },
+
+  "proposedSolution": {
+    "concept": "Transform Soon tab into dedicated Folders hub",
+    "newName": "Folders",
+    "newIcon": "folder or folder-open",
+    "purpose": "Quick access to all folders with rich metadata and management capabilities",
+
+    "benefits": [
+      "Quick Access: See all folders instantly without dropdown",
+      "Rich Information: Note counts, last modified timestamps, empty folder indicators",
+      "Better Organization: Visual folder cards, sort options, search/filter",
+      "Consistent UX: Matches Dashboard pattern with card-based layout",
+      "Ergonomic: Tab 4 of 5 is thumb-accessible on mobile",
+      "Faster Navigation: 1 tap vs 2-3 taps (dropdown method)"
+    ],
+
+    "uiDesign": {
+      "layout": "Vertical scrollable list of full-width folder cards (no grid)",
+      "cardComponent": "Reuse existing Card component from components/common/card.tsx with isAccordion={false}",
+      "cardStructure": "Name, icon, note count, last modified timestamp, (...) action menu",
+      "menuPattern": "Follow same react-native-popup-menu pattern as note cards (note-item.tsx:157-223)",
+      "specialCards": [
+        "All Notes card (total count)",
+        "Unfiled card (notes without folder)",
+        "Optional: Favorites card, Recent folders"
+      ],
+      "emptyState": "Create your first folder prompt with CTA button",
+      "interactions": [
+        "Tap card header/body → Navigate to Notes tab with folder selected",
+        "(...) menu button → Open popup menu with Rename/Delete options",
+        "Rename option → Opens FolderModal component for editing folder name",
+        "Delete option → Opens ConfirmationModal for delete confirmation",
+        "Pull-to-refresh → Reload folders",
+        "Header + button → Create new folder"
+      ]
+    }
+  },
+
+  "implementation": {
+    "phase1_core": {
+      "title": "Core Folder Display",
+      "priority": 1,
+      "estimatedEffort": "1-2 hours",
+      "tasks": [
+        {
+          "id": "1.1",
+          "file": "app/(tabs)/_layout.tsx",
+          "title": "Rename Tab Configuration",
+          "changes": [
+            "Line 66-73: Change tab name from 'Soon' to 'Folders'",
+            "Change icon from 'schedule' to 'folder' or 'folder-open'",
+            "Update key from 'soon-tab' to 'folders-tab'"
+          ],
+          "code": "<Tabs.Screen\n  name=\"folders\"\n  key=\"folders-tab\"\n  options={{\n    title: 'Folders',\n    tabBarIcon: ({ color }) => <MaterialIcons size={24} name=\"folder\" color={color} />,\n  }}\n/>"
+        },
+        {
+          "id": "1.2",
+          "file": "app/(tabs)/soon.tsx → folders.tsx",
+          "title": "Rename File and Rewrite Component",
+          "changes": [
+            "Rename file: soon.tsx → folders.tsx",
+            "Add all required imports (see imports section below)",
+            "Add state: folders, loading, refreshing, error, modals, folderRefreshTrigger",
+            "Implement loadFolders() with try/catch",
+            "Add useEffect for initial load",
+            "Add useFocusEffect for reload on tab focus (similar to Dashboard)",
+            "Implement handleRefresh() for pull-to-refresh",
+            "Add modal handlers: handleNewFolder, handleRenameFolder, handleDeleteFolder",
+            "Add folderRefreshTrigger integration for cross-tab sync"
+          ],
+          "structure": "Similar to Dashboard pattern (index.tsx) with folder CRUD modals from notes.tsx",
+          "requiredImports": "import React, { useState, useEffect, useCallback } from 'react';\nimport { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';\nimport { useFocusEffect } from '@react-navigation/native';\nimport { MaterialIcons } from '@expo/vector-icons';\nimport { router } from 'expo-router';\nimport { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\nimport { SharedPageLayout } from '@/components/shared-page-layout';\nimport { Card } from '@/components/common/card';\nimport { FolderModal } from '@/components/folder-modal';\nimport { ConfirmationModal } from '@/components/confirmation-modal';\nimport { foldersService, Folder } from '@/services/folders';\nimport { notesService } from '@/services/notes';",
+          "allStates": [
+            "folders: Folder[] - List of all folders",
+            "loading: boolean - Initial load state",
+            "refreshing: boolean - Pull-to-refresh state",
+            "error: string | null - Error message if load fails",
+            "selectedFolderId: string | null - Currently selected folder for navigation (REQUIRED for Task 1.4)",
+            "totalCount: number - Total note count for 'All Notes' special card (Phase 2)",
+            "unfiledCount: number - Unfiled note count for 'Unfiled' special card (Phase 2)",
+            "showFolderModal: boolean - Show/hide FolderModal",
+            "editingFolder: Folder | null - Folder being renamed (null for new folder)",
+            "deleteFolder: string | null - Folder ID to delete",
+            "folderRefreshTrigger: number - Increments after CRUD to trigger header reload"
+          ],
+          "stateDeclarations": "// Phase 1 states:\nconst [folders, setFolders] = useState<Folder[]>([]);\nconst [loading, setLoading] = useState(true);\nconst [refreshing, setRefreshing] = useState(false);\nconst [error, setError] = useState<string | null>(null);\nconst [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);\nconst [showFolderModal, setShowFolderModal] = useState(false);\nconst [editingFolder, setEditingFolder] = useState<Folder | null>(null);\nconst [deleteFolder, setDeleteFolder] = useState<string | null>(null);\nconst [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);\n\n// Phase 2 states (add when implementing special cards):\nconst [totalCount, setTotalCount] = useState(0);\nconst [unfiledCount, setUnfiledCount] = useState(0);",
+          "folderRefreshTriggerIntegration": {
+            "purpose": "Sync folder list in header dropdown when CRUD operations happen in Folders tab",
+            "stateDeclaration": "const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);",
+            "passToLayout": "<SharedPageLayout\n  folderRefreshTrigger={folderRefreshTrigger}\n  onFolderSelect={handleFolderSelect}\n  onNewFolder={handleNewFolder}\n  onRenameFolder={handleRenameFolder}\n  onDeleteFolder={handleDeleteFolder}\n  ...\n>",
+            "incrementAfterCreate": "const handleFolderModalSuccess = () => {\n  setShowFolderModal(false);\n  setEditingFolder(null);\n  setFolderRefreshTrigger(prev => prev + 1); // Triggers header reload\n  loadFolders(); // Reload local list\n};",
+            "incrementAfterDelete": "const confirmDeleteFolder = async () => {\n  if (!deleteFolder) return;\n  try {\n    await foldersService.deleteFolder(deleteFolder);\n    setDeleteFolder(null);\n    setFolderRefreshTrigger(prev => prev + 1); // Triggers header reload\n    loadFolders(); // Reload local list\n  } catch (err) {\n    console.error('Failed to delete folder:', err);\n    Alert.alert('Error', 'Failed to delete folder');\n  }\n};"
+          },
+          "modalHandlers": {
+            "handleNewFolder": "const handleNewFolder = () => {\n  setEditingFolder(null);\n  setShowFolderModal(true);\n};",
+            "handleRenameFolder": "const handleRenameFolder = (folder: Folder) => {\n  setEditingFolder(folder);\n  setShowFolderModal(true);\n};",
+            "handleDeleteFolder": "const handleDeleteFolder = (folderId: string) => {\n  setDeleteFolder(folderId);\n};",
+            "handleFolderModalClose": "const handleFolderModalClose = () => {\n  setShowFolderModal(false);\n  setEditingFolder(null);\n};",
+            "handleFolderModalSuccess": "const handleFolderModalSuccess = () => {\n  setShowFolderModal(false);\n  setEditingFolder(null);\n  setFolderRefreshTrigger(prev => prev + 1);\n  loadFolders();\n};",
+            "confirmDeleteFolder": "const confirmDeleteFolder = async () => {\n  if (!deleteFolder) return;\n  try {\n    await foldersService.deleteFolder(deleteFolder);\n    setDeleteFolder(null);\n    setFolderRefreshTrigger(prev => prev + 1);\n    loadFolders();\n  } catch (err) {\n    console.error('Failed to delete folder:', err);\n    Alert.alert('Error', 'Failed to delete folder');\n  }\n};"
+          },
+          "emptyStateCTA": {
+            "handler": "const handleCreateFolder = () => {\n  setEditingFolder(null);\n  setShowFolderModal(true);\n};",
+            "usage": "In empty state card: <Button onPress={handleCreateFolder}>+ Create Folder</Button>"
+          }
+        },
+        {
+          "id": "1.3",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Implement Folder Cards UI (Vertical List)",
+          "changes": [
+            "Use ScrollView with RefreshControl for pull-to-refresh",
+            "Map folders array to Card components (vertical list, full-width)",
+            "Import Card from '@/components/common/card' and Menu from 'react-native-popup-menu'",
+            "Each folder renders as Card with isAccordion={false}",
+            "Card header contains: folder icon, folder name, (...) menu button",
+            "(...) menu button uses MaterialIcons 'more-vert' icon (size 20)",
+            "Menu structure: MenuTrigger → MenuOptions → MenuOption items",
+            "Menu options: Rename (triggers FolderModal), Delete (triggers ConfirmationModal)",
+            "Add state: isMenuOpen, editingFolder, deleteFolder",
+            "Show folder name with MaterialIcons 'folder' icon (size 24)",
+            "Note count as placeholder text (e.g., '0 notes') in secondary color",
+            "Implement empty state when folders.length === 0",
+            "Empty state: centered card with folder icon and 'No folders yet' message",
+            "Add loading spinner (ActivityIndicator) during initial load",
+            "Add error message display if folders fail to load"
+          ],
+          "cardDesign": "Use Card component (isAccordion={false}) - same as note-item.tsx pattern",
+          "menuImplementation": {
+            "pattern": "Follow note-item.tsx:157-223 menu pattern",
+            "trigger": "<MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}><MaterialIcons name=\"more-vert\" size={20} color={colors.text} /></MenuTrigger>",
+            "options": [
+              "Rename: onSelect={() => { setEditingFolder(folder); setShowFolderModal(true); }}",
+              "Delete: onSelect={() => { setDeleteFolder(folder.id); }}"
+            ],
+            "styling": "Match MenuOptions styling from note-item.tsx (backgroundColor: colors.surface, borderRadius: 12, shadow, etc.)"
+          },
+          "modalIntegration": {
+            "folderModal": "FolderModal component - triggered by Rename menu option",
+            "confirmationModal": "ConfirmationModal component - triggered by Delete menu option",
+            "folderModalProps": "visible={showFolderModal}, initialFolder={editingFolder}, onClose, onSuccess, onDelete",
+            "confirmationModalProps": "visible={!!deleteFolder}, title='Delete Folder', confirmStyle='destructive'"
+          },
+          "completeCodeExample": "// Folder cards rendering (vertical list)\n{folders.map((folder) => (\n  <Card\n    key={folder.id}\n    isAccordion={false}\n    style={{ backgroundColor: colors.surface }}\n    headerContent={\n      <>\n        <TouchableOpacity\n          style={styles.folderCardHeader}\n          onPress={() => handleFolderSelect(folder.id)}\n          activeOpacity={0.7}\n        >\n          <MaterialIcons name=\"folder\" size={24} color={colors.text} />\n          <Text style={[styles.folderName, { color: colors.text }]}>\n            {folder.name}\n          </Text>\n        </TouchableOpacity>\n        <View style={styles.folderActions}>\n          <Menu>\n            <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>\n              <MaterialIcons name=\"more-vert\" size={20} color={colors.text} />\n            </MenuTrigger>\n            <MenuOptions customStyles={{\n              optionsContainer: {\n                backgroundColor: colors.surface,\n                borderColor: colors.border,\n                borderWidth: 1,\n                borderRadius: 12,\n                padding: 8,\n                minWidth: 150,\n                shadowColor: '#000',\n                shadowOffset: { width: 0, height: 2 },\n                shadowOpacity: 0.25,\n                shadowRadius: 8,\n                elevation: 5,\n              }\n            }}>\n              <MenuOption\n                onSelect={() => {\n                  setEditingFolder(folder);\n                  setShowFolderModal(true);\n                }}\n                customStyles={{ optionWrapper: styles.menuItem }}\n              >\n                <MaterialIcons name=\"edit\" size={20} color={colors.text} />\n                <Text style={[styles.menuText, { color: colors.text }]}>Rename</Text>\n              </MenuOption>\n              <MenuOption\n                onSelect={() => setDeleteFolder(folder.id)}\n                customStyles={{ optionWrapper: styles.menuItem }}\n              >\n                <MaterialIcons name=\"delete\" size={20} color={colors.text} />\n                <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>\n              </MenuOption>\n            </MenuOptions>\n          </Menu>\n        </View>\n      </>\n    }\n  >\n    <Text style={[styles.noteCount, { color: colors.textSecondary }]}>\n      {folder.note_count || 0} notes\n    </Text>\n  </Card>\n))}\n\n// Styles needed:\nconst styles = StyleSheet.create({\n  folderCardHeader: {\n    flex: 1,\n    flexDirection: 'row',\n    alignItems: 'center',\n    gap: 12,\n  },\n  folderName: {\n    fontSize: 18,\n    fontWeight: '600',\n    flex: 1,\n  },\n  folderActions: {\n    flexDirection: 'row',\n    gap: 8,\n  },\n  iconButton: {\n    width: 24,\n    height: 24,\n    borderRadius: 12,\n    justifyContent: 'center',\n    alignItems: 'center',\n  },\n  menuItem: {\n    flexDirection: 'row',\n    alignItems: 'center',\n    padding: 12,\n    gap: 12,\n  },\n  menuText: {\n    fontSize: 16,\n  },\n  noteCount: {\n    fontSize: 14,\n  },\n});"
+        },
+        {
+          "id": "1.4",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Implement Navigation to Notes Tab (Dashboard Pattern)",
+          "changes": [
+            "Add handleFolderSelect(folderId) function - EXACT COPY from Dashboard (index.tsx:53-59)",
+            "Update selectedFolderId state before navigation",
+            "Use router.push() with pathname and params object",
+            "Navigate to Notes tab with folderId as query parameter",
+            "For 'All Notes': pass null, router creates params: {}",
+            "For specific folder: pass folderId string, router creates params: { folderId }",
+            "For 'Unfiled': pass 'unfiled' string"
+          ],
+          "exactDashboardPattern": "// EXACT COPY from app/(tabs)/index.tsx:53-59\nconst handleFolderSelect = (folderId: string | null) => {\n  setSelectedFolderId(folderId);\n  router.push({\n    pathname: '/(tabs)/notes',\n    params: folderId ? { folderId } : {},\n  });\n};",
+          "usage": "// In folder card TouchableOpacity:\nonPress={() => handleFolderSelect(folder.id)}\n\n// For special cards:\n<TouchableOpacity onPress={() => handleFolderSelect(null)}>All Notes</TouchableOpacity>\n<TouchableOpacity onPress={() => handleFolderSelect('unfiled')}>Unfiled</TouchableOpacity>",
+          "note": "Requires Task 1.5 (notes.tsx update) already implemented - verify integration works",
+          "stateRequired": "const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);"
+        },
+        {
+          "id": "1.5",
+          "file": "app/(tabs)/notes.tsx",
+          "title": "Update Notes Tab to Handle Route Params from Folders Tab",
+          "changes": [
+            "Import useLocalSearchParams from expo-router",
+            "Read folderId from route params: const params = useLocalSearchParams<{ folderId?: string }>()",
+            "Add useEffect to handle param changes",
+            "When folderId param present, update selectedFolderId state",
+            "Handle special cases: null/'all' → null, 'unfiled' → 'unfiled'",
+            "Prevent infinite loops by only updating if value changed"
+          ],
+          "codeExample": "// Add to notes.tsx after existing useEffect\nconst params = useLocalSearchParams<{ folderId?: string }>();\n\nuseEffect(() => {\n  const folderParam = params.folderId;\n  if (folderParam === undefined) {\n    return; // No param, don't change selection\n  }\n\n  const value = Array.isArray(folderParam) ? folderParam[0] : folderParam;\n  const normalized = value === '' ? null : value;\n\n  setSelectedFolderId(prev => {\n    const next = normalized === 'null' || normalized === 'all' ? null : normalized;\n    return prev === next ? prev : next; // Only update if changed\n  });\n}, [params.folderId]);",
+          "note": "CRITICAL: This integration already exists in notes.tsx (lines 57-70). Verify it works correctly with Folders tab navigation.",
+          "testScenarios": [
+            "T1: Tap folder in Folders tab → Notes tab opens with that folder selected",
+            "T2: Tap 'All Notes' in Folders tab → Notes tab shows all notes",
+            "T3: Tap 'Unfiled' in Folders tab → Notes tab shows unfiled notes",
+            "T4: Navigate between folders in Folders tab → Notes tab updates correctly"
+          ]
+        }
+      ]
+    },
+
+    "phase2_enhanced": {
+      "title": "Enhanced Features (Note Counts & Metadata)",
+      "priority": 2,
+      "estimatedEffort": "1-2 hours",
+      "tasks": [
+        {
+          "id": "2.1",
+          "file": "services/folders.ts",
+          "title": "Add getFoldersWithNoteCounts Method",
+          "changes": [
+            "Add TypeScript interface: export interface FolderWithCount extends Folder { note_count: number; }",
+            "Add new service method: async getFoldersWithNoteCounts(): Promise<FolderWithCount[]>",
+            "Supabase approach (3 options):",
+            "  Option 1: RPC function (requires DB function creation)",
+            "  Option 2: JS computation (fetch folders and notes separately, compute in JS)",
+            "  Option 3: Use Supabase aggregate if available",
+            "Recommended: Option 2 (JS computation) for simplicity and no DB changes"
+          ],
+          "typeScriptInterface": "export interface FolderWithCount extends Folder {\n  note_count: number;\n}",
+          "methodSignature": "async getFoldersWithNoteCounts(): Promise<FolderWithCount[]>",
+          "implementationApproach": {
+            "option1_rpc": {
+              "description": "Create PostgreSQL function, call via supabase.rpc()",
+              "complexity": "High - requires DB migration",
+              "sql": "CREATE OR REPLACE FUNCTION get_folders_with_counts()\nRETURNS TABLE(id UUID, name TEXT, note_count BIGINT) AS $$\n  SELECT f.id, f.name, COUNT(n.id) as note_count\n  FROM folders f\n  LEFT JOIN notes n ON f.id = n.folder_id\n  GROUP BY f.id\n  ORDER BY f.name ASC\n$$ LANGUAGE sql;",
+              "usage": "const { data } = await supabase.rpc('get_folders_with_counts')"
+            },
+            "option2_js_computation": {
+              "description": "Fetch folders and notes separately, compute counts in JavaScript",
+              "complexity": "Low - no DB changes required",
+              "code": "async getFoldersWithNoteCounts(): Promise<FolderWithCount[]> {\n  // Fetch all folders\n  const folders = await this.getFolders();\n  \n  // Fetch all notes\n  const { data: notes, error } = await supabase\n    .from('notes')\n    .select('id, folder_id');\n  \n  if (error) throw error;\n  \n  // Count notes per folder\n  const countMap = new Map<string, number>();\n  notes?.forEach(note => {\n    if (note.folder_id) {\n      countMap.set(note.folder_id, (countMap.get(note.folder_id) || 0) + 1);\n    }\n  });\n  \n  // Add counts to folders\n  return folders.map(folder => ({\n    ...folder,\n    note_count: countMap.get(folder.id) || 0\n  }));\n}",
+              "pros": "Simple, no DB changes, works immediately",
+              "cons": "Fetches all notes (may be slow with 1000+ notes)"
+            },
+            "option3_aggregate": {
+              "description": "Use Supabase aggregate functions if available",
+              "complexity": "Medium - depends on Supabase version",
+              "note": "Check Supabase docs for aggregate support in current version"
+            }
+          },
+          "recommendation": "Use Option 2 (JS computation) for Phase 2. Can optimize later with RPC if performance becomes an issue."
+        },
+        {
+          "id": "2.2",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Display Note Counts on Folder Cards",
+          "changes": [
+            "Update loadFolders() to use getFoldersWithNoteCounts()",
+            "Display note count badge on each folder card",
+            "Show '24 notes' or '0 notes' or 'Empty' text",
+            "Style count with secondary text color"
+          ]
+        },
+        {
+          "id": "2.3",
+          "file": "app/(tabs)/folders.tsx AND services/notes.ts",
+          "title": "Add Special Cards (All Notes, Unfiled)",
+          "changes": [
+            "STEP 1: Add service methods to services/notes.ts (see serviceMethodsToAdd below)",
+            "STEP 2: Update folders.tsx state to include totalCount and unfiledCount",
+            "STEP 3: Update loadFolders() to fetch all 3 values with Promise.all",
+            "STEP 4: Create 'All Notes' card at top showing total note count",
+            "STEP 5: Create 'Unfiled' card showing count of notes without folder",
+            "STEP 6: Different styling/icon to distinguish from regular folders",
+            "STEP 7: Tapping special cards navigates to Notes tab with appropriate filter"
+          ],
+          "specialCardDesign": "Use different icon (folder-open for All, folder-off for Unfiled)",
+          "serviceMethodsToAdd": {
+            "location": "services/notes.ts - Add these 2 methods to NotesService class",
+            "getTotalNoteCount": {
+              "signature": "async getTotalNoteCount(): Promise<number>",
+              "code": "async getTotalNoteCount(): Promise<number> {\n  const { count, error } = await supabase\n    .from('notes')\n    .select('*', { count: 'exact', head: true });\n  \n  if (error) throw error;\n  return count || 0;\n}",
+              "purpose": "Count all notes in database for 'All Notes' special card"
+            },
+            "getUnfiledNoteCount": {
+              "signature": "async getUnfiledNoteCount(): Promise<number>",
+              "code": "async getUnfiledNoteCount(): Promise<number> {\n  const { count, error } = await supabase\n    .from('notes')\n    .select('*', { count: 'exact', head: true })\n    .is('folder_id', null);\n  \n  if (error) throw error;\n  return count || 0;\n}",
+              "purpose": "Count notes without folder_id for 'Unfiled' special card"
+            },
+            "note": "CRITICAL: Use { count: 'exact' } option and read from count property, NOT data.length"
+          },
+          "implementationExample": "// In folders.tsx loadFolders():\nconst [totalCount, setTotalCount] = useState(0);\nconst [unfiledCount, setUnfiledCount] = useState(0);\n\nconst loadFolders = async () => {\n  try {\n    const [foldersData, total, unfiled] = await Promise.all([\n      foldersService.getFolders(),\n      notesService.getTotalNoteCount(),\n      notesService.getUnfiledNoteCount()\n    ]);\n    setFolders(foldersData);\n    setTotalCount(total);\n    setUnfiledCount(unfiled);\n  } catch (err) {\n    console.error('Failed to load folders:', err);\n    setError('Failed to load folders');\n  }\n};\n\n// Render special cards:\n<Card key=\"all-notes\" ... headerContent={...'All Notes'...}>\n  <Text>{totalCount} notes</Text>\n</Card>\n<Card key=\"unfiled\" ... headerContent={...'Unfiled'...}>\n  <Text>{unfiledCount} notes</Text>\n</Card>\n{folders.map(...)}"
+        },
+        {
+          "id": "2.4",
+          "file": "app/(tabs)/folders.tsx AND utils/formatRelativeTime.ts (new file)",
+          "title": "Add Last Modified Timestamps with Relative Time Formatting",
+          "changes": [
+            "Create utils/formatRelativeTime.ts utility function (see utilityFunction below)",
+            "Add updated_at timestamp to Folder interface (or use existing)",
+            "Display 'Updated 2h ago' or 'Updated yesterday' below note count",
+            "Use formatRelativeTime() utility for consistent formatting",
+            "Gray/secondary color (colors.textSecondary) for timestamps",
+            "Fetch max(notes.updated_at) per folder for accurate last modified time"
+          ],
+          "utilityFunction": {
+            "file": "utils/formatRelativeTime.ts",
+            "code": "export function formatRelativeTime(date: Date | string): string {\n  const now = new Date();\n  const then = typeof date === 'string' ? new Date(date) : date;\n  const diffMs = now.getTime() - then.getTime();\n  const diffSecs = Math.floor(diffMs / 1000);\n  const diffMins = Math.floor(diffSecs / 60);\n  const diffHours = Math.floor(diffMins / 60);\n  const diffDays = Math.floor(diffHours / 24);\n  const diffWeeks = Math.floor(diffDays / 7);\n  const diffMonths = Math.floor(diffDays / 30);\n  const diffYears = Math.floor(diffDays / 365);\n\n  if (diffSecs < 60) return 'Just now';\n  if (diffMins < 60) return `${diffMins}m ago`;\n  if (diffHours < 24) return `${diffHours}h ago`;\n  if (diffDays === 1) return 'Yesterday';\n  if (diffDays < 7) return `${diffDays}d ago`;\n  if (diffWeeks < 4) return `${diffWeeks}w ago`;\n  if (diffMonths < 12) return `${diffMonths}mo ago`;\n  return `${diffYears}y ago`;\n}",
+            "usage": "import { formatRelativeTime } from '@/utils/formatRelativeTime';\n\n// In folder card:\n<Text style={[styles.timestamp, { color: colors.textSecondary }]}>\n  {formatRelativeTime(folder.updated_at)}\n</Text>"
+          },
+          "alternativeApproach": {
+            "option": "Use existing library like date-fns or dayjs",
+            "example": "import { formatDistanceToNow } from 'date-fns';\nformatDistanceToNow(new Date(folder.updated_at), { addSuffix: true })",
+            "note": "Requires npm install date-fns"
+          },
+          "dataRequirement": "Folder interface needs updated_at field. If not available, fetch MAX(notes.updated_at) per folder in Phase 2 Task 2.1"
+        },
+        {
+          "id": "2.5",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Implement Empty State with Create Folder CTA",
+          "changes": [
+            "Show when folders.length === 0 (no user folders, still show special cards)",
+            "Center-aligned card with large folder icon (MaterialIcons 'folder' size 48)",
+            "Title: 'No folders yet' (fontSize 20, fontWeight 600)",
+            "Message: 'Create your first folder to organize notes' (fontSize 16, textSecondary)",
+            "Call-to-action button: '+ Create Folder' (TouchableOpacity with tint color)",
+            "Button opens FolderModal when clicked (see handler below)"
+          ],
+          "handlerFunction": {
+            "name": "handleCreateFolder",
+            "code": "const handleCreateFolder = () => {\n  setEditingFolder(null); // null = new folder mode\n  setShowFolderModal(true);\n};",
+            "note": "Same as handleNewFolder from Task 1.2, but named handleCreateFolder for empty state context"
+          },
+          "emptyStateCode": "// Empty state when folders.length === 0\n{folders.length === 0 && (\n  <Card\n    isAccordion={false}\n    style={{ backgroundColor: colors.surface }}\n    headerContent={\n      <View style={styles.emptyStateHeader}>\n        <MaterialIcons name=\"folder\" size={48} color={colors.textSecondary} />\n      </View>\n    }\n  >\n    <View style={styles.emptyStateContent}>\n      <Text style={[styles.emptyStateTitle, { color: colors.text }]}>\n        No folders yet\n      </Text>\n      <Text style={[styles.emptyStateMessage, { color: colors.textSecondary }]}>\n        Create your first folder to organize notes\n      </Text>\n      <TouchableOpacity\n        style={[styles.createButton, { backgroundColor: colors.tint }]}\n        onPress={handleCreateFolder}\n        activeOpacity={0.7}\n      >\n        <MaterialIcons name=\"add\" size={20} color=\"#fff\" />\n        <Text style={styles.createButtonText}>Create Folder</Text>\n      </TouchableOpacity>\n    </View>\n  </Card>\n)}\n\n// Styles:\nemptyStateHeader: {\n  justifyContent: 'center',\n  alignItems: 'center',\n  paddingVertical: 24,\n},\nemptyStateContent: {\n  alignItems: 'center',\n  gap: 12,\n},\nemptyStateTitle: {\n  fontSize: 20,\n  fontWeight: '600',\n},\nemptyStateMessage: {\n  fontSize: 16,\n  textAlign: 'center',\n  marginBottom: 12,\n},\ncreateButton: {\n  flexDirection: 'row',\n  alignItems: 'center',\n  gap: 8,\n  paddingVertical: 12,\n  paddingHorizontal: 24,\n  borderRadius: 8,\n},\ncreateButtonText: {\n  color: '#fff',\n  fontSize: 16,\n  fontWeight: '600',\n}"
+        }
+      ]
+    },
+
+    "phase3_advanced": {
+      "title": "Advanced Features (Optional)",
+      "priority": 3,
+      "estimatedEffort": "2-3 hours",
+      "tasks": [
+        {
+          "id": "3.1",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Add Folder Stats Overview Card",
+          "changes": [
+            "Card at top showing total stats",
+            "Display: total folders, total notes organized, unfiled count",
+            "Icon: chart/stats icon",
+            "Collapsible or always visible"
+          ],
+          "example": "📊 Folder Overview\n• 8 folders\n• 156 notes organized\n• 5 unfiled notes"
+        },
+        {
+          "id": "3.2",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Add Recently Accessed Folders Section",
+          "changes": [
+            "Track folder access timestamps (new DB column or local storage)",
+            "Show 3 most recently accessed folders at top",
+            "Section header: 'Recently Accessed'",
+            "Quick jump to active work"
+          ]
+        },
+        {
+          "id": "3.3",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Implement Search/Filter",
+          "changes": [
+            "Add search bar in header or above folder list",
+            "Filter folders by name (case-insensitive)",
+            "Optional filters: has notes, empty folders, alphabetical",
+            "Clear button to reset filters"
+          ]
+        },
+        {
+          "id": "3.4",
+          "file": "app/(tabs)/folders.tsx",
+          "title": "Add Sort Options",
+          "changes": [
+            "Sort by: Name (A-Z), Name (Z-A), Note count (high-low), Last modified",
+            "Dropdown or toggle in header",
+            "Persist sort preference to AsyncStorage",
+            "Default: Alphabetical by name"
+          ]
+        }
+      ]
+    }
+  },
+
+  "technicalDetails": {
+    "dataFlow": "Folders Tab → Load folders with counts → Display as cards → User taps → Navigate to Notes tab with folder ID → Notes tab filters by folder",
+
+    "navigationIntegration": {
+      "approach": "Use expo-router navigation with query params (EXACT Dashboard pattern)",
+      "handler": "handleFolderSelect(folderId) - updates selectedFolderId then navigates",
+      "navigation": "router.push({ pathname: '/(tabs)/notes', params: folderId ? { folderId } : {} })",
+      "notesTabReading": "useLocalSearchParams() reads folderId, updates selectedFolderId state",
+      "alreadyImplemented": "notes.tsx:57-70 already handles route params - verify integration works"
+    },
+
+    "stateManagement": {
+      "localState": [
+        "folders: Folder[] - List of all folders",
+        "loading: boolean - Initial load state",
+        "refreshing: boolean - Pull-to-refresh state",
+        "error: string | null - Error message if load fails",
+        "selectedFolderId: string | null - Currently selected folder for navigation",
+        "totalCount: number - Total notes count (Phase 2)",
+        "unfiledCount: number - Unfiled notes count (Phase 2)",
+        "showFolderModal: boolean - Modal visibility",
+        "editingFolder: Folder | null - Folder being edited",
+        "deleteFolder: string | null - Folder being deleted",
+        "folderRefreshTrigger: number - Cross-tab sync trigger"
+      ],
+      "focusEffect": "useFocusEffect to reload folders when tab gains focus (similar to Dashboard)"
+    },
+
+    "folderRefreshTriggerMechanism": {
+      "purpose": "Synchronize folder list across all tabs when CRUD operations occur",
+      "problem": "When user creates/renames/deletes folder in Folders tab, the dropdown menu in header (visible on Notes/Dashboard tabs) shows stale folder list",
+      "solution": "Trigger-based refresh system - increment counter after CRUD, header watches counter and reloads",
+      "implementation": {
+        "state": "const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);",
+        "propagation": "Pass folderRefreshTrigger prop through SharedPageLayout → CommonHeader",
+        "headerWatching": "CommonHeader useEffect depends on folderRefreshTrigger, reloads folders when it changes",
+        "incrementAfterCRUD": "After create/rename/delete: setFolderRefreshTrigger(prev => prev + 1)",
+        "affectedTabs": "Folders tab (Phase 1), Dashboard tab (already implemented), Notes tab (already implemented)"
+      },
+      "flow": "User deletes folder in Folders tab → confirmDeleteFolder() increments trigger → SharedPageLayout passes new value to CommonHeader → CommonHeader useEffect fires → loadFolders() in header → Dropdown menu updates",
+      "alreadyImplemented": [
+        "SharedPageLayout prop passing (components/shared-page-layout.tsx:21, 73)",
+        "CommonHeader watching (components/common-header.tsx:33-34)",
+        "Notes tab integration (app/(tabs)/notes.tsx:25, 131, 141, 169)",
+        "Dashboard tab integration (app/(tabs)/index.tsx:26, 79, 95, 123)"
+      ],
+      "newImplementation": "Folders tab needs same pattern - increment trigger after folder CRUD in Task 1.2 handlers"
+    },
+
+    "serviceChanges": {
+      "phase2NewMethods": [
+        "getFoldersWithNoteCounts(): Promise<FolderWithCount[]> - Folders with note counts",
+        "getTotalNoteCount(): Promise<number> - Total notes for 'All Notes' card",
+        "getUnfiledNoteCount(): Promise<number> - Unfiled notes count"
+      ],
+      "phase2NewInterface": "FolderWithCount extends Folder { note_count: number }"
+    }
+  },
+
+  "filesModified": [
+    "app/(tabs)/_layout.tsx - Tab configuration (rename Soon → Folders)",
+    "app/(tabs)/soon.tsx → folders.tsx - Complete rewrite with folder logic",
+    "services/folders.ts - Add getFoldersWithNoteCounts() method",
+    "app/(tabs)/notes.tsx - Optional: Read folderId from route params for navigation integration"
+  ],
+
+  "uiComparison": {
+    "before": {
+      "access": "2-3 taps (click folder icon → select folder → close menu)",
+      "visibility": "Hidden in dropdown menu",
+      "availability": "Only on Notes page",
+      "metadata": "None visible",
+      "experience": "Cramped dropdown, text-only list"
+    },
+    "after": {
+      "access": "1 tap (switch to Folders tab)",
+      "visibility": "Dedicated tab, always accessible",
+      "availability": "From any page in app",
+      "metadata": "Note counts, timestamps, stats",
+      "experience": "Visual card-based layout, rich information, search/sort"
+    }
+  },
+
+  "successCriteria": [
+    "Folders tab shows all user folders as cards",
+    "Each folder card displays name, icon, note count, last modified",
+    "Tapping folder navigates to Notes tab with that folder selected",
+    "Pull-to-refresh reloads folder list",
+    "Empty state shown when no folders exist",
+    "Create folder button works from Folders tab",
+    "Action menu (...) allows rename/delete",
+    "Loading spinner shows during initial load",
+    "Error message displays if folders fail to load",
+    "Special cards for 'All Notes' and 'Unfiled' work correctly"
+  ],
+
+  "rollbackPlan": {
+    "easy": true,
+    "steps": [
+      "Rename folders.tsx back to soon.tsx",
+      "Revert _layout.tsx tab config to 'Soon' with 'schedule' icon",
+      "Restore original soon.tsx placeholder content",
+      "Remove getFoldersWithNoteCounts() from folders service (optional)"
+    ],
+    "risk": "Low - isolated change, no dependencies"
+  },
+
+  "futureEnhancements": [
+    "Folder colors/icons for visual distinction",
+    "Nested folder support (use parent_folder_id)",
+    "Drag & drop folder reordering",
+    "Folder pinning (keep favorites at top)",
+    "Folder sharing (if multiuser features added)",
+    "Folder templates (e.g., 'Work', 'Personal', 'Projects')",
+    "Bulk actions (select multiple folders)",
+    "Export folder as archive"
+  ],
+
+  "designNotes": [
+    "Layout: Vertical list (no grid) - full-width cards in scrollable container",
+    "Card component: Use Card from common/card.tsx with isAccordion={false}",
+    "Card pattern: Follow note-item.tsx structure (header with icon, title, menu)",
+    "Menu pattern: Use react-native-popup-menu with same styling as note cards (note-item.tsx:157-223)",
+    "Menu trigger: MaterialIcons 'more-vert' icon (size 20) in card header",
+    "Menu options: Rename → FolderModal, Delete → ConfirmationModal",
+    "Folder icon: MaterialIcons 'folder' (size 24) for folder cards",
+    "Empty state: Centered, encouraging message with CTA button",
+    "Loading/error states: Match patterns in notes.tsx and index.tsx",
+    "Consistency: Folder cards should feel like note cards (same visual weight and interaction patterns)"
+  ],
+
+  "performanceConsiderations": [
+    "Folder list typically small (< 50 folders for most users) - no pagination needed",
+    "Note count query may be slow for users with many notes - consider caching",
+    "useFocusEffect may cause unnecessary reloads - add debounce if needed",
+    "Consider optimistic updates for create/rename/delete operations"
+  ],
+
+  "relatedDocs": [
+    "improvements/refactor/folder-state-fix.json - Related folder state management fixes",
+    "CHANGELOG.md - Document when complete"
+  ]
+}
