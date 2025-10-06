@@ -132,10 +132,10 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Last 3 Section (with header) */}
+        {/* Last 3 Section (with divider) */}
         {recentNotes.length > 0 && (
           <View>
-            <Text style={[styles.sectionHeader, { color: colors.text }]}>Last 3</Text>
+            <View style={[styles.divider, { borderBottomColor: colors.border }]} />
             {recentNotes.map((note) => (
               <NoteItem
                 key={note.id}
@@ -171,6 +171,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 12,
     marginTop: 24,
+  },
+  divider: {
+    borderBottomWidth: 1,
+    marginTop: 24,
+    marginBottom: 12,
   },
   emptyCardHeader: {
     flexDirection: 'column',

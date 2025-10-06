@@ -48,7 +48,11 @@ export default function NotesScreen() {
   };
 
   const handleNewNote = () => {
-    router.push('/note-editor/new');
+    // Pass folder ID to auto-assign new note to current folder
+    // Convert 'unfiled' and null to undefined so note is created without folder
+    const folderId = selectedFolderId && selectedFolderId !== 'unfiled' ? selectedFolderId : undefined;
+    const params = folderId ? `?folderId=${folderId}` : '';
+    router.push(`/note-editor/new${params}`);
   };
 
   const handleEditNote = (note: Note) => {

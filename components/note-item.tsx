@@ -120,11 +120,11 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
       const newFavoriteState = !isFavorite;
       await notesService.toggleFavorite(note.id, newFavoriteState);
       setIsFavorite(newFavoriteState);
-      toast.success(newFavoriteState ? 'Added to Favorites' : 'Removed from Favorites');
+      toast.success(newFavoriteState ? 'Added to Favorites' : 'Removed from Favorites', { position: 'top-center' });
       onFavoriteToggle?.();
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
-      toast.error('Failed to update favorite');
+      toast.error('Failed to update favorite', { position: 'top-center' });
     }
   }, [note.id, isFavorite, onFavoriteToggle]);
 

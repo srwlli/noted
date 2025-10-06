@@ -47,7 +47,7 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
     if (onNewNote) {
       onNewNote();
     } else {
-      router.push('/?openModal=true');
+      router.push('/note-editor/new');
     }
   };
 

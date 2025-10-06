@@ -19,7 +19,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   const [title, setTitle] = useState(noteTitle);
 
   const showComingSoon = () => {
-    toast.info('Coming Soon');
+    toast.info('Coming Soon', { position: 'top-center' });
   };
 
   // Primary actions

@@ -8,10 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Auto-Assign Notes to Folder** (2025-10-06)
+  - New notes created while viewing a folder are automatically assigned to that folder
+  - Folder ID passed via URL parameter from Notes page to note editor
+  - "All Notes" and "Unfiled" views create notes without folder assignment
+  - Seamless organization workflow: select folder → create note → note appears in that folder
+  - Reduces manual "Move to Folder" actions after note creation
+- **Coming Soon Tab** (2025-10-06)
+  - New "Soon" tab route with placeholder card for upcoming features
+  - Tab reordered to center Dashboard: Info → Notes → Dashboard → Soon → Settings
+  - Dashboard now at position 3 of 5 for ergonomic thumb access
+  - Uses 'schedule' icon (clock) to represent future features
+  - Consistent card styling with SharedPageLayout integration
 - **Dashboard with Favorites and Recent Notes** (2025-10-05)
   - New Dashboard tab as home page (index route) with 'home' icon
   - Favorites section displays favorited notes without header for clean design
-  - Last 3 section shows 3 most recently modified non-favorite notes with header
+  - Last 3 section shows 3 most recently modified non-favorite notes with horizontal divider
   - Notes in favorites excluded from Last 3 to avoid duplication
   - Empty state cards for new users: "Add fav for quick access" and "Last 3 notes here"
   - Empty state dismisses when user adds notes or favorites
@@ -25,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - User stays on current note when favoriting (not redirected)
   - State synchronization ensures favorite icon reflects actual status
   - Service methods: toggleFavorite(), getFavoriteNotes(), getRecentNonFavoriteNotes()
-  - Tab navigation updated: Dashboard → Info → Notes → Settings
+  - Tab navigation updated: Info → Notes → Dashboard → Soon → Settings (Dashboard centered)
   - Notes list moved from index to dedicated 'notes' route
   - Migration file: 20251005000000_add_is_favorite_column.sql
 - **Mobile Long Press Actions** (2025-10-05)
@@ -182,6 +194,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - System now ready for easy addition of new themes without code duplication
 
 ### Changed
+- **Dashboard Last 3 Section Divider** (2025-10-06)
+  - Replaced "Last 3" text header with horizontal divider line
+  - Divider uses theme's border color for consistent styling across all themes
+  - Maintains same spacing as original text (24px top, 12px bottom)
+  - Cleaner visual separation between favorites and recent notes sections
 - **Markdown Toolbar Icon** (2025-10-04)
   - Changed toolbar icon from `format-size` to `text-format` in note editor headers
   - Better represents diverse formatting options (Bold, Italic, Headers, Lists, Code, Links, Tables)
@@ -282,6 +299,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - "Welcome back!" toast notification on login for cleaner, less intrusive UX
 
 ### Fixed
+- **Toast Notifications Blocked by Modal** (2025-10-06)
+  - Fixed toast notifications being hidden behind NoteActionsModal bottom sheet
+  - Changed toast position to `top-center` for all modal-triggered actions
+  - Favorite toggle and "Coming Soon" toasts now appear above modal backdrop
+  - Ensures toast visibility when modal covers bottom of screen (up to 80% height)
+  - Affects: Favorite action, all Coming Soon action placeholders in modal
+- **Favorites Database Migration Not Applied** (2025-10-06)
+  - Fixed is_favorite column migration not applied to remote database
+  - Repaired migration history conflict (20251002130000 orphan migration)
+  - Ran `supabase migration repair` and `supabase db push` to apply migration
+  - Resolved 3 issues: favorites not persisting, modal favorite button failing, dashboard load errors
+  - All favorite functionality now working correctly across all pages
+- **New Note Button Routing After Index Rename** (2025-10-06)
+  - Fixed "+" button in header routing to old index instead of note editor
+  - Updated fallback route from `/?openModal=true` to `/note-editor/new`
+  - New note button now works from all tabs (Dashboard, Info, Settings, Soon)
+  - Previously only worked from Notes page which had explicit onNewNote prop
 - **Toast Notification Bottom Positioning** (2025-10-04)
   - Added 60px bottom offset to Toaster component
   - Prevents toast notifications from being cut off or overlapped by tab bar

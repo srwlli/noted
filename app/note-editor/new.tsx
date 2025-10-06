@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, Share, Text } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownEditor, MarkdownEditorRef } from '@/components/markdown/markdown-editor';
 import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boundary';
@@ -15,6 +15,8 @@ import { toast } from 'sonner-native';
  * Wrapped with error boundary for graceful error handling
  */
 function NewNoteScreenContent() {
+  const params = useLocalSearchParams();
+  const folderId = typeof params.folderId === 'string' ? params.folderId : null;
   const [content, setContent] = useState('');
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [noteId, setNoteId] = useState<string | null>(null);
@@ -45,8 +47,8 @@ function NewNoteScreenContent() {
           // Update existing note
           await notesService.updateNote(noteId, title, content);
         } else {
-          // Create new note
-          const newNote = await notesService.createNote(title, content);
+          // Create new note (with folder if specified)
+          const newNote = await notesService.createNote(title, content, folderId);
           setNoteId(newNote.id);
           toast.success('Note created');
         }
@@ -62,7 +64,7 @@ function NewNoteScreenContent() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [content, noteId]);
+  }, [content, noteId, folderId]);
 
   const handleExport = async () => {
     try {
