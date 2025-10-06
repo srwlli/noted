@@ -15,9 +15,10 @@ interface SharedPageLayoutProps {
   onRenameFolder?: (folder: Folder) => void;
   onDeleteFolder?: (folderId: string) => void;
   selectedFolderId?: string | null;
+  folderRefreshTrigger?: number;
 }
 
-export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true, onFolderSelect, onNewFolder, onRenameFolder, onDeleteFolder, selectedFolderId }: SharedPageLayoutProps) {
+export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, scrollable = true, onFolderSelect, onNewFolder, onRenameFolder, onDeleteFolder, selectedFolderId, folderRefreshTrigger = 0 }: SharedPageLayoutProps) {
   const { colors } = useThemeColors();
   const isWeb = Platform.OS === 'web';
 
@@ -69,6 +70,7 @@ export function SharedPageLayout({ children, onNewNote, onRefresh, refreshing, s
         onRenameFolder={onRenameFolder}
         onDeleteFolder={onDeleteFolder}
         selectedFolderId={selectedFolderId}
+        folderRefreshTrigger={folderRefreshTrigger}
       />
       {content}
     </View>

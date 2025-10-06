@@ -22,10 +22,36 @@ export default function NotesScreen() {
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [deleteFolder, setDeleteFolder] = useState<string | null>(null);
+  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);
 
-  // Load notes on mount and when folder changes
+  // Load notes on mount and when folder changes (with request cancellation)
   useEffect(() => {
-    loadNotes();
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setRefreshing(false);
+
+    const loadData = async () => {
+      try {
+        const data = await notesService.getNotesByFolder(selectedFolderId);
+        if (!cancelled) {
+          setNotes(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to load notes:', err);
+          setError('Failed to load notes');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setRefreshing(false);
+        }
+      }
+    };
+
+    loadData();
+    return () => { cancelled = true; };
   }, [selectedFolderId]);
 
   const loadNotes = async () => {
@@ -102,7 +128,7 @@ export default function NotesScreen() {
       }
 
       setDeleteFolder(null);
-      loadNotes();
+      setFolderRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Failed to delete folder:', err);
       Alert.alert('Error', 'Failed to delete folder');
@@ -112,8 +138,7 @@ export default function NotesScreen() {
   const handleFolderModalSuccess = () => {
     setShowFolderModal(false);
     setEditingFolder(null);
-    // Reload notes to update the folder dropdown in header
-    loadNotes();
+    setFolderRefreshTrigger(prev => prev + 1);
   };
 
   const handleFolderModalClose = () => {
@@ -141,6 +166,7 @@ export default function NotesScreen() {
       onRenameFolder={handleRenameFolder}
       onDeleteFolder={handleDeleteFolder}
       selectedFolderId={selectedFolderId}
+      folderRefreshTrigger={folderRefreshTrigger}
     >
       <PWADetector />
       <ScrollView

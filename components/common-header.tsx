@@ -16,9 +16,10 @@ interface CommonHeaderProps {
   onRenameFolder?: (folder: Folder) => void;
   onDeleteFolder?: (folderId: string) => void;
   selectedFolderId?: string | null;
+  folderRefreshTrigger?: number;
 }
 
-export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect, onNewFolder, onRenameFolder, onDeleteFolder, selectedFolderId }: CommonHeaderProps) {
+export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect, onNewFolder, onRenameFolder, onDeleteFolder, selectedFolderId, folderRefreshTrigger = 0 }: CommonHeaderProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
   const isWeb = Platform.OS === 'web';
@@ -29,7 +30,8 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
     if (onFolderSelect) {
       loadFolders();
     }
-  }, [onFolderSelect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderRefreshTrigger]);
 
   const loadFolders = async () => {
     setLoadingFolders(true);
