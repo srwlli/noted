@@ -36,6 +36,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Parallel loading of notes and folders on Dashboard (Promise.all for performance)
   - State synchronization ensures favorite icon reflects actual status
   - Folder cards on Dashboard match Folders tab design (icon + name, header only)
+  - Database migration: 20251006000000_add_folder_favorites.sql adds is_favorite column with index
+  - Graceful error handling: Dashboard loads even if migration not yet applied
+  - Individual try/catch prevents favorites failure from crashing entire Dashboard
 - **Auto-Assign Notes to Folder** (2025-10-06)
   - New notes created while viewing a folder are automatically assigned to that folder
   - Folder ID passed via URL parameter from Notes page to note editor
