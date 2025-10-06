@@ -13,12 +13,12 @@ import { FolderModal } from '@/components/folder-modal';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 
 /**
- * DashboardScreen - Quick access to favorite notes, recent notes, and favorite folders
+ * DashboardScreen - Quick access to favorite notes, favorite folders, and recent notes
  *
  * Features:
  * - Favorite notes section (top)
- * - Recent notes section (3 most recent non-favorite notes)
- * - Favorite folders section (below notes, with divider)
+ * - Favorite folders section (middle, with divider)
+ * - Recent notes section (bottom, 3 most recent non-favorite notes, with divider)
  * - Pull-to-refresh support
  * - Navigate to Notes tab when folder tapped
  * - Cross-tab folder sync via folderRefreshTrigger
@@ -219,24 +219,10 @@ export default function DashboardScreen() {
           </>
         )}
 
-        {/* Favorites Section (no header) */}
+        {/* Favorite Notes Section (no header) */}
         {favoriteNotes.length > 0 && (
           <View>
             {favoriteNotes.map((note) => (
-              <NoteItem
-                key={note.id}
-                note={note}
-                onFavoriteToggle={loadDashboardData}
-              />
-            ))}
-          </View>
-        )}
-
-        {/* Last 3 Section (with divider) */}
-        {recentNotes.length > 0 && (
-          <View>
-            <View style={[styles.divider, { borderBottomColor: colors.border }]} />
-            {recentNotes.map((note) => (
               <NoteItem
                 key={note.id}
                 note={note}
@@ -270,6 +256,20 @@ export default function DashboardScreen() {
               >
                 {/* No body content - header only */}
               </Card>
+            ))}
+          </View>
+        )}
+
+        {/* Last 3 Recent Notes Section (with divider) */}
+        {recentNotes.length > 0 && (
+          <View>
+            <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+            {recentNotes.map((note) => (
+              <NoteItem
+                key={note.id}
+                note={note}
+                onFavoriteToggle={loadDashboardData}
+              />
             ))}
           </View>
         )}
