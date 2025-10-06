@@ -157,7 +157,10 @@ export function MarkdownRenderer({ markdown, scrollable = true }: MarkdownRender
   });
 
   const content = (
-    <Markdown style={markdownStyles}>
+    <Markdown
+      style={markdownStyles}
+      allowedImageHandlers={['data', 'http', 'https']}
+    >
       {markdown || ''}
     </Markdown>
   );

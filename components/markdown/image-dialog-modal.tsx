@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
+import * as ImagePicker from 'expo-image-picker';
+import { imagesService } from '@/services/images';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner-native';
 
 interface ImageDialogModalProps {
   visible: boolean;
@@ -18,6 +22,16 @@ export function ImageDialogModal({ visible, selectedText = '', onInsert, onCance
   const { colors } = useThemeColors();
   const [altText, setAltText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+
+  // Add mountedRef to prevent race condition
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Pre-fill alt text if text was selected
   useEffect(() => {
@@ -33,6 +47,54 @@ export function ImageDialogModal({ visible, selectedText = '', onInsert, onCance
       setImageUrl('');
     }
   }, [visible]);
+
+  const handleUploadImage = async () => {
+    try {
+      // Request permissions (skip on Web, automatically handled on modern native OS)
+      if (Platform.OS !== 'web') {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissionResult.granted) {
+          toast.error('Permission to access photos is required');
+          return;
+        }
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8, // Compress to reduce file size
+        aspect: [16, 9],
+      });
+
+      if (result.canceled) return;
+
+      // Get user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('You must be logged in to upload images');
+        return;
+      }
+
+      // Upload image
+      if (mountedRef.current) setUploading(true);
+      const uploadResult = await imagesService.uploadImage(result.assets[0].uri, user.id);
+
+      // Auto-fill URL field (only if still mounted)
+      if (mountedRef.current) {
+        setImageUrl(uploadResult.publicUrl);
+        toast.success('Image uploaded successfully');
+      }
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      if (mountedRef.current) {
+        toast.error(error.message || 'Failed to upload image');
+      }
+    } finally {
+      if (mountedRef.current) setUploading(false);
+    }
+  };
 
   const handleInsert = () => {
     if (altText.trim() && imageUrl.trim()) {
@@ -70,6 +132,37 @@ export function ImageDialogModal({ visible, selectedText = '', onInsert, onCance
             <MaterialIcons name="image" size={24} color={colors.tint} />
             <Text style={[styles.title, { color: colors.text }]}>Insert Image</Text>
           </View>
+
+          {/* Upload Button */}
+          <TouchableOpacity
+            style={[
+              styles.uploadButton,
+              {
+                backgroundColor: colors.background,
+                borderColor: colors.border,
+              },
+              uploading && styles.buttonDisabled,
+            ]}
+            onPress={handleUploadImage}
+            activeOpacity={0.7}
+            disabled={uploading}
+          >
+            <MaterialIcons
+              name="photo-library"
+              size={20}
+              color={uploading ? colors.textSecondary : colors.tint}
+            />
+            <Text
+              style={[
+                styles.uploadButtonText,
+                { color: uploading ? colors.textSecondary : colors.text },
+              ]}
+            >
+              {uploading ? 'Uploading...' : 'Upload from Device'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>
 
           {/* Alt Text Input */}
           <View style={styles.inputContainer}>
@@ -212,5 +305,25 @@ const styles = StyleSheet.create({
   },
   insertButtonText: {
     color: '#FFFFFF',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 14,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  dividerText: {
+    textAlign: 'center',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
