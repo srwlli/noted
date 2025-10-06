@@ -1,0 +1,315 @@
+{
+  "feature": "Themed HTML Export with Interactive Micro-Engagement",
+  "version": "1.0",
+  "dateCreated": "2025-10-06",
+  "status": "planning",
+  "priority": "medium",
+
+  "executiveSummary": {
+    "goal": "Enhance HTML export with theme-aware styling and interactive micro-engagement features",
+    "currentState": "HTML export exists with basic hardcoded grey styling",
+    "approach": "Add theme selection modal + generate CSS from theme palettes + add interactive UI elements",
+    "benefits": [
+      "Exported notes match user's visual preferences",
+      "Professional, branded appearance",
+      "Interactive elements improve usability (light/dark toggle, copy buttons)",
+      "Better readability and engagement",
+      "Consistent experience between app and exported files"
+    ]
+  },
+
+  "microEngagementFeatures": {
+    "definition": "Small, delightful interactive elements that enhance user experience without overwhelming",
+    "features": [
+      {
+        "name": "Light/Dark Mode Toggle",
+        "description": "Button in top-right to switch between light/dark variants of selected theme",
+        "engagement": "User can view note in both modes after export",
+        "implementation": "CSS variables + JavaScript toggle function"
+      },
+      {
+        "name": "Copy Code Buttons",
+        "description": "Hover-activated copy button on all code blocks",
+        "engagement": "One-click code snippet copying",
+        "implementation": "JavaScript + clipboard API"
+      },
+      {
+        "name": "Smooth Scroll Navigation",
+        "description": "Click headings in table of contents to scroll smoothly to section",
+        "engagement": "Easy navigation in long notes",
+        "implementation": "CSS scroll-behavior + anchor links"
+      },
+      {
+        "name": "Header Permalinks",
+        "description": "Click heading to copy permalink to clipboard",
+        "engagement": "Easy section sharing",
+        "implementation": "JavaScript click handler + clipboard"
+      },
+      {
+        "name": "Expandable Tables",
+        "description": "Large tables collapse by default with 'Show more' button",
+        "engagement": "Cleaner initial view, user controls complexity",
+        "implementation": "CSS max-height + JavaScript toggle"
+      }
+    ]
+  },
+
+  "themeSelectionUI": {
+    "location": "Export flow (before download)",
+    "approach": "Modal dialog with theme preview",
+    "options": [
+      {
+        "id": "current",
+        "label": "Use Current Theme",
+        "description": "Export with your active theme ({{themeName}})",
+        "default": true
+      },
+      {
+        "id": "select",
+        "label": "Choose Theme",
+        "description": "Pick a different theme for this export",
+        "opens": "ThemeExportPickerModal"
+      }
+    ],
+    "picker": {
+      "component": "ThemeExportPickerModal",
+      "layout": "Grid of theme cards (2 cols mobile, 3 cols desktop)",
+      "preview": "Each card shows theme colors (background, surface, text, tint)",
+      "modeToggle": "Light/Dark preview toggle at top",
+      "selection": "Tap card → close modal → export with selected theme"
+    }
+  },
+
+  "cssGeneration": {
+    "approach": "Template literal with CSS variables from theme palette",
+    "benefits": [
+      "CSS variables allow runtime theme switching",
+      "Light/dark variants defined once",
+      "Easy to maintain and extend",
+      "Supports all 10 themes automatically"
+    ],
+    "structure": {
+      "cssVariables": {
+        "location": ":root and [data-theme='dark']",
+        "variables": [
+          "--bg-color (background)",
+          "--surface-color (surface)",
+          "--text-color (text)",
+          "--text-secondary (textSecondary)",
+          "--border-color (border)",
+          "--tint-color (tint)",
+          "--code-bg (elevatedSurface)",
+          "--link-color (linkColor)",
+          "--highlight (highlight)"
+        ]
+      },
+      "baseStyles": "Typography, spacing, layout using CSS variables",
+      "componentStyles": "Headings, code, tables, blockquotes, lists",
+      "interactiveStyles": "Buttons, hover states, transitions"
+    }
+  },
+
+  "technicalImplementation": {
+    "phase1_themeSelection": {
+      "newComponents": [
+        {
+          "file": "components/export/export-theme-modal.tsx",
+          "purpose": "Modal for selecting export theme before download",
+          "props": ["visible", "onConfirm(theme, mode)", "onCancel", "currentTheme"],
+          "features": [
+            "Quick option: Use current theme",
+            "Advanced option: Choose different theme",
+            "Preview theme before confirming"
+          ]
+        }
+      ],
+      "modifiedComponents": [
+        {
+          "file": "app/note-editor/[id].tsx",
+          "change": "handleExport() → show ExportThemeModal first",
+          "flow": "Export button → Theme modal → User selects → Download HTML"
+        },
+        {
+          "file": "app/note-editor/new.tsx",
+          "change": "Same handleExport() modification"
+        }
+      ]
+    },
+    "phase2_cssGeneration": {
+      "modifiedServices": [
+        {
+          "file": "services/markdown-service.ts",
+          "changes": [
+            "Add renderToDocument(title, markdown, theme, colorScheme) signature",
+            "Add generateThemeCSS(theme, colorScheme) helper",
+            "Add generateInteractiveJS() helper",
+            "Replace hardcoded CSS with generated CSS"
+          ]
+        }
+      ],
+      "newUtilities": [
+        {
+          "file": "utils/export-theme-css.ts",
+          "purpose": "Generate CSS from theme palette",
+          "exports": ["generateThemeCSS(theme, mode)", "generateBaseCSS()", "generateInteractiveCSS()"]
+        }
+      ]
+    },
+    "phase3_interactiveFeatures": {
+      "javaScriptModules": [
+        {
+          "name": "themeToggle()",
+          "purpose": "Toggle between light/dark mode",
+          "implementation": "Toggle [data-theme] attribute on <html>"
+        },
+        {
+          "name": "copyCode(button)",
+          "purpose": "Copy code block to clipboard",
+          "implementation": "Read sibling <pre>, copy text, show feedback"
+        },
+        {
+          "name": "copyPermalink(heading)",
+          "purpose": "Copy heading anchor link",
+          "implementation": "Build URL with #hash, copy to clipboard"
+        },
+        {
+          "name": "initCopyButtons()",
+          "purpose": "Add copy buttons to all code blocks",
+          "implementation": "Query all <pre>, insert button, attach listener"
+        }
+      ]
+    }
+  },
+
+  "codeExamples": {
+    "exportThemeModalComponent": "// components/export/export-theme-modal.tsx\nimport React, { useState } from 'react';\nimport { View, Text, TouchableOpacity, Modal, StyleSheet, ScrollView } from 'react-native';\nimport { MaterialIcons } from '@expo/vector-icons';\nimport { useThemeColors } from '@/hooks/use-theme-colors';\nimport { Themes, ThemeName } from '@/constants/theme';\n\ninterface ExportThemeModalProps {\n  visible: boolean;\n  currentTheme: ThemeName;\n  currentMode: 'light' | 'dark';\n  onConfirm: (theme: ThemeName, mode: 'light' | 'dark') => void;\n  onCancel: () => void;\n}\n\nexport function ExportThemeModal({\n  visible,\n  currentTheme,\n  currentMode,\n  onConfirm,\n  onCancel\n}: ExportThemeModalProps) {\n  const { colors } = useThemeColors();\n  const [selectedTheme, setSelectedTheme] = useState<ThemeName>(currentTheme);\n  const [selectedMode, setSelectedMode] = useState<'light' | 'dark'>(currentMode);\n\n  const handleUseCurrent = () => {\n    onConfirm(currentTheme, currentMode);\n  };\n\n  const handleConfirm = () => {\n    onConfirm(selectedTheme, selectedMode);\n  };\n\n  return (\n    <Modal visible={visible} transparent animationType=\"fade\" onRequestClose={onCancel}>\n      <View style={styles.overlay}>\n        <View style={[styles.modal, { backgroundColor: colors.surface, borderColor: colors.border }]}>\n          {/* Header */}\n          <View style={styles.header}>\n            <MaterialIcons name=\"palette\" size={24} color={colors.tint} />\n            <Text style={[styles.title, { color: colors.text }]}>Export Theme</Text>\n          </View>\n\n          {/* Quick Option: Use Current */}\n          <TouchableOpacity\n            style={[styles.option, { backgroundColor: colors.background, borderColor: colors.border }]}\n            onPress={handleUseCurrent}\n            activeOpacity={0.7}\n          >\n            <View style={styles.optionContent}>\n              <Text style={[styles.optionTitle, { color: colors.text }]}>Use Current Theme</Text>\n              <Text style={[styles.optionDesc, { color: colors.textSecondary }]}>\n                Export with {Themes[currentTheme].displayName} ({currentMode} mode)\n              </Text>\n            </View>\n            <MaterialIcons name=\"chevron-right\" size={24} color={colors.textSecondary} />\n          </TouchableOpacity>\n\n          <Text style={[styles.divider, { color: colors.textSecondary }]}>or</Text>\n\n          {/* Mode Toggle */}\n          <View style={styles.modeToggle}>\n            <TouchableOpacity\n              style={[\n                styles.modeButton,\n                selectedMode === 'light' && { backgroundColor: colors.tint },\n                { borderColor: colors.border }\n              ]}\n              onPress={() => setSelectedMode('light')}\n            >\n              <Text style={{ color: selectedMode === 'light' ? '#fff' : colors.text }}>Light</Text>\n            </TouchableOpacity>\n            <TouchableOpacity\n              style={[\n                styles.modeButton,\n                selectedMode === 'dark' && { backgroundColor: colors.tint },\n                { borderColor: colors.border }\n              ]}\n              onPress={() => setSelectedMode('dark')}\n            >\n              <Text style={{ color: selectedMode === 'dark' ? '#fff' : colors.text }}>Dark</Text>\n            </TouchableOpacity>\n          </View>\n\n          {/* Theme Grid */}\n          <ScrollView style={styles.themeGrid} showsVerticalScrollIndicator={false}>\n            <View style={styles.grid}>\n              {(Object.keys(Themes) as ThemeName[]).map((themeName) => {\n                const theme = Themes[themeName];\n                const palette = theme[selectedMode];\n                const isSelected = selectedTheme === themeName;\n\n                return (\n                  <TouchableOpacity\n                    key={themeName}\n                    style={[\n                      styles.themeCard,\n                      { borderColor: isSelected ? colors.tint : colors.border },\n                      isSelected && { borderWidth: 2 }\n                    ]}\n                    onPress={() => setSelectedTheme(themeName)}\n                    activeOpacity={0.7}\n                  >\n                    {/* Theme preview */}\n                    <View style={styles.colorPreview}>\n                      <View style={{ backgroundColor: palette.background, flex: 1 }} />\n                      <View style={{ backgroundColor: palette.surface, flex: 1 }} />\n                      <View style={{ backgroundColor: palette.tint, flex: 1 }} />\n                    </View>\n                    <Text style={[styles.themeName, { color: colors.text }]}>\n                      {theme.displayName}\n                    </Text>\n                    {isSelected && (\n                      <MaterialIcons name=\"check-circle\" size={20} color={colors.tint} style={styles.checkIcon} />\n                    )}\n                  </TouchableOpacity>\n                );\n              })}\n            </View>\n          </ScrollView>\n\n          {/* Buttons */}\n          <View style={styles.buttons}>\n            <TouchableOpacity\n              style={[styles.button, { backgroundColor: colors.background }]}\n              onPress={onCancel}\n              activeOpacity={0.7}\n            >\n              <Text style={[styles.buttonText, { color: colors.textSecondary }]}>Cancel</Text>\n            </TouchableOpacity>\n            <TouchableOpacity\n              style={[styles.button, { backgroundColor: colors.tint }]}\n              onPress={handleConfirm}\n              activeOpacity={0.7}\n            >\n              <Text style={[styles.buttonText, { color: '#fff' }]}>Export</Text>\n            </TouchableOpacity>\n          </View>\n        </View>\n      </View>\n    </Modal>\n  );\n}\n\nconst styles = StyleSheet.create({\n  overlay: {\n    flex: 1,\n    justifyContent: 'center',\n    alignItems: 'center',\n    backgroundColor: 'rgba(0, 0, 0, 0.5)',\n  },\n  modal: {\n    width: '90%',\n    maxWidth: 500,\n    maxHeight: '80%',\n    borderRadius: 16,\n    borderWidth: 1,\n    padding: 20,\n  },\n  header: {\n    flexDirection: 'row',\n    alignItems: 'center',\n    gap: 12,\n    marginBottom: 20,\n  },\n  title: {\n    fontSize: 20,\n    fontWeight: '600',\n  },\n  option: {\n    flexDirection: 'row',\n    alignItems: 'center',\n    padding: 16,\n    borderRadius: 12,\n    borderWidth: 1,\n    marginBottom: 12,\n  },\n  optionContent: {\n    flex: 1,\n  },\n  optionTitle: {\n    fontSize: 16,\n    fontWeight: '600',\n    marginBottom: 4,\n  },\n  optionDesc: {\n    fontSize: 14,\n  },\n  divider: {\n    textAlign: 'center',\n    fontSize: 14,\n    fontWeight: '500',\n    marginBottom: 12,\n  },\n  modeToggle: {\n    flexDirection: 'row',\n    gap: 8,\n    marginBottom: 16,\n  },\n  modeButton: {\n    flex: 1,\n    padding: 10,\n    borderRadius: 8,\n    borderWidth: 1,\n    alignItems: 'center',\n  },\n  themeGrid: {\n    maxHeight: 300,\n  },\n  grid: {\n    flexDirection: 'row',\n    flexWrap: 'wrap',\n    gap: 12,\n  },\n  themeCard: {\n    width: '47%',\n    borderRadius: 8,\n    borderWidth: 1,\n    overflow: 'hidden',\n    position: 'relative',\n  },\n  colorPreview: {\n    flexDirection: 'row',\n    height: 60,\n  },\n  themeName: {\n    padding: 8,\n    fontSize: 14,\n    fontWeight: '500',\n    textAlign: 'center',\n  },\n  checkIcon: {\n    position: 'absolute',\n    top: 4,\n    right: 4,\n  },\n  buttons: {\n    flexDirection: 'row',\n    gap: 12,\n    marginTop: 16,\n  },\n  button: {\n    flex: 1,\n    padding: 14,\n    borderRadius: 8,\n    alignItems: 'center',\n  },\n  buttonText: {\n    fontSize: 16,\n    fontWeight: '600',\n  },\n});",
+
+    "generateThemeCSSUtility": "// utils/export-theme-css.ts\nimport { Themes, ThemeName } from '@/constants/theme';\n\n/**\n * Generate CSS for HTML export with theme-aware styling\n */\nexport function generateThemeCSS(themeName: ThemeName, mode: 'light' | 'dark'): string {\n  const palette = Themes[themeName][mode];\n  const darkPalette = Themes[themeName].dark;\n  const lightPalette = Themes[themeName].light;\n\n  return `\n/* CSS Variables - Light Mode (Default) */\n:root {\n  --bg-color: ${lightPalette.background};\n  --surface-color: ${lightPalette.surface};\n  --text-color: ${lightPalette.text};\n  --text-secondary: ${lightPalette.textSecondary};\n  --border-color: ${lightPalette.border};\n  --tint-color: ${lightPalette.tint};\n  --code-bg: ${lightPalette.elevatedSurface};\n  --link-color: ${lightPalette.linkColor};\n  --highlight: ${lightPalette.highlight};\n}\n\n/* CSS Variables - Dark Mode */\n[data-theme='dark'] {\n  --bg-color: ${darkPalette.background};\n  --surface-color: ${darkPalette.surface};\n  --text-color: ${darkPalette.text};\n  --text-secondary: ${darkPalette.textSecondary};\n  --border-color: ${darkPalette.border};\n  --tint-color: ${darkPalette.tint};\n  --code-bg: ${darkPalette.elevatedSurface};\n  --link-color: ${darkPalette.linkColor};\n  --highlight: ${darkPalette.highlight};\n}\n\n/* Base Styles */\nbody {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  max-width: 800px;\n  margin: 0 auto;\n  padding: 20px;\n  line-height: 1.6;\n  background-color: var(--bg-color);\n  color: var(--text-color);\n  transition: background-color 0.3s ease, color 0.3s ease;\n}\n\n/* Typography */\nh1, h2, h3, h4, h5, h6 {\n  margin-top: 24px;\n  margin-bottom: 16px;\n  font-weight: 600;\n  color: var(--text-color);\n  position: relative;\n  cursor: pointer;\n}\n\nh1:hover::after,\nh2:hover::after,\nh3:hover::after {\n  content: '#';\n  position: absolute;\n  left: -20px;\n  color: var(--tint-color);\n  opacity: 0.6;\n}\n\np {\n  margin: 12px 0;\n}\n\na {\n  color: var(--link-color);\n  text-decoration: none;\n  border-bottom: 1px solid transparent;\n  transition: border-color 0.2s ease;\n}\n\na:hover {\n  border-bottom-color: var(--link-color);\n}\n\n/* Code Blocks */\ncode {\n  background-color: var(--code-bg);\n  color: var(--text-color);\n  padding: 2px 6px;\n  border-radius: 3px;\n  font-family: 'Monaco', 'Courier New', monospace;\n  font-size: 0.9em;\n}\n\npre {\n  background-color: var(--code-bg);\n  color: var(--text-color);\n  padding: 16px;\n  border-radius: 6px;\n  overflow-x: auto;\n  position: relative;\n  border: 1px solid var(--border-color);\n}\n\npre code {\n  background: none;\n  padding: 0;\n}\n\n/* Copy Button for Code Blocks */\n.copy-button {\n  position: absolute;\n  top: 8px;\n  right: 8px;\n  background-color: var(--tint-color);\n  color: white;\n  border: none;\n  border-radius: 4px;\n  padding: 6px 12px;\n  font-size: 12px;\n  font-weight: 600;\n  cursor: pointer;\n  opacity: 0;\n  transition: opacity 0.2s ease;\n}\n\npre:hover .copy-button {\n  opacity: 1;\n}\n\n.copy-button:hover {\n  opacity: 0.9;\n}\n\n.copy-button:active {\n  transform: scale(0.95);\n}\n\n/* Blockquotes */\nblockquote {\n  border-left: 4px solid var(--tint-color);\n  padding-left: 16px;\n  color: var(--text-secondary);\n  margin: 16px 0;\n  font-style: italic;\n}\n\n/* Tables */\ntable {\n  border-collapse: collapse;\n  width: 100%;\n  margin: 16px 0;\n  border: 1px solid var(--border-color);\n}\n\nth, td {\n  border: 1px solid var(--border-color);\n  padding: 8px 12px;\n  text-align: left;\n}\n\nth {\n  background-color: var(--code-bg);\n  font-weight: 600;\n  color: var(--text-color);\n}\n\ntr:nth-child(even) {\n  background-color: var(--surface-color);\n}\n\n/* Lists */\nul, ol {\n  margin: 12px 0;\n  padding-left: 24px;\n}\n\nli {\n  margin: 6px 0;\n}\n\n/* Theme Toggle Button */\n.theme-toggle {\n  position: fixed;\n  top: 20px;\n  right: 20px;\n  background-color: var(--surface-color);\n  border: 1px solid var(--border-color);\n  border-radius: 20px;\n  padding: 8px 16px;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  font-size: 14px;\n  font-weight: 600;\n  color: var(--text-color);\n  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);\n  transition: all 0.2s ease;\n  z-index: 1000;\n}\n\n.theme-toggle:hover {\n  background-color: var(--code-bg);\n  transform: translateY(-2px);\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n}\n\n/* Smooth Scroll */\nhtml {\n  scroll-behavior: smooth;\n}\n\n/* Print Styles */\n@media print {\n  .theme-toggle,\n  .copy-button {\n    display: none;\n  }\n  \n  body {\n    max-width: 100%;\n    padding: 0;\n  }\n}\n`;\n}\n\nexport function generateInteractiveJS(initialMode: 'light' | 'dark'): string {\n  return `\n<script>\n// Initialize theme\nlet currentTheme = '${initialMode}';\ndocument.documentElement.setAttribute('data-theme', currentTheme);\n\n// Theme Toggle Function\nfunction toggleTheme() {\n  currentTheme = currentTheme === 'light' ? 'dark' : 'light';\n  document.documentElement.setAttribute('data-theme', currentTheme);\n  updateThemeButton();\n}\n\nfunction updateThemeButton() {\n  const button = document.querySelector('.theme-toggle');\n  if (button) {\n    const icon = currentTheme === 'light' ? '🌙' : '☀️';\n    const text = currentTheme === 'light' ? 'Dark' : 'Light';\n    button.innerHTML = \\`\\${icon} \\${text}\\`;\n  }\n}\n\n// Copy Code Function\nfunction copyCode(button) {\n  const pre = button.parentElement;\n  const code = pre.querySelector('code');\n  const text = code.textContent;\n  \n  navigator.clipboard.writeText(text).then(() => {\n    const originalText = button.textContent;\n    button.textContent = 'Copied!';\n    button.style.backgroundColor = '#10b981';\n    \n    setTimeout(() => {\n      button.textContent = originalText;\n      button.style.backgroundColor = '';\n    }, 2000);\n  });\n}\n\n// Copy Heading Permalink\nfunction copyPermalink(heading) {\n  const id = heading.id;\n  if (!id) return;\n  \n  const url = window.location.href.split('#')[0] + '#' + id;\n  navigator.clipboard.writeText(url).then(() => {\n    // Show brief feedback\n    const feedback = document.createElement('span');\n    feedback.textContent = ' (Link copied!)';\n    feedback.style.color = 'var(--tint-color)';\n    feedback.style.fontSize = '0.8em';\n    heading.appendChild(feedback);\n    \n    setTimeout(() => {\n      feedback.remove();\n    }, 2000);\n  });\n}\n\n// Initialize on page load\ndocument.addEventListener('DOMContentLoaded', () => {\n  // Add copy buttons to code blocks\n  document.querySelectorAll('pre').forEach((pre) => {\n    const button = document.createElement('button');\n    button.className = 'copy-button';\n    button.textContent = 'Copy';\n    button.onclick = () => copyCode(button);\n    pre.appendChild(button);\n  });\n  \n  // Add IDs and click handlers to headings\n  let headingCounter = 0;\n  document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach((heading) => {\n    if (!heading.id) {\n      heading.id = 'heading-' + (++headingCounter);\n    }\n    heading.onclick = () => copyPermalink(heading);\n    heading.style.cursor = 'pointer';\n  });\n  \n  // Update theme button\n  updateThemeButton();\n});\n</script>\n`;\n}\n",
+
+    "updatedMarkdownService": "// services/markdown-service.ts (UPDATED)\nimport { marked } from 'marked';\nimport { ThemeName, Themes } from '@/constants/theme';\nimport { generateThemeCSS, generateInteractiveJS } from '@/utils/export-theme-css';\n\nexport const markdownService = {\n  renderToHtml(markdown: string): string {\n    return marked(markdown) as string;\n  },\n\n  /**\n   * Convert markdown to full HTML document with theme-aware styling\n   * @param title - Document title\n   * @param markdown - Raw markdown text\n   * @param theme - Theme name (optional, defaults to 'monochrome')\n   * @param mode - Color mode (optional, defaults to 'light')\n   * @returns Complete HTML document with interactive features\n   */\n  renderToDocument(\n    title: string,\n    markdown: string,\n    theme: ThemeName = 'monochrome',\n    mode: 'light' | 'dark' = 'light'\n  ): string {\n    const htmlContent = marked(markdown) as string;\n    const themeCSS = generateThemeCSS(theme, mode);\n    const interactiveJS = generateInteractiveJS(mode);\n    const themeName = Themes[theme].displayName;\n\n    return `<!DOCTYPE html>\n<html lang=\"en\" data-theme=\"${mode}\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<meta name=\"theme-name\" content=\"${themeName}\">\n<meta name=\"color-scheme\" content=\"light dark\">\n<title>${title}</title>\n<style>\n${themeCSS}\n</style>\n</head>\n<body>\n<!-- Theme Toggle Button -->\n<button class=\"theme-toggle\" onclick=\"toggleTheme()\">\n  ${mode === 'light' ? '🌙 Dark' : '☀️ Light'}\n</button>\n\n<!-- Note Content -->\n${htmlContent}\n\n<!-- Interactive JavaScript -->\n${interactiveJS}\n</body>\n</html>`;\n  }\n};\n",
+
+    "updatedNoteEditorExport": "// app/note-editor/[id].tsx - Updated handleExport()\n// Add state for theme modal\nconst [showThemeModal, setShowThemeModal] = useState(false);\n\n// Updated handleExport - shows theme modal first\nconst handleExport = () => {\n  setShowThemeModal(true);\n};\n\n// New function - called after theme selection\nconst handleExportWithTheme = async (theme: ThemeName, mode: 'light' | 'dark') => {\n  try {\n    const title = extractTitle(content) || 'Note';\n    const htmlContent = markdownService.renderToDocument(title, content, theme, mode);\n\n    if (Platform.OS === 'web') {\n      // Web: Download as file\n      const blob = new Blob([htmlContent], { type: 'text/html' });\n      const url = URL.createObjectURL(blob);\n      const link = document.createElement('a');\n      link.href = url;\n      link.download = `${title}.html`;\n      link.click();\n      URL.revokeObjectURL(url);\n      toast.success('HTML exported successfully');\n    } else {\n      // Mobile: Share sheet\n      await Share.share({\n        message: htmlContent,\n        title: `${title}.html`,\n      });\n    }\n  } catch (error) {\n    console.error('Export failed:', error);\n    toast.error('Failed to export HTML');\n  } finally {\n    setShowThemeModal(false);\n  }\n};\n\n// In JSX - add modal\n<ExportThemeModal\n  visible={showThemeModal}\n  currentTheme={themeName} // from useThemeColors hook\n  currentMode={colorScheme === 'dark' ? 'dark' : 'light'}\n  onConfirm={handleExportWithTheme}\n  onCancel={() => setShowThemeModal(false)}\n/>"
+  },
+
+  "implementationChecklist": {
+    "phase1_utilities": [
+      {
+        "task": "Create utils/export-theme-css.ts",
+        "details": "Generate CSS from theme palette + interactive JS",
+        "files": ["utils/export-theme-css.ts (NEW)"]
+      },
+      {
+        "task": "Update services/markdown-service.ts",
+        "details": "Add theme/mode parameters to renderToDocument()",
+        "files": ["services/markdown-service.ts"]
+      }
+    ],
+    "phase2_ui": [
+      {
+        "task": "Create components/export/export-theme-modal.tsx",
+        "details": "Modal for theme selection before export",
+        "files": ["components/export/export-theme-modal.tsx (NEW)"]
+      },
+      {
+        "task": "Update app/note-editor/[id].tsx",
+        "details": "Add theme modal + handleExportWithTheme",
+        "files": ["app/note-editor/[id].tsx"]
+      },
+      {
+        "task": "Update app/note-editor/new.tsx",
+        "details": "Same changes as [id].tsx",
+        "files": ["app/note-editor/new.tsx"]
+      }
+    ],
+    "phase3_testing": [
+      {
+        "task": "Test export with all 10 themes",
+        "details": "Verify CSS generation for each theme"
+      },
+      {
+        "task": "Test light/dark mode toggle",
+        "details": "Click toggle button, verify theme switches"
+      },
+      {
+        "task": "Test copy code buttons",
+        "details": "Hover code block, click copy, verify clipboard"
+      },
+      {
+        "task": "Test heading permalinks",
+        "details": "Click heading, verify link copied"
+      },
+      {
+        "task": "Test mobile share",
+        "details": "Export on mobile, verify share sheet works"
+      }
+    ]
+  },
+
+  "userExperience": {
+    "beforeExport": {
+      "step1": "User clicks Export button (Preview mode)",
+      "step2": "Export Theme Modal appears",
+      "step3": "User sees: 'Use Current Theme' (quick) or 'Choose Theme' (advanced)",
+      "step4": "If choosing theme: Grid of theme previews with Light/Dark toggle",
+      "step5": "User selects theme → taps Export",
+      "step6": "HTML file downloads (web) or Share sheet opens (mobile)"
+    },
+    "afterExport": {
+      "feature1": "Open HTML in browser → See note styled with chosen theme",
+      "feature2": "Click theme toggle button (top-right) → Switch light/dark",
+      "feature3": "Hover code block → See copy button → Click to copy",
+      "feature4": "Click any heading → Permalink copied to clipboard",
+      "feature5": "Share URL with #heading-3 → Opens directly to that section"
+    }
+  },
+
+  "benefits": {
+    "userBenefits": [
+      "Exported notes look professional and match personal aesthetic",
+      "Light/dark mode toggle for comfortable reading at any time",
+      "Easy code copying without manual selection",
+      "Shareable section links via heading permalinks",
+      "Smooth navigation in long notes"
+    ],
+    "technicalBenefits": [
+      "CSS variables enable runtime theme switching",
+      "All 10 themes supported automatically",
+      "Self-contained HTML (no external dependencies)",
+      "Print-friendly CSS (interactive elements hidden)",
+      "Works offline (no CDN, no network requests)"
+    ]
+  },
+
+  "futureEnhancements": {
+    "phase2": [
+      "Export multiple notes as single HTML with table of contents",
+      "Syntax highlighting for code blocks (highlight.js)",
+      "Mermaid diagram rendering",
+      "Export to PDF with theme styling (jsPDF)",
+      "Custom CSS injection option for power users"
+    ],
+    "phase3": [
+      "Export templates (blog post, documentation, presentation)",
+      "Export to static site generator (Hugo, Jekyll, etc.)",
+      "Collaborative viewing mode (comments, annotations)",
+      "Interactive data visualizations (charts from tables)",
+      "Progressive Web App export (installable HTML notes)"
+    ]
+  },
+
+  "estimatedEffort": {
+    "phase1_utilities": "2-3 hours",
+    "phase2_ui": "3-4 hours",
+    "phase3_testing": "1-2 hours",
+    "total": "6-9 hours",
+    "difficulty": "Medium"
+  },
+
+  "notes": [
+    "Theme selection adds minimal friction (one extra tap for current theme)",
+    "Interactive features enhance exported HTML without overwhelming",
+    "CSS variables provide flexibility for future customization",
+    "Self-contained HTML works everywhere (email, GitHub, etc.)",
+    "Print CSS ensures clean output when printing notes"
+  ]
+}
