@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     borderBottomWidth: 1,
-    marginTop: 24,
+    marginTop: 12,
     marginBottom: 12,
   },
   emptyCardHeader: {
