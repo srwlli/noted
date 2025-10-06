@@ -79,7 +79,7 @@
     "breakdown": {
       "packageInstallation": {
         "difficulty": "Easy",
-        "tasks": ["npm install expo-image-picker", "Verify no peer dependency conflicts"],
+        "tasks": ["npx expo install expo-image-picker", "Verify no peer dependency conflicts"],
         "complexity": "⭐ Very Easy"
       },
       "supabaseMigration": {
@@ -260,7 +260,7 @@
         "change": "Add expo-image-picker to dependencies",
         "line": 28,
         "addition": "\"expo-image-picker\": \"~16.0.8\",",
-        "command": "npm install expo-image-picker",
+        "command": "npx expo install expo-image-picker",
         "verification": "Package appears in package.json and node_modules"
       },
       "supabase/migrations/20251006120000_add_image_storage.sql": {
@@ -327,19 +327,19 @@
     }
   },
 
-  "migrationSQL": "-- Migration: Add Supabase Storage for note images\n-- Created: 2025-10-06\n-- Purpose: Enable users to upload images from their device and store in Supabase Storage\n\n-- Create storage bucket for note images\nINSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)\nVALUES (\n  'note-images',\n  'note-images',\n  false, -- Private bucket (users can only access their own images)\n  5242880, -- 5MB max file size\n  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']\n)\nON CONFLICT (id) DO NOTHING;\n\n-- RLS Policy: Users can upload to their own folder\nCREATE POLICY \"Users can upload images to their own folder\"\nON storage.objects\nFOR INSERT\nWITH CHECK (\n  bucket_id = 'note-images' AND\n  SPLIT_PART(name, '/', 1) = auth.uid()::text\n);\n\n-- RLS Policy: Users can view their own images\nCREATE POLICY \"Users can view their own images\"\nON storage.objects\nFOR SELECT\nUSING (\n  bucket_id = 'note-images' AND\n  SPLIT_PART(name, '/', 1) = auth.uid()::text\n);\n\n-- RLS Policy: Users can delete their own images\nCREATE POLICY \"Users can delete their own images\"\nON storage.objects\nFOR DELETE\nUSING (\n  bucket_id = 'note-images' AND\n  SPLIT_PART(name, '/', 1) = auth.uid()::text\n);\n\n-- Add comment for documentation\nCOMMENT ON TABLE storage.buckets IS 'note-images bucket stores user-uploaded images for markdown notes';",
+  "migrationSQL": "-- Migration: Add Supabase Storage for note images\n-- Created: 2025-10-06\n-- Purpose: Enable users to upload images from their device and store in Supabase Storage\n\n-- Create storage bucket for note images\nINSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)\nVALUES (\n  'note-images',\n  'note-images',\n  true, -- Public bucket with RLS policies (users can only access their own images)\n  5242880, -- 5MB max file size\n  ARRAY['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']\n)\nON CONFLICT (id) DO NOTHING;\n\n-- RLS Policy: Users can upload to their own folder\nCREATE POLICY \"Users can upload images to their own folder\"\nON storage.objects\nFOR INSERT\nWITH CHECK (\n  bucket_id = 'note-images' AND\n  SPLIT_PART(name, '/', 1) = auth.uid()::text\n);\n\n-- RLS Policy: Users can view their own images\nCREATE POLICY \"Users can view their own images\"\nON storage.objects\nFOR SELECT\nUSING (\n  bucket_id = 'note-images' AND\n  SPLIT_PART(name, '/', 1) = auth.uid()::text\n);\n\n-- RLS Policy: Users can delete their own images\nCREATE POLICY \"Users can delete their own images\"\nON storage.objects\nFOR DELETE\nUSING (\n  bucket_id = 'note-images' AND\n  SPLIT_PART(name, '/', 1) = auth.uid()::text\n);\n\n-- Add comment for documentation\nCOMMENT ON TABLE storage.buckets IS 'note-images bucket stores user-uploaded images for markdown notes';",
 
   "codeExamples": {
-    "servicesCode": "// services/images.ts\nimport { supabase } from '@/lib/supabase';\n\n// TypeScript interfaces for type safety\nexport interface UploadImageResult {\n  publicUrl: string;\n  filePath: string;\n  fileName: string;\n}\n\nexport interface UploadImageOptions {\n  maxSizeBytes?: number;\n  allowedExtensions?: string[];\n  quality?: number;\n}\n\n// Custom error class for better error handling\nexport class ImageUploadError extends Error {\n  constructor(\n    message: string,\n    public code: 'FILE_TOO_LARGE' | 'INVALID_EXTENSION' | 'UPLOAD_FAILED' | 'NETWORK_ERROR' | 'INVALID_URL',\n    public originalError?: any\n  ) {\n    super(message);\n    this.name = 'ImageUploadError';\n  }\n}\n\nexport const imagesService = {\n  /**\n   * Upload image to Supabase Storage\n   * @param imageUri - Local file URI from image picker\n   * @param userId - Current user's ID\n   * @returns Public URL of uploaded image\n   */\n  async uploadImage(imageUri: string, userId: string): Promise<string> {\n    try {\n      // Convert URI to blob for upload\n      const response = await fetch(imageUri);\n      if (!response.ok) {\n        throw new ImageUploadError('Failed to fetch image', 'NETWORK_ERROR');\n      }\n      const blob = await response.blob();\n\n      // Validate file extension from blob MIME type (more reliable than URI)\n      const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];\n      const mimeToExt: Record<string, string> = {\n        'image/jpeg': 'jpg',\n        'image/jpg': 'jpg',\n        'image/png': 'png',\n        'image/gif': 'gif',\n        'image/webp': 'webp',\n      };\n      \n      const fileExt = mimeToExt[blob.type];\n      if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt)) {\n        throw new ImageUploadError(\n          `Invalid image format. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,\n          'INVALID_EXTENSION'\n        );\n      }\n\n      // Check file size (5MB limit)\n      if (blob.size > 5242880) {\n        throw new ImageUploadError('Image must be less than 5MB', 'FILE_TOO_LARGE');\n      }\n\n      // Generate unique filename\n      const timestamp = Date.now();\n      const randomString = Math.random().toString(36).substring(2, 9);\n      const fileName = `${timestamp}_${randomString}.${fileExt}`;\n      const filePath = `${userId}/${fileName}`;\n\n      // Upload to Supabase Storage\n      const { data, error } = await supabase.storage\n        .from('note-images')\n        .upload(filePath, blob, {\n          contentType: `image/${fileExt}`,\n          cacheControl: '3600',\n          upsert: false\n        });\n\n      if (error) throw error;\n\n      // Get public URL\n      const { data: { publicUrl } } = supabase.storage\n        .from('note-images')\n        .getPublicUrl(filePath);\n\n      return publicUrl;\n    } catch (error) {\n      console.error('Image upload failed:', error);\n      throw error;\n    }\n  },\n\n  /**\n   * Delete image from Supabase Storage\n   * @param imageUrl - Full public URL of image\n   */\n  async deleteImage(imageUrl: string): Promise<void> {\n    try {\n      // Extract file path from URL\n      // URL format: https://[project].supabase.co/storage/v1/object/public/note-images/[userId]/[filename]\n      const urlParts = imageUrl.split('/note-images/');\n      if (urlParts.length !== 2) {\n        throw new Error('Invalid image URL format');\n      }\n      const filePath = urlParts[1];\n\n      const { error } = await supabase.storage\n        .from('note-images')\n        .remove([filePath]);\n\n      if (error) throw error;\n    } catch (error) {\n      console.error('Image deletion failed:', error);\n      throw error;\n    }\n  }\n};",
+    "servicesCode": "// services/images.ts\nimport { supabase } from '@/lib/supabase';\n\n// TypeScript interfaces for type safety\nexport interface UploadImageResult {\n  publicUrl: string;\n  filePath: string;\n  fileName: string;\n}\n\nexport interface UploadImageOptions {\n  maxSizeBytes?: number;\n  allowedExtensions?: string[];\n  quality?: number;\n}\n\n// Custom error class for better error handling\nexport class ImageUploadError extends Error {\n  constructor(\n    message: string,\n    public code: 'FILE_TOO_LARGE' | 'INVALID_EXTENSION' | 'UPLOAD_FAILED' | 'NETWORK_ERROR' | 'INVALID_URL',\n    public originalError?: any\n  ) {\n    super(message);\n    this.name = 'ImageUploadError';\n  }\n}\n\nexport const imagesService = {\n  /**\n   * Upload image to Supabase Storage\n   * @param imageUri - Local file URI from image picker\n   * @param userId - Current user's ID\n   * @returns Upload result with public URL, file path, and file name\n   */\n  async uploadImage(imageUri: string, userId: string): Promise<UploadImageResult> {\n    try {\n      // Convert URI to blob for upload\n      const response = await fetch(imageUri);\n      if (!response.ok) {\n        throw new ImageUploadError('Failed to fetch image', 'NETWORK_ERROR');\n      }\n      const blob = await response.blob();\n\n      // Validate file extension from blob MIME type (more reliable than URI)\n      const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];\n      const mimeToExt: Record<string, string> = {\n        'image/jpeg': 'jpg',\n        'image/jpg': 'jpg',\n        'image/png': 'png',\n        'image/gif': 'gif',\n        'image/webp': 'webp',\n      };\n      \n      const fileExt = mimeToExt[blob.type];\n      if (!fileExt || !ALLOWED_EXTENSIONS.includes(fileExt)) {\n        throw new ImageUploadError(\n          `Invalid image format. Allowed: ${ALLOWED_EXTENSIONS.join(', ')}`,\n          'INVALID_EXTENSION'\n        );\n      }\n\n      // Check file size (5MB limit)\n      if (blob.size > 5242880) {\n        throw new ImageUploadError('Image must be less than 5MB', 'FILE_TOO_LARGE');\n      }\n\n      // Generate unique filename\n      const timestamp = Date.now();\n      const randomString = Math.random().toString(36).substring(2, 9);\n      const fileName = `${timestamp}_${randomString}.${fileExt}`;\n      const filePath = `${userId}/${fileName}`;\n\n      // Upload to Supabase Storage\n      const { data, error } = await supabase.storage\n        .from('note-images')\n        .upload(filePath, blob, {\n          contentType: `image/${fileExt}`,\n          cacheControl: '3600',\n          upsert: false\n        });\n\n      if (error) throw error;\n\n      // Get public URL\n      const { data: { publicUrl } } = supabase.storage\n        .from('note-images')\n        .getPublicUrl(filePath);\n\n      return {\n        publicUrl,\n        filePath,\n        fileName\n      };\n    } catch (error) {\n      console.error('Image upload failed:', error);\n      throw error;\n    }\n  },\n\n  /**\n   * Delete image from Supabase Storage\n   * @param imageUrl - Full public URL of image\n   */\n  async deleteImage(imageUrl: string): Promise<void> {\n    try {\n      // Extract file path from URL\n      // URL format: https://[project].supabase.co/storage/v1/object/public/note-images/[userId]/[filename]\n      const urlParts = imageUrl.split('/note-images/');\n      if (urlParts.length !== 2) {\n        throw new Error('Invalid image URL format');\n      }\n      const filePath = urlParts[1];\n\n      const { error } = await supabase.storage\n        .from('note-images')\n        .remove([filePath]);\n\n      if (error) throw error;\n    } catch (error) {\n      console.error('Image deletion failed:', error);\n      throw error;\n    }\n  }\n};",
 
-    "imageDialogModalCode": "// Add to image-dialog-modal.tsx\n\n// 1. New imports (add to top of file)\nimport React, { useState, useRef, useEffect } from 'react';\nimport * as ImagePicker from 'expo-image-picker';\nimport { imagesService } from '@/services/images';\nimport { supabase } from '@/lib/supabase';\nimport { toast } from 'sonner-native';\n\n// 2. New state (add with other useState calls)\nconst [uploading, setUploading] = useState(false);\n\n// 2b. Add mountedRef to prevent race condition\nconst mountedRef = useRef(true);\n\nuseEffect(() => {\n  return () => {\n    mountedRef.current = false;\n  };\n}, []);\n\n// 3. New handler function (add before handleInsert)\nconst handleUploadImage = async () => {\n  try {\n    // Request permissions (handled automatically by expo-image-picker on modern OS)\n    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();\n    \n    if (!permissionResult.granted) {\n      toast.error('Permission to access photos is required');\n      return;\n    }\n\n    // Launch image picker\n    const result = await ImagePicker.launchImageLibraryAsync({\n      mediaTypes: ImagePicker.MediaTypeOptions.Images,\n      allowsEditing: true,\n      quality: 0.8, // Compress to reduce file size\n      aspect: [16, 9],\n    });\n\n    if (result.canceled) return;\n\n    // Get user ID\n    const { data: { user } } = await supabase.auth.getUser();\n    if (!user) {\n      toast.error('You must be logged in to upload images');\n      return;\n    }\n\n    // Upload image\n    if (mountedRef.current) setUploading(true);\n    const imageUrl = await imagesService.uploadImage(result.assets[0].uri, user.id);\n    \n    // Auto-fill URL field (only if still mounted)\n    if (mountedRef.current) {\n      setImageUrl(imageUrl);\n      toast.success('Image uploaded successfully');\n    }\n  } catch (error: any) {\n    console.error('Upload error:', error);\n    if (mountedRef.current) {\n      toast.error(error.message || 'Failed to upload image');\n    }\n  } finally {\n    if (mountedRef.current) setUploading(false);\n  }\n};\n\n// 4. Upload button JSX (add between header and Alt Text input, around line 74)\n{/* Upload Button */}\n<TouchableOpacity\n  style={[\n    styles.uploadButton,\n    {\n      backgroundColor: colors.background,\n      borderColor: colors.border,\n    },\n    uploading && styles.buttonDisabled,\n  ]}\n  onPress={handleUploadImage}\n  activeOpacity={0.7}\n  disabled={uploading}\n>\n  <MaterialIcons\n    name=\"photo-library\"\n    size={20}\n    color={uploading ? colors.textSecondary : colors.tint}\n  />\n  <Text\n    style={[\n      styles.uploadButtonText,\n      { color: uploading ? colors.textSecondary : colors.text },\n    ]}\n  >\n    {uploading ? 'Uploading...' : 'Upload from Device'}\n  </Text>\n</TouchableOpacity>\n\n<Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>\n\n// 5. New styles (add to StyleSheet.create)\nuploadButton: {\n  flexDirection: 'row',\n  alignItems: 'center',\n  justifyContent: 'center',\n  gap: 8,\n  padding: 14,\n  borderRadius: 8,\n  borderWidth: 1,\n  marginBottom: 12,\n},\ndividerText: {\n  textAlign: 'center',\n  fontSize: 14,\n  fontWeight: '500',\n  marginBottom: 12,\n},\nuploadButtonText: {\n  fontSize: 16,\n  fontWeight: '600',\n},",
+    "imageDialogModalCode": "// Add to image-dialog-modal.tsx\n\n// 1. New imports (add to top of file)\nimport React, { useState, useRef, useEffect } from 'react';\nimport { Platform } from 'react-native';\nimport * as ImagePicker from 'expo-image-picker';\nimport { imagesService } from '@/services/images';\nimport { supabase } from '@/lib/supabase';\nimport { toast } from 'sonner-native';\n\n// 2. New state (add with other useState calls)\nconst [uploading, setUploading] = useState(false);\n\n// 2b. Add mountedRef to prevent race condition\nconst mountedRef = useRef(true);\n\nuseEffect(() => {\n  return () => {\n    mountedRef.current = false;\n  };\n}, []);\n\n// 3. New handler function (add before handleInsert)\nconst handleUploadImage = async () => {\n  try {\n    // Request permissions (skip on Web, automatically handled on modern native OS)\n    if (Platform.OS !== 'web') {\n      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();\n      \n      if (!permissionResult.granted) {\n        toast.error('Permission to access photos is required');\n        return;\n      }\n    }\n\n    // Launch image picker\n    const result = await ImagePicker.launchImageLibraryAsync({\n      mediaTypes: ImagePicker.MediaTypeOptions.Images,\n      allowsEditing: true,\n      quality: 0.8, // Compress to reduce file size\n      aspect: [16, 9],\n    });\n\n    if (result.canceled) return;\n\n    // Get user ID\n    const { data: { user } } = await supabase.auth.getUser();\n    if (!user) {\n      toast.error('You must be logged in to upload images');\n      return;\n    }\n\n    // Upload image\n    if (mountedRef.current) setUploading(true);\n    const uploadResult = await imagesService.uploadImage(result.assets[0].uri, user.id);\n    \n    // Auto-fill URL field (only if still mounted)\n    if (mountedRef.current) {\n      setImageUrl(uploadResult.publicUrl);\n      toast.success('Image uploaded successfully');\n    }\n  } catch (error: any) {\n    console.error('Upload error:', error);\n    if (mountedRef.current) {\n      toast.error(error.message || 'Failed to upload image');\n    }\n  } finally {\n    if (mountedRef.current) setUploading(false);\n  }\n};\n\n// 4. Upload button JSX (add between header and Alt Text input, around line 74)\n{/* Upload Button */}\n<TouchableOpacity\n  style={[\n    styles.uploadButton,\n    {\n      backgroundColor: colors.background,\n      borderColor: colors.border,\n    },\n    uploading && styles.buttonDisabled,\n  ]}\n  onPress={handleUploadImage}\n  activeOpacity={0.7}\n  disabled={uploading}\n>\n  <MaterialIcons\n    name=\"photo-library\"\n    size={20}\n    color={uploading ? colors.textSecondary : colors.tint}\n  />\n  <Text\n    style={[\n      styles.uploadButtonText,\n      { color: uploading ? colors.textSecondary : colors.text },\n    ]}\n  >\n    {uploading ? 'Uploading...' : 'Upload from Device'}\n  </Text>\n</TouchableOpacity>\n\n<Text style={[styles.dividerText, { color: colors.textSecondary }]}>or</Text>\n\n// 5. New styles (add to StyleSheet.create)\nuploadButton: {\n  flexDirection: 'row',\n  alignItems: 'center',\n  justifyContent: 'center',\n  gap: 8,\n  padding: 14,\n  borderRadius: 8,\n  borderWidth: 1,\n  marginBottom: 12,\n},\ndividerText: {\n  textAlign: 'center',\n  fontSize: 14,\n  fontWeight: '500',\n  marginBottom: 12,\n},\nuploadButtonText: {\n  fontSize: 16,\n  fontWeight: '600',\n},",
 
     "markdownRendererCode": "// components/markdown/markdown-renderer.tsx\n// Change at line 160\n\n// BEFORE:\nconst content = (\n  <Markdown style={markdownStyles}>\n    {markdown || ''}\n  </Markdown>\n);\n\n// AFTER:\nconst content = (\n  <Markdown\n    style={markdownStyles}\n    allowedImageHandlers={['data', 'http', 'https']}\n  >\n    {markdown || ''}\n  </Markdown>\n);",
 
     "googleDriveHelper": "// Optional: Helper to transform Google Drive URLs\n// Add to utils/image-helpers.ts if Google Drive URLs still don't render\n\nexport function transformGoogleDriveUrl(url: string): string {\n  // Check if it's a Google Drive sharing link\n  const driveMatch = url.match(/drive\\.google\\.com\\/file\\/d\\/([a-zA-Z0-9_-]+)/);\n  \n  if (driveMatch) {\n    const fileId = driveMatch[1];\n    // Transform to direct image URL\n    return `https://drive.google.com/uc?export=view&id=${fileId}`;\n  }\n  \n  return url; // Return original URL if not Google Drive\n}\n\n// Then in image-dialog-modal.tsx handleInsert:\nconst transformedUrl = transformGoogleDriveUrl(imageUrl.trim());\nonInsert(altText.trim(), transformedUrl);"
   },
 
-  "appJsonConfig": "// Add to app.json (or app.config.js)\\n// Required for iOS photo library access\\n\\n{\\n  \\\"expo\\\": {\\n    \\\"plugins\\\": [\\n      [\\n        \\\"expo-image-picker\\\",\\n        {\\n          \\\"photosPermission\\\": \\\"The app needs access to your photos to upload images to your notes.\\\",\\n          \\\"cameraPermission\\\": \\\"The app needs access to your camera to take photos for your notes.\\\"\\n        }\\n      ]\\n    ],\\n    \\\"ios\\\": {\\n      \\\"infoPlist\\\": {\\n        \\\"NSPhotoLibraryUsageDescription\\\": \\\"This app needs access to your photo library to upload images to your notes.\\\",\\n        \\\"NSCameraUsageDescription\\\": \\\"This app needs access to your camera to take photos for your notes.\\\"\\n      }\\n    },\\n    \\\"android\\\": {\\n      \\\"permissions\\\": [\\n        \\\"READ_EXTERNAL_STORAGE\\\",\\n        \\\"WRITE_EXTERNAL_STORAGE\\\",\\n        \\\"CAMERA\\\"\\n      ]\\n    }\\n  }\\n}\\n\\n// Note: After adding permissions, rebuild the native app:\\n// iOS: npx expo run:ios\\n// Android: npx expo run:android\\n// Or create new development build: eas build --profile development",
+  "appJsonConfig": "// Add to app.json (or app.config.js)\\n// Required for iOS photo library access and Android media permissions\\n\\n{\\n  \\\"expo\\\": {\\n    \\\"plugins\\\": [\\n      [\\n        \\\"expo-image-picker\\\",\\n        {\\n          \\\"photosPermission\\\": \\\"The app needs access to your photos to upload images to your notes.\\\",\\n          \\\"cameraPermission\\\": \\\"The app needs access to your camera to take photos for your notes.\\\"\\n        }\\n      ]\\n    ],\\n    \\\"ios\\\": {\\n      \\\"infoPlist\\\": {\\n        \\\"NSPhotoLibraryUsageDescription\\\": \\\"This app needs access to your photo library to upload images to your notes.\\\",\\n        \\\"NSCameraUsageDescription\\\": \\\"This app needs access to your camera to take photos for your notes.\\\"\\n      }\\n    },\\n    \\\"android\\\": {\\n      \\\"permissions\\\": [\\n        \\\"READ_MEDIA_IMAGES\\\",\\n        \\\"CAMERA\\\"\\n      ]\\n    }\\n  }\\n}\\n\\n// Note: READ_MEDIA_IMAGES is for Android 13+ (API 33+).\\n// For backward compatibility with Android 12 and below, expo-image-picker\\n// will automatically request READ_EXTERNAL_STORAGE when needed.\\n// WRITE_EXTERNAL_STORAGE is no longer required for uploads.\\n\\n// After adding permissions, rebuild the native app:\\n// iOS: npx expo run:ios\\n// Android: npx expo run:android\\n// Or create new development build: eas build --profile development",
 
   "implementationChecklist": {
     "phase1_setup": {
@@ -347,7 +347,7 @@
       "tasks": [
         {
           "task": "Install expo-image-picker package",
-          "command": "npm install expo-image-picker",
+          "command": "npx expo install expo-image-picker",
           "verification": "Check package.json dependencies and node_modules",
           "status": "pending"
         },
@@ -629,20 +629,20 @@
       "date": "2025-10-07",
       "status": "changes_requested",
       "findings": [
-        "Storage bucket privacy conflicts with use of getPublicUrl; clarify public vs private and align service implementation",
-        "Image picker plan uses invalid mediaTypes value and indiscriminate permission prompts, which will fail on Web",
-        "Migration relies on direct INSERT into storage.buckets instead of storage.create_bucket helpers, risking deployment failures",
-        "Plan lacks concrete app.json permission updates for iOS and Android platforms",
-        "uploadImage infers file extension from URI, which is unreliable for Expo asset URIs",
-        "JSON contains garbled complexity strings ('\\uFFFD-?') that should be cleaned before handoff"
+        "migrationSQL still performs a raw INSERT with public: false, yet servicesCode relies on getPublicUrl; bucket visibility and SQL helper usage remain unresolved",
+        "imageDialogModalCode continues requesting media permissions on every platform, which will throw on Web builds",
+        "appJsonConfig example retains deprecated Android READ/WRITE_EXTERNAL_STORAGE permissions instead of modern READ_MEDIA_* keys",
+        "servicesCode now defines UploadImageResult/UploadImageOptions but uploadImage still returns a bare string",
+        "packageInstallation instructions still say npx expo install expo-image-picker rather than npx expo install",
+        "Encoding artifacts (� characters) persist throughout difficulty and review sections"
       ],
       "recommendations": [
-        "Decide on bucket visibility and either keep it public with guarded writes or switch to signed URLs for private access, updating both migration and service code",
-        "Use ImagePicker.MediaTypeOptions.Images and platform-aware permission handling (skip web prompts, prefer useMediaLibraryPermissions hook)",
-        "Refactor migration to call storage.create_bucket and storage.create_policy helper functions so it runs consistently in Supabase",
-        "Document required app.json permission entries (e.g., ios.infoPlist.NSPhotoLibraryUsageDescription, android.permissions)",
-        "Derive file metadata from ImagePicker asset fields (fileName, mimeType) or blob.type instead of parsing the URI",
-        "Normalize the complexity text so the document is readable and free of encoding artifacts"
+        "Adopt storage.create_bucket/create_policy helpers and decide on public vs signed URL flow so migrationSQL matches service expectations",
+        "Use ImagePicker.useMediaLibraryPermissions or platform guards so permission prompts are skipped on Web and handled gracefully on native",
+        "Update appJsonConfig to READ_MEDIA_IMAGES (and related API 33 keys) and drop WRITE_EXTERNAL_STORAGE unless legacy support is required",
+        "Either return UploadImageResult from uploadImage or remove the unused interfaces to prevent confusion",
+        "Switch package installation guidance to npx expo install expo-image-picker for Expo-managed projects",
+        "Clean remaining garbled characters so the plan is readable"
       ],
       "approved": false
     },
@@ -651,6 +651,85 @@
       "date": "2025-10-06",
       "status": "reviewed",
       "overallAssessment": "Implementation plan is comprehensive and well-structured. However, there are 5 CRITICAL issues that must be fixed before implementation, and 3 important improvements recommended.",
+      "progressUpdate": {
+        "reviewDate": "2025-10-06",
+        "updateDate": "2025-10-06",
+        "status": "MOSTLY RESOLVED - 2 critical inconsistencies remain",
+        "appliedFixes": [
+          {
+            "issue": "CRITICAL-1: Storage Bucket Public/Private Mismatch",
+            "status": "✅ PARTIALLY FIXED",
+            "details": "Line 170 now correctly set to 'public: true', but migrationSQL line 337 still has 'false' - BLOCKER",
+            "location": "Line 170 ✅ | Line 337 ❌"
+          },
+          {
+            "issue": "CRITICAL-2: RLS Policy Syntax Error",
+            "status": "✅ FIXED",
+            "details": "migrationSQL (line 330) now uses SPLIT_PART syntax correctly",
+            "location": "Line 330",
+            "note": "Documentation at lines 184-195 still shows old syntax - minor inconsistency"
+          },
+          {
+            "issue": "CRITICAL-3: Missing TypeScript Type Safety",
+            "status": "✅ FIXED",
+            "details": "servicesCode includes UploadImageResult, UploadImageOptions, ImageUploadError",
+            "location": "Line 332"
+          },
+          {
+            "issue": "CRITICAL-4: Race Condition in Modal",
+            "status": "✅ FIXED",
+            "details": "imageDialogModalCode includes mountedRef pattern with cleanup",
+            "location": "Line 335"
+          },
+          {
+            "issue": "CRITICAL-5: Missing File Extension Validation",
+            "status": "✅ FIXED",
+            "details": "servicesCode validates using blob.type (more reliable than URI parsing)",
+            "location": "Line 332"
+          },
+          {
+            "issue": "IMPORTANT-1: Missing App Permissions Configuration",
+            "status": "✅ FIXED",
+            "details": "appJsonConfig section added with iOS/Android permissions",
+            "location": "Line 342"
+          },
+          {
+            "issue": "IMPORTANT-2: No Loading State During Permission Request",
+            "status": "✅ FIXED",
+            "details": "imageDialogModalCode sets uploading state before permission request",
+            "location": "Line 335"
+          },
+          {
+            "issue": "IMPORTANT-3: Image Compression Config Not Explained",
+            "status": "⚠️ PARTIALLY ADDRESSED",
+            "details": "Code includes comment, but could add to implementation checklist",
+            "location": "Line 335"
+          }
+        ],
+        "remainingBlockers": [
+          {
+            "blocker": "migrationSQL bucket setting inconsistency",
+            "severity": "CRITICAL",
+            "location": "Line 337 in migrationSQL",
+            "currentValue": "false, -- Private bucket",
+            "requiredValue": "true, -- Public bucket with RLS policies",
+            "impact": "Migration will create private bucket, causing getPublicUrl() to fail",
+            "fix": "Change line 337 from 'false' to 'true' to match line 170"
+          },
+          {
+            "blocker": "supabaseStorageSetup.rlsPolicies documentation",
+            "severity": "MINOR",
+            "location": "Lines 184, 189, 194",
+            "currentValue": "(storage.foldername(name))[1]",
+            "requiredValue": "SPLIT_PART(name, '/', 1)",
+            "impact": "Documentation doesn't match actual migration SQL",
+            "fix": "Update for consistency with migrationSQL"
+          }
+        ],
+        "readinessScore": "90% - Only 1 critical fix remaining (migrationSQL bucket setting)",
+        "estimatedTimeToComplete": "5 minutes to fix remaining issues",
+        "approvalStatus": "CONDITIONAL - Ready after fixing migrationSQL line 337"
+      },
       "criticalIssues": [
         {
           "id": "CRITICAL-1",
