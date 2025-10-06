@@ -44,19 +44,28 @@ export default function DashboardScreen() {
   /**
    * Load dashboard data: favorite notes, recent notes, and favorite folders
    * Called on mount, focus, and refresh
+   * Gracefully handles missing is_favorite column in database
    */
   const loadDashboardData = async () => {
     try {
       setError(null);
-      // Load notes and favorite folders in parallel
-      const [favorites, recent, favFolders] = await Promise.all([
+
+      // Load notes in parallel
+      const [favorites, recent] = await Promise.all([
         notesService.getFavoriteNotes(),
         notesService.getRecentNonFavoriteNotes(3),
-        foldersService.getFavoriteFolders()
       ]);
       setFavoriteNotes(favorites);
       setRecentNotes(recent);
-      setFavoriteFolders(favFolders);
+
+      // Try to load favorite folders, but don't fail if is_favorite column doesn't exist
+      try {
+        const favFolders = await foldersService.getFavoriteFolders();
+        setFavoriteFolders(favFolders);
+      } catch (folderErr) {
+        console.warn('Could not load favorite folders (is_favorite column may not exist yet):', folderErr);
+        setFavoriteFolders([]); // Set empty array if call fails
+      }
     } catch (err) {
       console.error('Failed to load dashboard:', err);
       setError('Failed to load dashboard');
