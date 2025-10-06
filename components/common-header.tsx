@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Menu, MenuOptions, MenuOption, MenuTrigger, MenuOptionCustomStyle } from 'react-native-popup-menu';
@@ -26,14 +26,7 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
 
-  useEffect(() => {
-    if (onFolderSelect) {
-      loadFolders();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [folderRefreshTrigger]);
-
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     setLoadingFolders(true);
     try {
       const data = await foldersService.getFolders();
@@ -43,7 +36,13 @@ export function CommonHeader({ onNewNote, onRefresh, refreshing, onFolderSelect,
     } finally {
       setLoadingFolders(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (onFolderSelect) {
+      loadFolders();
+    }
+  }, [folderRefreshTrigger, onFolderSelect, loadFolders]);
 
   const handleNewNote = () => {
     if (onNewNote) {
