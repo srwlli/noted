@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Dashboard Folder Menu Integration** (2025-10-06)
+  - Added folder dropdown controls to the Dashboard header for parity with Notes/Folders tabs
+  - Reused FolderModal and delete confirmation so folder CRUD works from the home screen
+  - Selecting a folder on the Dashboard routes to Notes with the folder preselected
+  - Kept a unified folderRefreshTrigger to sync dropdown data across tabs
 - **Folders Tab with Quick Access** (2025-10-06)
   - Transformed "Soon" placeholder tab into dedicated Folders hub
   - Tab 4 of 5 (Info → Notes → Dashboard → Folders → Settings) for thumb-accessible navigation
@@ -28,8 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Add folders to favorites via (...) menu in Folders tab
   - Star icon (★/☆) indicates favorite status in menu
   - Toggle favorite status with toast notifications (top-center position)
-  - Favorite folders appear on Dashboard below recent notes
-  - Dashboard divider separates notes and folders sections
+  - Favorite folders appear on Dashboard between favorite notes and recent notes
+  - Dashboard section order: favorite notes (top) → favorite folders (middle) → last 3 recent notes (bottom)
+  - Dashboard dividers separate each section for clean visual hierarchy
   - Tap favorite folder card on Dashboard to navigate to Notes tab
   - Database field: is_favorite boolean on folders table
   - Service methods: getFavoriteFolders(), toggleFavorite(folderId, isFavorite)
@@ -47,7 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Reduces manual "Move to Folder" actions after note creation
 - **Dashboard with Favorites and Recent Notes** (2025-10-05)
   - New Dashboard tab as home page (index route) with 'home' icon
+  - Three-section layout: favorite notes (top) → favorite folders (middle) → last 3 recent notes (bottom)
   - Favorites section displays favorited notes without header for clean design
+  - Favorite folders section in middle with horizontal divider
   - Last 3 section shows 3 most recently modified non-favorite notes with horizontal divider
   - Notes in favorites excluded from Last 3 to avoid duplication
   - Empty state cards for new users: "Add fav for quick access" and "Last 3 notes here"
@@ -62,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - User stays on current note when favoriting (not redirected)
   - State synchronization ensures favorite icon reflects actual status
   - Service methods: toggleFavorite(), getFavoriteNotes(), getRecentNonFavoriteNotes()
-  - Tab navigation updated: Info → Notes → Dashboard → Soon → Settings (Dashboard centered)
+  - Tab navigation updated: Info → Notes → Dashboard → Folders → Settings (Dashboard centered)
   - Notes list moved from index to dedicated 'notes' route
   - Migration file: 20251005000000_add_is_favorite_column.sql
 - **Mobile Long Press Actions** (2025-10-05)
