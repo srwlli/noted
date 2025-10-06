@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -12,27 +12,51 @@ import { foldersService, Folder } from '@/services/folders';
 import { FolderModal } from '@/components/folder-modal';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 
+/**
+ * DashboardScreen - Quick access to favorite notes, recent notes, and favorite folders
+ *
+ * Features:
+ * - Favorite notes section (top)
+ * - Recent notes section (3 most recent non-favorite notes)
+ * - Favorite folders section (below notes, with divider)
+ * - Pull-to-refresh support
+ * - Navigate to Notes tab when folder tapped
+ * - Cross-tab folder sync via folderRefreshTrigger
+ */
 export default function DashboardScreen() {
   const { colors } = useThemeColors();
-  const [favoriteNotes, setFavoriteNotes] = useState<Note[]>([]);
-  const [recentNotes, setRecentNotes] = useState<Note[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const [deleteFolder, setDeleteFolder] = useState<string | null>(null);
-  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);
 
-  // Load dashboard data
+  // STATE: Dashboard data
+  const [favoriteNotes, setFavoriteNotes] = useState<Note[]>([]); // User's favorite notes
+  const [recentNotes, setRecentNotes] = useState<Note[]>([]); // Last 3 non-favorite notes
+  const [favoriteFolders, setFavoriteFolders] = useState<Folder[]>([]); // User's favorite folders
+  const [loading, setLoading] = useState(true); // Initial load indicator
+  const [refreshing, setRefreshing] = useState(false); // Pull-to-refresh indicator
+  const [error, setError] = useState<string | null>(null); // Error message display
+
+  // STATE: Folder management (for header dropdown)
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null); // Currently selected folder
+  const [showFolderModal, setShowFolderModal] = useState(false); // Show/hide folder modal
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null); // Folder being edited
+  const [deleteFolder, setDeleteFolder] = useState<string | null>(null); // Folder pending deletion
+  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0); // Sync trigger for header dropdown
+
+  /**
+   * Load dashboard data: favorite notes, recent notes, and favorite folders
+   * Called on mount, focus, and refresh
+   */
   const loadDashboardData = async () => {
     try {
       setError(null);
-      const favorites = await notesService.getFavoriteNotes();
-      const recent = await notesService.getRecentNonFavoriteNotes(3);
+      // Load notes and favorite folders in parallel
+      const [favorites, recent, favFolders] = await Promise.all([
+        notesService.getFavoriteNotes(),
+        notesService.getRecentNonFavoriteNotes(3),
+        foldersService.getFavoriteFolders()
+      ]);
       setFavoriteNotes(favorites);
       setRecentNotes(recent);
+      setFavoriteFolders(favFolders);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
       setError('Failed to load dashboard');
@@ -212,6 +236,34 @@ export default function DashboardScreen() {
             ))}
           </View>
         )}
+
+        {/* Favorite Folders Section (with divider) */}
+        {favoriteFolders.length > 0 && (
+          <View>
+            <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+            {favoriteFolders.map((folder) => (
+              <Card
+                key={folder.id}
+                isAccordion={false}
+                style={{ backgroundColor: colors.surface }}
+                headerContent={
+                  <TouchableOpacity
+                    style={styles.folderCard}
+                    onPress={() => handleFolderSelect(folder.id)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="folder" size={24} color={colors.text} />
+                    <Text style={[styles.folderName, { color: colors.text }]}>
+                      {folder.name}
+                    </Text>
+                  </TouchableOpacity>
+                }
+              >
+                {/* No body content - header only */}
+              </Card>
+            ))}
+          </View>
+        )}
       </ScrollView>
       <FolderModal
         visible={showFolderModal}
@@ -278,5 +330,17 @@ const styles = StyleSheet.create({
   emptyCardText: {
     fontSize: 14,
     textAlign: 'center',
+  },
+  // Folder card styles
+  folderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  folderName: {
+    fontSize: 18,
+    fontWeight: '600',
+    flex: 1,
   },
 });

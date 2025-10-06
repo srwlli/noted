@@ -4,6 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
+import { toast } from 'sonner-native';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { Card } from '@/components/common/card';
@@ -11,21 +12,36 @@ import { FolderModal } from '@/components/folder-modal';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 import { foldersService, Folder } from '@/services/folders';
 
+/**
+ * FoldersScreen - Dedicated tab for viewing and managing folders
+ *
+ * Features:
+ * - View all folders as vertical list of cards
+ * - Create, rename, delete folders
+ * - Mark folders as favorites
+ * - Navigate to Notes tab with folder selected
+ * - Pull-to-refresh support
+ * - Empty state with CTA
+ * - Cross-tab synchronization via folderRefreshTrigger
+ */
 export default function FoldersScreen() {
   const { colors } = useThemeColors();
 
-  // Phase 1 states
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [showFolderModal, setShowFolderModal] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
-  const [deleteFolder, setDeleteFolder] = useState<string | null>(null);
-  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0);
+  // STATE: Folder data and UI states
+  const [folders, setFolders] = useState<Folder[]>([]); // All folders from database
+  const [loading, setLoading] = useState(true); // Initial load indicator
+  const [refreshing, setRefreshing] = useState(false); // Pull-to-refresh indicator
+  const [error, setError] = useState<string | null>(null); // Error message display
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null); // For navigation tracking
+  const [showFolderModal, setShowFolderModal] = useState(false); // Show/hide folder create/rename modal
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null); // Folder being renamed (null = create new)
+  const [deleteFolder, setDeleteFolder] = useState<string | null>(null); // Folder ID pending deletion
+  const [folderRefreshTrigger, setFolderRefreshTrigger] = useState(0); // Counter to sync header dropdown across tabs
 
-  // Load folders data
+  /**
+   * Load all folders from database
+   * Called on mount, focus, and after CRUD operations
+   */
   const loadFolders = async () => {
     try {
       setError(null);
@@ -40,24 +56,31 @@ export default function FoldersScreen() {
     }
   };
 
-  // Load data on mount
+  // Load data on component mount
   useEffect(() => {
     loadFolders();
   }, []);
 
-  // Reload data when Folders tab gains focus
+  // Reload data when tab gains focus (user switches to Folders tab)
   useFocusEffect(
     useCallback(() => {
       loadFolders();
     }, [])
   );
 
+  /**
+   * Handle pull-to-refresh gesture
+   */
   const handleRefresh = () => {
     setRefreshing(true);
     loadFolders();
   };
 
-  // Navigation handler (exact copy from Dashboard)
+  /**
+   * Navigate to Notes tab with selected folder
+   * Uses exact same pattern as Dashboard for consistency
+   * @param folderId - Folder ID to filter by, or null for "All Notes"
+   */
   const handleFolderSelect = (folderId: string | null) => {
     setSelectedFolderId(folderId);
     router.push({
@@ -66,49 +89,91 @@ export default function FoldersScreen() {
     });
   };
 
-  // Modal handlers
+  /**
+   * Open modal to create new folder
+   */
   const handleNewFolder = () => {
-    setEditingFolder(null);
+    setEditingFolder(null); // null = create mode
     setShowFolderModal(true);
   };
 
+  /**
+   * Open modal to rename existing folder
+   */
   const handleRenameFolder = (folder: Folder) => {
-    setEditingFolder(folder);
+    setEditingFolder(folder); // Set folder = rename mode
     setShowFolderModal(true);
   };
 
+  /**
+   * Prompt user to confirm folder deletion
+   */
   const handleDeleteFolder = (folderId: string) => {
     setDeleteFolder(folderId);
   };
 
+  /**
+   * Close folder modal without saving
+   */
   const handleFolderModalClose = () => {
     setShowFolderModal(false);
     setEditingFolder(null);
   };
 
+  /**
+   * Handle successful folder create/rename
+   * Triggers header dropdown reload across all tabs
+   */
   const handleFolderModalSuccess = () => {
     setShowFolderModal(false);
     setEditingFolder(null);
-    setFolderRefreshTrigger(prev => prev + 1); // Triggers header reload
-    loadFolders(); // Reload local list
+    setFolderRefreshTrigger(prev => prev + 1); // Increment to trigger header reload
+    loadFolders(); // Reload local folder list
   };
 
+  /**
+   * Execute folder deletion after user confirmation
+   * Triggers header dropdown reload across all tabs
+   */
   const confirmDeleteFolder = async () => {
     if (!deleteFolder) return;
     try {
       await foldersService.deleteFolder(deleteFolder);
       setDeleteFolder(null);
-      setFolderRefreshTrigger(prev => prev + 1); // Triggers header reload
-      loadFolders(); // Reload local list
+      setFolderRefreshTrigger(prev => prev + 1); // Increment to trigger header reload
+      loadFolders(); // Reload local folder list
     } catch (err) {
       console.error('Failed to delete folder:', err);
       Alert.alert('Error', 'Failed to delete folder');
     }
   };
 
+  /**
+   * Open modal to create folder (used by empty state CTA)
+   */
   const handleCreateFolder = () => {
     setEditingFolder(null);
     setShowFolderModal(true);
+  };
+
+  /**
+   * Toggle folder favorite status
+   * Updates database and reloads list to reflect changes
+   * @param folder - Folder to toggle favorite status
+   */
+  const handleToggleFavorite = async (folder: Folder) => {
+    try {
+      const newFavoriteState = !folder.is_favorite;
+      await foldersService.toggleFavorite(folder.id, newFavoriteState);
+      toast.success(
+        newFavoriteState ? 'Added to Favorites' : 'Removed from Favorites',
+        { position: 'top-center' }
+      );
+      loadFolders(); // Reload to show updated favorite status
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err);
+      toast.error('Failed to update favorite', { position: 'top-center' });
+    }
   };
 
   if (loading) {
@@ -187,7 +252,7 @@ export default function FoldersScreen() {
           </Card>
         )}
 
-        {/* Folder Cards (vertical list) */}
+        {/* Folder Cards (vertical list) - No body content when "collapsed" (isAccordion=false) */}
         {folders.map((folder) => (
           <Card
             key={folder.id}
@@ -195,6 +260,7 @@ export default function FoldersScreen() {
             style={{ backgroundColor: colors.surface }}
             headerContent={
               <>
+                {/* Folder icon + name - tap to navigate to Notes tab */}
                 <TouchableOpacity
                   style={styles.folderCardHeader}
                   onPress={() => handleFolderSelect(folder.id)}
@@ -205,6 +271,8 @@ export default function FoldersScreen() {
                     {folder.name}
                   </Text>
                 </TouchableOpacity>
+
+                {/* Action menu (...) with Rename, Favorite, Delete options */}
                 <View style={styles.folderActions}>
                   <Menu>
                     <MenuTrigger customStyles={{ triggerWrapper: styles.iconButton }}>
@@ -217,7 +285,7 @@ export default function FoldersScreen() {
                         borderWidth: 1,
                         borderRadius: 12,
                         padding: 8,
-                        minWidth: 150,
+                        minWidth: 200,
                         shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
                         shadowOpacity: 0.25,
@@ -225,6 +293,7 @@ export default function FoldersScreen() {
                         elevation: 5,
                       }
                     }}>
+                      {/* Rename folder */}
                       <MenuOption
                         onSelect={() => {
                           setEditingFolder(folder);
@@ -235,6 +304,23 @@ export default function FoldersScreen() {
                         <MaterialIcons name="edit" size={20} color={colors.text} />
                         <Text style={[styles.menuText, { color: colors.text }]}>Rename</Text>
                       </MenuOption>
+
+                      {/* Toggle favorite status */}
+                      <MenuOption
+                        onSelect={() => handleToggleFavorite(folder)}
+                        customStyles={{ optionWrapper: styles.menuItem }}
+                      >
+                        <MaterialIcons
+                          name={folder.is_favorite ? 'star' : 'star-border'}
+                          size={20}
+                          color={colors.text}
+                        />
+                        <Text style={[styles.menuText, { color: colors.text }]}>
+                          {folder.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                        </Text>
+                      </MenuOption>
+
+                      {/* Delete folder */}
                       <MenuOption
                         onSelect={() => setDeleteFolder(folder.id)}
                         customStyles={{ optionWrapper: styles.menuItem }}
@@ -248,9 +334,7 @@ export default function FoldersScreen() {
               </>
             }
           >
-            <Text style={[styles.noteCount, { color: colors.textSecondary }]}>
-              0 notes
-            </Text>
+            {/* No body content - card shows header only when collapsed */}
           </Card>
         ))}
       </ScrollView>

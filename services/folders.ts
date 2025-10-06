@@ -5,6 +5,7 @@ export interface Folder {
   name: string;
   user_id: string;
   parent_folder_id: string | null;
+  is_favorite: boolean; // Track if folder is favorited
   created_at: string;
   updated_at: string;
 }
@@ -93,5 +94,33 @@ export const foldersService = {
 
     if (error) throw error;
     return data;
+  },
+
+  // Get favorite folders for current user
+  async getFavoriteFolders() {
+    const { data, error } = await supabase
+      .from('folders')
+      .select('*')
+      .eq('is_favorite', true)
+      .order('name', { ascending: true });
+
+    if (error) throw error;
+    return data as Folder[];
+  },
+
+  // Toggle folder favorite status
+  async toggleFavorite(folderId: string, isFavorite: boolean) {
+    const { data, error } = await supabase
+      .from('folders')
+      .update({
+        is_favorite: isFavorite,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', folderId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as Folder;
   }
 };
