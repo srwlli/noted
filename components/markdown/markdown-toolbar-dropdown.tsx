@@ -3,6 +3,7 @@ import { View, TouchableOpacity, Text, StyleSheet, Modal, ScrollView } from 'rea
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { LinkDialogModal } from './link-dialog-modal';
+import { ImageDialogModal } from './image-dialog-modal';
 import { TableGeneratorModal } from './table-generator-modal';
 
 interface MarkdownToolbarDropdownProps {
@@ -27,6 +28,7 @@ export function MarkdownToolbarDropdown({
 }: MarkdownToolbarDropdownProps) {
   const { colors } = useThemeColors();
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
   const [showTableModal, setShowTableModal] = useState(false);
 
   const handleInsert = (before: string, after: string) => {
@@ -41,6 +43,16 @@ export function MarkdownToolbarDropdown({
     const markdownLink = `[${text}](${url})`;
     onInsertText?.(markdownLink);
     setShowLinkModal(false);
+    // Delay close to allow focus restoration to complete on iOS
+    setTimeout(() => {
+      onClose();
+    }, 250);
+  };
+
+  const handleInsertImage = (alt: string, url: string) => {
+    const markdownImage = `![${alt}](${url})`;
+    onInsertText?.(markdownImage);
+    setShowImageModal(false);
     // Delay close to allow focus restoration to complete on iOS
     setTimeout(() => {
       onClose();
@@ -129,6 +141,13 @@ export function MarkdownToolbarDropdown({
                 colors={colors}
               />
 
+              {/* Image */}
+              <ToolbarButton
+                icon="image"
+                onPress={() => setShowImageModal(true)}
+                colors={colors}
+              />
+
               {/* Table */}
               <ToolbarButton
                 icon="table-chart"
@@ -146,6 +165,13 @@ export function MarkdownToolbarDropdown({
         selectedText={selectedText}
         onInsert={handleInsertLink}
         onCancel={() => setShowLinkModal(false)}
+      />
+
+      <ImageDialogModal
+        visible={showImageModal}
+        selectedText={selectedText}
+        onInsert={handleInsertImage}
+        onCancel={() => setShowImageModal(false)}
       />
 
       <TableGeneratorModal
