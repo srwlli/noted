@@ -1,0 +1,344 @@
+{
+  "title": "Share Button Implementation",
+  "subtitle": "Enable Note Sharing via Native Share Sheet",
+  "version": "1.0.0",
+  "date": "2025-10-07",
+  "status": "planned",
+
+  "overview": {
+    "description": "Implement native sharing functionality for the Share action card in NoteActionsModal",
+    "current_state": "Share button shows 'Coming Soon' toast",
+    "goal": "Enable users to share note content via native share sheet (mobile) or clipboard (web)",
+    "location": "components/note-actions-modal.tsx line 36",
+    "icon": "share (Material Icons)",
+    "priority": "high"
+  },
+
+  "user_experience": {
+    "mobile_behavior": {
+      "platform": "iOS & Android",
+      "trigger": "Tap Share button in action modal",
+      "action": "Opens native share sheet",
+      "share_format": {
+        "title": "Note title (or 'Note' if empty)",
+        "message": "Full markdown content"
+      },
+      "share_options": [
+        "Messages",
+        "Email",
+        "WhatsApp",
+        "Slack",
+        "Copy",
+        "Save to Files",
+        "More..."
+      ],
+      "modal_behavior": "Keep modal open during share"
+    },
+
+    "web_behavior": {
+      "platform": "Web (PWA & Browser)",
+      "trigger": "Tap Share button in action modal",
+      "action": "Copy content to clipboard",
+      "reason": "Web Share API has limited browser support and requires HTTPS + user gesture",
+      "fallback": "Clipboard API (more reliable)",
+      "feedback": "Toast notification: 'Note content copied to clipboard'",
+      "modal_behavior": "Keep modal open after copy"
+    }
+  },
+
+  "technical_implementation": {
+    "file_to_modify": "components/note-actions-modal.tsx",
+
+    "step_1_imports": {
+      "description": "Add Share and Platform imports",
+      "code": "import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput, Share, Platform } from 'react-native';",
+      "location": "Line 2",
+      "new_imports": ["Share", "Platform"]
+    },
+
+    "step_2_clipboard_import": {
+      "description": "Add Clipboard for web fallback",
+      "code": "import * as Clipboard from 'expo-clipboard';",
+      "location": "After react-native imports",
+      "reason": "Web Share API unreliable, clipboard more consistent"
+    },
+
+    "step_3_handler": {
+      "description": "Create handleShare function",
+      "location": "After handlePreview function (line 30)",
+      "code": "const handleShare = async () => {\n  try {\n    const title = noteTitle || 'Note';\n    const message = noteContent || '';\n\n    if (Platform.OS === 'web') {\n      // Web: Copy to clipboard (Share API unreliable)\n      await Clipboard.setStringAsync(message);\n      toast.success('Note content copied to clipboard', { position: 'top-center' });\n    } else {\n      // Mobile: Native share sheet\n      await Share.share({\n        title: title,\n        message: message,\n      });\n      // Note: Share.share resolves on dismiss, no success toast needed\n    }\n  } catch (error) {\n    console.error('Share failed:', error);\n    toast.error('Failed to share note', { position: 'top-center' });\n  }\n};",
+      "error_handling": "Catch block handles both Share dismissal and clipboard failures",
+      "note": "Share.share() resolves when user dismisses sheet (even if they don't share)"
+    },
+
+    "step_4_wire_button": {
+      "description": "Wire handleShare to Share button",
+      "location": "Line 36 in primaryActions array",
+      "before": "{ icon: 'share' as const, label: 'Share', onPress: showComingSoon, disabled: false }",
+      "after": "{ icon: 'share' as const, label: 'Share', onPress: handleShare, disabled: false }",
+      "change": "Replace showComingSoon with handleShare"
+    }
+  },
+
+  "code_example": {
+    "complete_function": "const handleShare = async () => {\n  try {\n    const title = noteTitle || 'Note';\n    const message = noteContent || '';\n\n    if (Platform.OS === 'web') {\n      // Web: Copy to clipboard\n      await Clipboard.setStringAsync(message);\n      toast.success('Note content copied to clipboard', { position: 'top-center' });\n    } else {\n      // Mobile: Native share sheet\n      await Share.share({\n        title: title,\n        message: message,\n      });\n    }\n  } catch (error) {\n    console.error('Share failed:', error);\n    toast.error('Failed to share note', { position: 'top-center' });\n  }\n};",
+
+    "imports_needed": [
+      "import { Share, Platform } from 'react-native';",
+      "import * as Clipboard from 'expo-clipboard';"
+    ],
+
+    "button_config": "{ icon: 'share' as const, label: 'Share', onPress: handleShare, disabled: false }"
+  },
+
+  "share_content_format": {
+    "what_is_shared": "Plain markdown content (not HTML)",
+    "title": "Note title extracted from noteTitle prop",
+    "message": "Full note content including markdown syntax",
+    "why_markdown": "Preserves formatting when pasted into other markdown editors",
+    "example": "# Meeting Notes\n\n## Attendees\n- Alice\n- Bob\n\n## Action Items\n- [ ] Review proposal\n- [ ] Schedule follow-up"
+  },
+
+  "alternative_approaches": {
+    "html_export": {
+      "description": "Share rendered HTML instead of markdown",
+      "pros": "Rich formatting, readable in any app",
+      "cons": "Loses editability, larger file size",
+      "implementation": "Reuse markdownService.renderToDocument()",
+      "use_case": "Future 'Export as HTML' action"
+    },
+
+    "web_share_api": {
+      "description": "Use navigator.share() on web",
+      "pros": "Native share sheet on supported browsers",
+      "cons": "Limited browser support, requires HTTPS, less reliable",
+      "browser_support": "Chrome 89+, Safari 15+ (not Firefox)",
+      "fallback_required": true,
+      "recommendation": "Not worth the complexity, clipboard is more reliable"
+    },
+
+    "share_files": {
+      "description": "Share as .md or .html file attachment",
+      "api": "Share.share({ url: 'file://...' })",
+      "pros": "Preserves filename, better for email",
+      "cons": "Requires file system write, permissions, cleanup",
+      "complexity": "High",
+      "recommendation": "Future enhancement for 'Export' action"
+    }
+  },
+
+  "error_handling": {
+    "share_dismissed": {
+      "description": "User dismisses share sheet without sharing",
+      "behavior": "Share.share() resolves normally (not an error)",
+      "no_action_needed": "Modal stays open, no error toast"
+    },
+
+    "share_failed": {
+      "description": "Share API fails (rare)",
+      "behavior": "Catch block shows error toast",
+      "toast": "Failed to share note",
+      "log": "console.error for debugging"
+    },
+
+    "clipboard_failed": {
+      "description": "Clipboard write fails on web (permissions)",
+      "behavior": "Catch block shows error toast",
+      "toast": "Failed to share note",
+      "fallback": "None (inform user to manually copy)"
+    },
+
+    "empty_content": {
+      "description": "Note content is empty or whitespace only",
+      "current_handling": "Share empty string (allowed)",
+      "alternative": "Show toast 'Note is empty' and return early",
+      "recommendation": "Allow sharing empty notes (user's choice)"
+    }
+  },
+
+  "testing_checklist": [
+    {
+      "platform": "iOS",
+      "steps": [
+        "Long press note → Share button",
+        "Verify native iOS share sheet appears",
+        "Test sharing to Messages (success)",
+        "Test sharing to Mail (success)",
+        "Test dismissing sheet (no error)",
+        "Verify modal stays open after share",
+        "Test with empty note (should work)",
+        "Test with very long note (>10k chars)"
+      ]
+    },
+    {
+      "platform": "Android",
+      "steps": [
+        "Long press note → Share button",
+        "Verify native Android share sheet appears",
+        "Test sharing to WhatsApp (success)",
+        "Test sharing to Gmail (success)",
+        "Test dismissing sheet (no error)",
+        "Verify modal stays open after share",
+        "Test with empty note (should work)",
+        "Test with special characters in content"
+      ]
+    },
+    {
+      "platform": "Web",
+      "steps": [
+        "Click note (...) menu → Share button",
+        "Verify success toast appears",
+        "Paste content elsewhere (Ctrl+V)",
+        "Verify markdown format preserved",
+        "Test with empty note",
+        "Test in different browsers (Chrome, Firefox, Safari)",
+        "Verify modal stays open after copy"
+      ]
+    }
+  ],
+
+  "edge_cases": {
+    "very_long_notes": {
+      "scenario": "Note content >50k characters",
+      "share_behavior": "Share sheet may truncate on some platforms",
+      "recommendation": "No validation needed, let OS handle limits"
+    },
+
+    "special_characters": {
+      "scenario": "Note contains emojis, unicode, newlines",
+      "share_behavior": "Share API handles correctly",
+      "markdown_syntax": "Preserved in shared content"
+    },
+
+    "note_with_images": {
+      "scenario": "Note contains markdown image syntax ![](url)",
+      "current_behavior": "Image URLs shared as text",
+      "future_enhancement": "Export as HTML with embedded images"
+    },
+
+    "offline_mode": {
+      "scenario": "User offline when sharing",
+      "mobile": "Share sheet works (local operation)",
+      "web": "Clipboard works (no network needed)",
+      "result": "No issues"
+    }
+  },
+
+  "future_enhancements": {
+    "share_as_file": {
+      "description": "Share as .md file attachment",
+      "use_case": "Better for email, preserves filename",
+      "implementation": "Use FileSystem + Share.share({ url: 'file://...' })",
+      "priority": "medium"
+    },
+
+    "share_as_html": {
+      "description": "Share rendered HTML document",
+      "use_case": "Rich formatting for non-markdown apps",
+      "implementation": "Reuse markdownService.renderToDocument()",
+      "priority": "low (already have HTML export)"
+    },
+
+    "share_formatting_options": {
+      "description": "Let user choose markdown vs plain text vs HTML",
+      "ui": "Dropdown in modal before sharing",
+      "complexity": "medium",
+      "priority": "low"
+    },
+
+    "share_selected_text": {
+      "description": "Share only selected portion of note",
+      "ui": "Select text in editor → Share selection",
+      "implementation": "Pass selection from editor to share handler",
+      "priority": "low"
+    }
+  },
+
+  "dependencies": {
+    "react_native_share": {
+      "import": "Share from 'react-native'",
+      "documentation": "https://reactnative.dev/docs/share",
+      "installation": "Built-in (no package needed)",
+      "platforms": "iOS, Android, Web (limited)"
+    },
+
+    "expo_clipboard": {
+      "import": "import * as Clipboard from 'expo-clipboard'",
+      "documentation": "https://docs.expo.dev/versions/latest/sdk/clipboard/",
+      "installation": "Already installed",
+      "platforms": "iOS, Android, Web"
+    }
+  },
+
+  "comparison_with_export": {
+    "share_button": {
+      "location": "Note Actions Modal",
+      "format": "Plain markdown text",
+      "platforms": "iOS share sheet, Android share sheet, Web clipboard",
+      "use_case": "Quick sharing to messaging apps, email"
+    },
+
+    "export_button": {
+      "location": "Note Editor header (preview mode)",
+      "format": "Rendered HTML document",
+      "platforms": "Web download, Mobile share sheet",
+      "use_case": "Save as HTML file, professional formatting"
+    },
+
+    "difference": "Share = quick text sharing, Export = formatted document download"
+  },
+
+  "implementation_time": {
+    "code_changes": "5 minutes",
+    "testing": "15 minutes (all platforms)",
+    "documentation": "5 minutes",
+    "total": "~25 minutes"
+  },
+
+  "files_modified": [
+    "components/note-actions-modal.tsx"
+  ],
+
+  "files_created": [],
+
+  "migration_needed": false,
+
+  "breaking_changes": false,
+
+  "rollback_plan": {
+    "if_issues": "Revert handleShare to showComingSoon",
+    "risk": "Very low (Share API is stable)",
+    "testing_required": "Test on all 3 platforms before commit"
+  },
+
+  "changelog_entry": {
+    "section": "### Added",
+    "entry": "- **Share Action Card** (2025-10-07)\n  - Share button now functional in Note Actions Modal\n  - Mobile (iOS/Android): Opens native share sheet with note content\n  - Web: Copies note content to clipboard\n  - Shares plain markdown format for compatibility with other apps\n  - Toast notifications for success/error feedback\n  - Works with all note lengths and special characters"
+  },
+
+  "success_criteria": [
+    "Share button no longer shows 'Coming Soon'",
+    "iOS native share sheet opens with note content",
+    "Android native share sheet opens with note content",
+    "Web copies content to clipboard",
+    "Success toast appears on web",
+    "Error toast appears if share fails",
+    "Modal stays open after share",
+    "Markdown formatting preserved in shared content",
+    "No console errors",
+    "All edge cases handled"
+  ],
+
+  "related_features": [
+    "Export (note-editor/[id].tsx line 96) - exports HTML",
+    "Copy (note-item.tsx line 64) - copies from dropdown menu",
+    "Preview (note-actions-modal.tsx line 37) - opens preview mode"
+  ],
+
+  "notes": {
+    "why_no_html": "Sharing markdown preserves editability and is more universally compatible",
+    "why_no_validation": "Share API and Clipboard API handle all edge cases gracefully",
+    "why_keep_modal_open": "User may want to perform additional actions after sharing",
+    "why_clipboard_on_web": "Web Share API has poor browser support and requires HTTPS + user gesture"
+  }
+}

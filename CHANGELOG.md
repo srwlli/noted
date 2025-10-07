@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Share Action Card** (2025-10-07)
+  - Share button now functional in Note Actions Modal
+  - Mobile (iOS/Android): Opens native share sheet with note content
+  - Web: Copies note content to clipboard
+  - Shares plain markdown format for compatibility with other apps
+  - Toast notifications for success/error feedback
+  - Works with all note lengths and special characters
+- **Preview Action Card** (2025-10-07)
+  - Renamed "Duplicate" action card to "Preview" in NoteActionsModal
+  - Changed icon from content-copy to visibility (eye icon)
+  - Wired Preview button to open note in preview mode (rendered HTML)
+  - Note editor now accepts `mode` parameter from URL (?mode=preview)
+  - Clicking Preview closes modal and navigates to full-screen HTML preview
+  - First step toward making all action cards functional (no more "Coming Soon")
 - **Image Upload with Supabase Storage** (2025-10-06)
   - Implemented full image upload functionality allowing users to upload images from their device
   - Users can now upload images from photo library or paste image URLs (Google Drive, direct links)

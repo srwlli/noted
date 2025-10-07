@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput } from 'react-native';
+import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput, Share, Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
+import { AIActionsModal } from '@/components/ai-actions-modal';
 import { toast } from 'sonner-native';
 
 interface NoteActionsModalProps {
@@ -12,14 +15,44 @@ interface NoteActionsModalProps {
   noteContent: string;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  onGenerateTitle?: () => void;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, isFavorite, onToggleFavorite }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, isFavorite, onToggleFavorite, onGenerateTitle }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
   const [title, setTitle] = useState(noteTitle);
+  const [showAIActionsModal, setShowAIActionsModal] = useState(false);
 
   const showComingSoon = () => {
     toast.info('Coming Soon', { position: 'top-center' });
+  };
+
+  const handlePreview = () => {
+    onClose();
+    router.push(`/note-editor/${noteId}?mode=preview`);
+  };
+
+  const handleShare = async () => {
+    try {
+      const title = noteTitle || 'Note';
+      const message = noteContent || '';
+
+      if (Platform.OS === 'web') {
+        // Web: Copy to clipboard (Share API unreliable)
+        await Clipboard.setStringAsync(message);
+        toast.success('Note content copied to clipboard', { position: 'top-center' });
+      } else {
+        // Mobile: Native share sheet
+        await Share.share({
+          title: title,
+          message: message,
+        });
+        // Note: Share.share resolves on dismiss, no success toast needed
+      }
+    } catch (error) {
+      console.error('Share failed:', error);
+      toast.error('Failed to share note', { position: 'top-center' });
+    }
   };
 
   // Primary actions
@@ -27,13 +60,21 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   const primaryActions = [
     { icon: 'edit' as const, label: 'Edit', onPress: showComingSoon, disabled: false },
     { icon: favoriteIcon, label: isFavorite ? 'Unfavorite' : 'Favorite', onPress: onToggleFavorite, disabled: false },
-    { icon: 'share' as const, label: 'Share', onPress: showComingSoon, disabled: false },
-    { icon: 'content-copy' as const, label: 'Duplicate', onPress: showComingSoon, disabled: false },
+    { icon: 'share' as const, label: 'Share', onPress: handleShare, disabled: false },
+    { icon: 'visibility' as const, label: 'Preview', onPress: handlePreview, disabled: false },
   ];
+
+  const handleAIActions = () => {
+    if (!onGenerateTitle) {
+      showComingSoon();
+      return;
+    }
+    setShowAIActionsModal(true);
+  };
 
   // Secondary actions
   const secondaryActions = [
-    { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: showComingSoon, disabled: false },
+    { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: handleAIActions, disabled: false },
     { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
     { icon: 'folder-open' as const, label: 'Organization', onPress: showComingSoon, disabled: false },
   ];
@@ -99,6 +140,19 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+
+      {/* AI Actions Modal */}
+      {onGenerateTitle && (
+        <AIActionsModal
+          visible={showAIActionsModal}
+          onClose={() => setShowAIActionsModal(false)}
+          onGenerateTitle={() => {
+            setShowAIActionsModal(false);
+            onClose();
+            onGenerateTitle();
+          }}
+        />
+      )}
     </Modal>
   );
 }
