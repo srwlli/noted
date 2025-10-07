@@ -1,0 +1,568 @@
+{
+  "title": "Note Actions Modal - Long Press Bottom Sheet",
+  "subtitle": "Comprehensive Action Menu for Note Cards",
+  "version": "1.0.0",
+  "date": "2025-10-06",
+  "status": "implemented",
+
+  "overview": {
+    "description": "Bottom sheet modal that slides up from the bottom when user long-presses on a note card title",
+    "trigger": "Long press on note title (iOS/Android)",
+    "design_pattern": "Bottom sheet with action cards organized in 3 rows",
+    "purpose": "Provide quick access to all note actions in a touch-friendly mobile interface"
+  },
+
+  "user_experience": {
+    "how_to_trigger": {
+      "gesture": "Long press on note card title",
+      "duration": "~500ms hold",
+      "platform": "Mobile only (iOS/Android) - not triggered on Web",
+      "visual_feedback": "Note card header highlights (selectedSurface background)",
+      "haptic": "None currently"
+    },
+
+    "modal_appearance": {
+      "animation": "Slide up from bottom (animationType: 'slide')",
+      "backdrop": "Semi-transparent overlay (rgba(0, 0, 0, 0.5))",
+      "height": "Max 80% of screen height",
+      "style": "Rounded top corners (borderRadius: 20px)",
+      "background": "colors.elevatedSurface (elevated layer)",
+      "dismiss": "Tap backdrop or swipe down (future)"
+    },
+
+    "modal_structure": {
+      "drag_handle": {
+        "purpose": "Visual affordance for swipe-to-dismiss (future)",
+        "appearance": "Horizontal pill shape (40x4px)",
+        "color": "colors.border",
+        "position": "Top center, 12px from top"
+      },
+      "title_input": {
+        "purpose": "Edit note title directly in modal",
+        "type": "TextInput (editable)",
+        "value": "Current note title",
+        "styling": {
+          "fontSize": 20,
+          "fontWeight": "600",
+          "border": "1px solid colors.border",
+          "borderRadius": 8,
+          "padding": "8px 12px"
+        },
+        "note": "Currently editable but not saved (placeholder for future feature)"
+      },
+      "actions_grid": {
+        "layout": "3 rows × 3-4 columns",
+        "scrollable": true,
+        "max_height": "600px",
+        "padding": "16px horizontal, 16px bottom"
+      }
+    },
+
+    "action_rows": {
+      "row_1_primary": {
+        "name": "Primary Actions",
+        "actions": [
+          {
+            "icon": "edit",
+            "label": "Edit",
+            "function": "Opens note in markdown editor",
+            "status": "Coming Soon",
+            "destructive": false
+          },
+          {
+            "icon": "star / star-border",
+            "label": "Favorite / Unfavorite",
+            "function": "Toggle favorite status",
+            "status": "Functional ✅",
+            "destructive": false
+          },
+          {
+            "icon": "share",
+            "label": "Share",
+            "function": "Share note content",
+            "status": "Coming Soon",
+            "destructive": false
+          },
+          {
+            "icon": "content-copy",
+            "label": "Duplicate",
+            "function": "Create copy of note",
+            "status": "Coming Soon",
+            "destructive": false
+          }
+        ]
+      },
+      "row_2_secondary": {
+        "name": "Secondary Actions",
+        "actions": [
+          {
+            "icon": "auto-awesome",
+            "label": "AI Actions",
+            "function": "AI-powered features (enhance, summarize, etc.)",
+            "status": "Coming Soon",
+            "destructive": false
+          },
+          {
+            "icon": "file-download",
+            "label": "Export",
+            "function": "Export to various formats (PDF, MD, HTML)",
+            "status": "Coming Soon",
+            "destructive": false
+          },
+          {
+            "icon": "folder-open",
+            "label": "Organization",
+            "function": "Move to folder, add tags",
+            "status": "Coming Soon",
+            "destructive": false
+          }
+        ]
+      },
+      "row_3_tertiary": {
+        "name": "Tertiary Actions",
+        "actions": [
+          {
+            "icon": "content-copy",
+            "label": "Copy",
+            "function": "Copy note content to clipboard",
+            "status": "Coming Soon",
+            "destructive": false
+          },
+          {
+            "icon": "delete",
+            "label": "Delete",
+            "function": "Delete note permanently",
+            "status": "Coming Soon",
+            "destructive": true,
+            "color": "#dc2626 (red)"
+          },
+          {
+            "icon": "download",
+            "label": "Download",
+            "function": "Download note as file",
+            "status": "Coming Soon",
+            "destructive": false
+          }
+        ]
+      }
+    },
+
+    "action_card_design": {
+      "layout": "Vertical (icon above label)",
+      "size": "Flexible width (flex: 1), equal across row",
+      "padding": "16px vertical, 12px horizontal",
+      "border": "1px solid colors.border",
+      "borderRadius": 12,
+      "backgroundColor": "colors.surface",
+      "gap": "8px between icon and label",
+      "icon": {
+        "size": 28,
+        "color": "colors.text (or #dc2626 if destructive)"
+      },
+      "label": {
+        "fontSize": 14,
+        "fontWeight": "500",
+        "color": "colors.text (or #dc2626 if destructive)",
+        "textAlign": "center"
+      },
+      "disabled_state": {
+        "opacity": 0.5,
+        "not_currently_used": true
+      }
+    },
+
+    "current_behavior": {
+      "favorite_action": {
+        "status": "✅ Functional",
+        "behavior": "Toggles note favorite status in database",
+        "feedback": "Toast notification (top-center): 'Added to Favorites' / 'Removed from Favorites'",
+        "icon_updates": "star ↔ star-border dynamically"
+      },
+      "all_other_actions": {
+        "status": "Coming Soon placeholders",
+        "behavior": "Show toast: 'Coming Soon' (position: top-center)",
+        "note": "Ready to wire up when features implemented"
+      }
+    }
+  },
+
+  "technical_implementation": {
+    "components": {
+      "NoteActionsModal": {
+        "file": "components/note-actions-modal.tsx",
+        "purpose": "Main modal component (bottom sheet container)",
+        "props": {
+          "visible": "boolean - Show/hide modal",
+          "onClose": "() => void - Close modal callback",
+          "noteId": "string - Note ID",
+          "noteTitle": "string - Note title (for input)",
+          "noteContent": "string - Note content",
+          "isFavorite": "boolean - Current favorite status",
+          "onToggleFavorite": "() => void - Favorite toggle callback"
+        },
+        "features": [
+          "Modal with transparent backdrop",
+          "Slide-up animation",
+          "Dismiss on backdrop tap",
+          "Drag handle UI",
+          "Editable title input (future save functionality)",
+          "Scrollable action grid"
+        ]
+      },
+      "PrimaryActionRow": {
+        "file": "components/note-actions/primary-action-row.tsx",
+        "purpose": "Reusable row of action cards",
+        "props": {
+          "actions": "PrimaryAction[] - Array of actions",
+          "title": "string (optional) - Row title"
+        },
+        "action_interface": {
+          "icon": "keyof MaterialIcons.glyphMap",
+          "label": "string",
+          "onPress": "() => void",
+          "disabled": "boolean (optional)",
+          "destructive": "boolean (optional)"
+        },
+        "features": [
+          "Equal-width flex layout",
+          "Destructive variant (red text/icon)",
+          "Disabled state (opacity 0.5)",
+          "Touch feedback (activeOpacity: 0.6)"
+        ]
+      },
+      "NoteItem": {
+        "file": "components/note-item.tsx",
+        "purpose": "Note card component that triggers modal",
+        "trigger_logic": {
+          "touchable_component": "TouchableOpacity wrapping title",
+          "props": {
+            "onPress": "handleToggleExpanded (tap = expand/collapse)",
+            "onLongPress": "handleLongPress (long press = open modal)",
+            "activeOpacity": 0.7
+          },
+          "handler": "const handleLongPress = useCallback(() => { setShowActionsModal(true); }, []);"
+        },
+        "state": {
+          "showActionsModal": "boolean - Controls modal visibility",
+          "isFavorite": "boolean - Synced with note.is_favorite"
+        }
+      }
+    },
+
+    "file_structure": {
+      "components/note-actions-modal.tsx": "Main bottom sheet modal",
+      "components/note-actions/primary-action-row.tsx": "Reusable action card row",
+      "components/note-item.tsx": "Note card with long press trigger"
+    },
+
+    "state_flow": {
+      "step_1_trigger": {
+        "action": "User long-presses note title",
+        "component": "NoteItem",
+        "handler": "handleLongPress()",
+        "state_change": "setShowActionsModal(true)"
+      },
+      "step_2_render": {
+        "action": "Modal appears",
+        "component": "NoteActionsModal",
+        "prop": "visible={showActionsModal}",
+        "animation": "Slide up from bottom"
+      },
+      "step_3_action": {
+        "action": "User taps 'Favorite' button",
+        "component": "PrimaryActionRow",
+        "handler": "onToggleFavorite()",
+        "flow": "NoteActionsModal → NoteItem.handleToggleFavorite() → notesService.toggleFavorite() → Update database → Update state → Show toast"
+      },
+      "step_4_dismiss": {
+        "action": "User taps backdrop or action completes",
+        "component": "NoteActionsModal",
+        "handler": "onClose()",
+        "state_change": "setShowActionsModal(false)",
+        "animation": "Slide down (modal closes)"
+      }
+    },
+
+    "toast_positioning": {
+      "issue": "Bottom toast notifications blocked by modal",
+      "solution": "All modal-triggered toasts use position: 'top-center'",
+      "affected_actions": [
+        "Favorite toggle",
+        "All 'Coming Soon' actions"
+      ],
+      "reasoning": "Modal covers up to 80% of screen from bottom, so top position ensures visibility"
+    }
+  },
+
+  "design_decisions": {
+    "why_bottom_sheet": [
+      "Mobile-native pattern (iOS/Android standard)",
+      "Thumb-friendly on large screens",
+      "Shows context (note title) while presenting actions",
+      "Dismissible by tapping away (intuitive)",
+      "More space than dropdown menu"
+    ],
+
+    "why_long_press": [
+      "Discoverability (common mobile gesture)",
+      "Doesn't interfere with tap-to-expand",
+      "Feels natural on touch devices",
+      "Avoids clutter (no extra buttons needed)",
+      "Platform-appropriate (mobile gesture)"
+    ],
+
+    "why_3_rows": [
+      "Visual grouping by priority/type",
+      "Primary actions most important (Edit, Favorite, Share, Duplicate)",
+      "Secondary actions for advanced features (AI, Export, Organization)",
+      "Tertiary actions for utilities (Copy, Delete, Download)",
+      "Easier to scan than single long list"
+    ],
+
+    "why_equal_width_cards": [
+      "Clean, balanced grid layout",
+      "Easier to tap (larger touch targets)",
+      "Professional appearance",
+      "Scalable (add/remove actions easily)"
+    ],
+
+    "destructive_variant": [
+      "Delete button uses red (#dc2626) to signal danger",
+      "Visual warning before destructive action",
+      "Follows iOS/Android design guidelines",
+      "Prevents accidental deletion"
+    ]
+  },
+
+  "future_enhancements": {
+    "planned_features": [
+      {
+        "feature": "Swipe to Dismiss",
+        "description": "Swipe down on drag handle to close modal",
+        "implementation": "Use PanResponder or react-native-gesture-handler",
+        "priority": "Medium"
+      },
+      {
+        "feature": "Save Title Edits",
+        "description": "Currently title input is editable but not saved",
+        "implementation": "Add 'Save' button or auto-save on close",
+        "priority": "High"
+      },
+      {
+        "feature": "Haptic Feedback",
+        "description": "Vibrate on long press and action taps",
+        "implementation": "Use expo-haptics",
+        "priority": "Low"
+      },
+      {
+        "feature": "Implement Coming Soon Actions",
+        "actions_to_implement": [
+          "Edit (opens full editor)",
+          "Share (native share sheet)",
+          "Duplicate (create copy)",
+          "AI Actions (submenu with AI features)",
+          "Export (format selector)",
+          "Organization (folder/tag selector)",
+          "Copy (clipboard)",
+          "Delete (confirmation modal)",
+          "Download (save to device)"
+        ],
+        "priority": "High"
+      },
+      {
+        "feature": "Action Submenus",
+        "description": "Some actions (AI, Export, Organization) open submenus",
+        "example": "AI Actions → [Summarize, Enhance, Generate Title, Ask Question]",
+        "priority": "Medium"
+      },
+      {
+        "feature": "Dynamic Actions",
+        "description": "Show/hide actions based on context",
+        "examples": [
+          "Hide 'Favorite' if note already favorited (or change to 'Unfavorite')",
+          "Hide 'AI Actions' if user has no API keys",
+          "Hide 'Export' if note is empty"
+        ],
+        "priority": "Low"
+      }
+    ]
+  },
+
+  "customization_guide": {
+    "add_new_action": {
+      "step_1": "Edit components/note-actions-modal.tsx",
+      "step_2": "Add to appropriate actions array (primary/secondary/tertiary)",
+      "code_example": "const primaryActions = [\n  { icon: 'edit', label: 'Edit', onPress: showComingSoon, disabled: false },\n  { icon: 'your-icon', label: 'Your Action', onPress: yourHandler, disabled: false },\n  ...\n];",
+      "step_3": "Implement handler function",
+      "step_4": "Test on mobile device"
+    },
+
+    "remove_action": {
+      "step_1": "Edit components/note-actions-modal.tsx",
+      "step_2": "Remove from actions array",
+      "note": "Grid auto-adjusts to fill space"
+    },
+
+    "change_row_layout": {
+      "current": "3 rows of 3-4 actions each",
+      "to_change": "Modify actions arrays in note-actions-modal.tsx",
+      "example": "Move 'Delete' to primary row for faster access",
+      "note": "PrimaryActionRow handles any number of actions (flex layout)"
+    },
+
+    "customize_styling": {
+      "colors": {
+        "background": "colors.elevatedSurface (modal background)",
+        "cards": "colors.surface (action card background)",
+        "border": "colors.border (card borders)",
+        "text": "colors.text (icon and label)",
+        "destructive": "#dc2626 (hardcoded red for Delete)"
+      },
+      "sizes": {
+        "icon": "28px (in primary-action-row.tsx line 49)",
+        "label": "14px (in primary-action-row.tsx line 96)",
+        "card_border_radius": "12px (in primary-action-row.tsx line 91)",
+        "modal_top_radius": "20px (in note-actions-modal.tsx line 114)"
+      },
+      "spacing": {
+        "card_padding_vertical": "16px",
+        "card_padding_horizontal": "12px",
+        "gap_between_cards": "12px",
+        "gap_between_rows": "12px"
+      }
+    }
+  },
+
+  "testing_checklist": {
+    "functional_tests": [
+      "✓ Long press on note title triggers modal",
+      "✓ Modal slides up from bottom",
+      "✓ Backdrop is semi-transparent",
+      "✓ Tap backdrop closes modal",
+      "✓ Favorite action toggles state",
+      "✓ Favorite toast appears (top-center)",
+      "✓ Icon updates (star ↔ star-border)",
+      "✓ All 'Coming Soon' actions show toast",
+      "✓ Title input is editable (not saved yet)",
+      "✓ Modal closes after action"
+    ],
+
+    "visual_tests": [
+      "✓ All 11 actions visible (3 + 3 + 3 + Duplicate + Edit)",
+      "✓ Cards equal width in each row",
+      "✓ Delete button is red",
+      "✓ Icons centered above labels",
+      "✓ Drag handle visible at top",
+      "✓ Theme colors applied correctly",
+      "✓ Scrollable if content too tall"
+    ],
+
+    "platform_tests": [
+      "✓ iOS: Long press works",
+      "✓ Android: Long press works",
+      "✓ Web: Long press does NOT trigger (intentional)",
+      "✓ Landscape mode: Modal adapts",
+      "✓ Small screens: Modal doesn't overflow",
+      "✓ Large screens: Modal max 80% height"
+    ]
+  },
+
+  "comparison_with_dropdown_menu": {
+    "dropdown_menu": {
+      "trigger": "Tap (...) button",
+      "location": "Note card header (right side)",
+      "appearance": "Small popup menu",
+      "actions": [
+        "Edit",
+        "Add/Remove from Favorites",
+        "Copy",
+        "Move to Folder (with submenu)",
+        "Delete"
+      ],
+      "pros": [
+        "Familiar pattern",
+        "Quick access",
+        "Compact"
+      ],
+      "cons": [
+        "Limited space",
+        "Harder to tap small items",
+        "No room for icons",
+        "Can't show many actions"
+      ]
+    },
+
+    "actions_modal": {
+      "trigger": "Long press on note title",
+      "location": "Full bottom sheet",
+      "appearance": "Large modal with action cards",
+      "actions": [
+        "All 11 actions in 3 organized rows"
+      ],
+      "pros": [
+        "More space",
+        "Larger touch targets",
+        "Icons + labels (clearer)",
+        "Can show many actions",
+        "Room for future features",
+        "Native mobile feel"
+      ],
+      "cons": [
+        "Takes more screen space",
+        "Requires gesture discovery",
+        "Web incompatible (long press not standard)"
+      ]
+    },
+
+    "why_both_exist": [
+      "Dropdown menu: Quick access to common actions (Edit, Favorite, Copy, Move, Delete)",
+      "Actions modal: Comprehensive action menu with future features (AI, Export, Share, Duplicate, etc.)",
+      "Different use cases complement each other",
+      "Users can choose preferred method"
+    ]
+  },
+
+  "accessibility": {
+    "current_state": {
+      "screen_reader": "Not yet optimized (future enhancement)",
+      "touch_targets": "✅ Large (44x44+ recommended, cards are 70x70+)",
+      "color_contrast": "✅ Theme-aware colors",
+      "destructive_actions": "✅ Red color signals danger"
+    },
+
+    "future_improvements": [
+      "Add accessibility labels to action buttons",
+      "Support keyboard navigation (for web)",
+      "Add screen reader hints ('Double tap to edit', etc.)",
+      "Announce modal opening ('Actions menu opened')",
+      "Support reduced motion (disable slide animation)"
+    ]
+  },
+
+  "performance": {
+    "optimization": [
+      "✓ Modal lazy-rendered (only when visible={true})",
+      "✓ Actions arrays defined once (not recreated on each render)",
+      "✓ Callbacks use useCallback() to prevent re-renders",
+      "✓ No heavy computations in modal",
+      "✓ Icons from MaterialIcons (optimized library)"
+    ],
+
+    "potential_issues": [
+      "None identified - modal is lightweight"
+    ]
+  },
+
+  "related_components": {
+    "ConfirmationModal": {
+      "file": "components/confirmation-modal.tsx",
+      "usage": "Used for Delete confirmation (when Delete action implemented)",
+      "flow": "User taps Delete in actions modal → Actions modal closes → Confirmation modal opens → User confirms → Note deleted"
+    },
+    "FolderModal": {
+      "file": "components/folder-modal.tsx",
+      "usage": "Used for Organization action (when implemented)",
+      "flow": "User taps Organization → Opens folder selection modal"
+    }
+  }
+}

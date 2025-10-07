@@ -1,0 +1,748 @@
+{
+  "title": "AI Integration Module - Complete Implementation Guide",
+  "subtitle": "BYOK (Bring Your Own Key) - What You Get When Complete",
+  "version": "1.0.0",
+  "date": "2025-10-06",
+  "status": "implementation-ready",
+
+  "overview": {
+    "description": "This document describes the complete BYOK AI module - what gets created, how users interact with it, how it works technically, and how to reuse it in other projects.",
+    "purpose": "Build once in Noted app, reuse everywhere with zero AI costs",
+    "current_use": "Single user (developer) testing with own API keys",
+    "future_use": "Copy to other projects where users bring their own keys"
+  },
+
+  "what_gets_created": {
+    "new_components": {
+      "components/ai/api-keys-modal.tsx": {
+        "purpose": "Modal for adding/editing API keys",
+        "features": [
+          "Two password fields (Anthropic, Perplexity)",
+          "Key format validation",
+          "Test Connection button",
+          "Help links to get API keys",
+          "Security message",
+          "Cancel/Save actions"
+        ],
+        "appearance": "Full-screen modal with form inputs and action buttons"
+      },
+      "components/ai/ai-key-status.tsx": {
+        "purpose": "Shows connection status for API keys",
+        "variants": {
+          "connected": "✓ Connected (green checkmark)",
+          "not_configured": "⚠ Not configured (yellow warning)",
+          "invalid": "✗ Invalid (red X)",
+          "testing": "⏳ Testing... (spinner)"
+        }
+      },
+      "components/ai/ai-onboarding-prompt.tsx": {
+        "purpose": "First-time prompt when user tries AI without keys",
+        "trigger": "User taps Generate Title button without API keys configured",
+        "content": "Explains AI features are available, prompts to add keys",
+        "actions": ["Maybe Later (dismiss)", "Add Keys → (open modal)"]
+      },
+      "components/settings-cards/ai-settings-card.tsx": {
+        "purpose": "Settings page accordion card for AI configuration",
+        "location": "Settings page, after Testing card, before Account card",
+        "collapsed_view": "🤖 AI Features [Status: ✓ Connected / ⚠ Not configured]",
+        "expanded_view": {
+          "anthropic_status": "Anthropic API: ✓ Connected",
+          "perplexity_status": "Perplexity API: ⚠ Not configured",
+          "last_verified": "Last verified: Just now",
+          "manage_button": "[Manage API Keys]",
+          "test_button": "[Test Connection]"
+        }
+      }
+    },
+
+    "new_services": {
+      "services/ai/claude.ts": {
+        "purpose": "Client-side service for calling AI Edge Functions",
+        "exports": {
+          "generateTitle": "async function generateTitle(content: string): Promise<string>",
+          "summarizeNote": "async function summarizeNote(content: string): Promise<string> (Phase 2)",
+          "enhanceText": "async function enhanceText(text: string, mode: EnhanceMode): Promise<string> (Phase 3)"
+        },
+        "implementation": "Calls Supabase Edge Functions, handles errors, shows toasts"
+      },
+      "services/ai/key-encryption.ts": {
+        "purpose": "Client-side key encryption before storage",
+        "exports": {
+          "encryptKey": "Encrypts API key using Web Crypto API",
+          "validateKeyFormat": "Validates Anthropic/Perplexity key format",
+          "maskKey": "Returns masked version for display (sk-ant-***...***)"
+        },
+        "security": "Uses Web Crypto API, salt derived from user session"
+      },
+      "services/ai/types.ts": {
+        "purpose": "TypeScript interfaces for AI features",
+        "types": [
+          "EnhanceMode",
+          "NoteAnalysis",
+          "ChatResponse",
+          "ResearchResult",
+          "KeyStatus"
+        ]
+      }
+    },
+
+    "edge_functions": {
+      "supabase/functions/ai-generate-title/index.ts": {
+        "purpose": "Server-side function that generates note titles",
+        "flow": [
+          "1. Extract user from JWT Authorization header",
+          "2. Query user_ai_keys table for user's encrypted Anthropic key",
+          "3. Decrypt key server-side",
+          "4. Initialize Anthropic client with decrypted key",
+          "5. Call Claude Haiku API with note content (first 2000 chars)",
+          "6. Return generated title"
+        ],
+        "api_call": {
+          "model": "claude-3-5-haiku-20241022",
+          "max_tokens": 50,
+          "temperature": 0.3,
+          "cost": "$0.0001 per request"
+        },
+        "error_handling": [
+          "No API key configured → 400 Bad Request",
+          "Invalid API key → 401 Unauthorized",
+          "Rate limit exceeded → 429 Too Many Requests",
+          "Network timeout → 504 Gateway Timeout"
+        ]
+      },
+      "supabase/functions/ai-verify-keys/index.ts": {
+        "purpose": "Tests user's API keys with minimal cost",
+        "tests": {
+          "anthropic": "1-token request (cost: $0.0001)",
+          "perplexity": "Simple query (cost: $0.001)"
+        },
+        "returns": {
+          "anthropic_valid": "boolean",
+          "perplexity_valid": "boolean",
+          "error_messages": "string[] if keys invalid"
+        }
+      },
+      "supabase/functions/_shared/decrypt.ts": {
+        "purpose": "Shared utility for server-side key decryption",
+        "security": "Only accessible to Edge Functions, never exposed to client"
+      },
+      "supabase/functions/_shared/get-user.ts": {
+        "purpose": "Shared utility to extract user from auth header",
+        "validates": "JWT token, returns user ID"
+      }
+    },
+
+    "database_schema": {
+      "table_name": "user_ai_keys",
+      "purpose": "Store encrypted API keys per user",
+      "columns": {
+        "id": "UUID PRIMARY KEY",
+        "user_id": "UUID → references auth.users(id)",
+        "anthropic_key_encrypted": "TEXT (encrypted key)",
+        "perplexity_key_encrypted": "TEXT (encrypted key)",
+        "keys_verified": "BOOLEAN (last test result)",
+        "last_verified_at": "TIMESTAMP (when keys last tested)",
+        "created_at": "TIMESTAMP DEFAULT NOW()",
+        "updated_at": "TIMESTAMP DEFAULT NOW()"
+      },
+      "rls_policies": [
+        "Users can SELECT own keys only",
+        "Users can INSERT own keys only",
+        "Users can UPDATE own keys only",
+        "No DELETE policy (use UPDATE to set NULL instead)"
+      ],
+      "isolation": "This table doesn't touch notes, folders, or any other table - completely isolated"
+    },
+
+    "modified_files": {
+      "app/(tabs)/settings.tsx": {
+        "change": "Add AISettingsCard import and component",
+        "location": "After Testing card, before Account card"
+      },
+      "app/note-editor/[id].tsx": {
+        "change": "Add Generate Title button to header",
+        "location": "Next to Preview/Edit toggle",
+        "icon": "MaterialIcons: auto-awesome (sparkle ✨)"
+      },
+      "app/note-editor/new.tsx": {
+        "change": "Add Generate Title button to header",
+        "location": "Next to Preview/Edit toggle",
+        "icon": "MaterialIcons: auto-awesome (sparkle ✨)"
+      }
+    }
+  },
+
+  "user_experience_flow": {
+    "first_time_setup": {
+      "step_1": {
+        "action": "Open app → Go to Settings tab",
+        "what_user_sees": "New card: 🤖 AI Features [Status: ⚠ Not configured]"
+      },
+      "step_2": {
+        "action": "Tap AI Features card to expand",
+        "what_user_sees": "Anthropic API: ⚠ Not configured\nPerplexity API: ⚠ Not configured\n[Manage API Keys] button"
+      },
+      "step_3": {
+        "action": "Tap 'Manage API Keys' button",
+        "what_user_sees": "Modal opens with:\n- Anthropic API Key field (password)\n- Perplexity API Key field (password)\n- Help text: 'Get key at console.anthropic.com'\n- Security message: '🔒 Your keys are encrypted'\n- Buttons: Cancel, Test Connection, Save"
+      },
+      "step_4": {
+        "action": "Paste API keys into fields",
+        "anthropic_key": "sk-ant-api03-...",
+        "perplexity_key": "pplx-... (optional)"
+      },
+      "step_5": {
+        "action": "Tap 'Test Connection' button",
+        "what_happens": "Button shows spinner → Calls ai-verify-keys Edge Function → Tests keys with minimal API call",
+        "success": "Toast: ✅ 'Keys verified successfully!'",
+        "failure": "Toast: ❌ 'Invalid Anthropic key. Please check your key.'"
+      },
+      "step_6": {
+        "action": "Tap 'Save' button",
+        "what_happens": "Keys encrypted client-side → Saved to database → Modal closes",
+        "what_user_sees": "Settings card now shows: ✓ Connected"
+      }
+    },
+
+    "daily_usage_generate_title": {
+      "step_1": {
+        "action": "Tap + button to create new note",
+        "what_user_sees": "Note editor with header buttons: ← [✨] [👁️ Preview] [💾 Save]"
+      },
+      "step_2": {
+        "action": "Write note content",
+        "example": "- Had great meeting with Sarah\n- Discussed Q4 roadmap\n- Need to follow up on budget"
+      },
+      "step_3": {
+        "action": "Tap ✨ (sparkle) button",
+        "what_happens": "Button shows spinner → Calls generateTitle(content) → Edge Function called → Claude API processes → Returns title",
+        "duration": "1-2 seconds typical"
+      },
+      "step_4": {
+        "action": "Title field auto-fills",
+        "example": "Q4 Roadmap Discussion - Sarah",
+        "user_options": [
+          "Keep it (tap Save)",
+          "Edit it manually",
+          "Delete and write own",
+          "Generate again (tap ✨ again)"
+        ]
+      },
+      "step_5": {
+        "action": "Tap Save",
+        "what_happens": "Note saved with AI-generated (or edited) title",
+        "cost": "$0.0001 charged to your Anthropic account"
+      }
+    },
+
+    "first_ai_use_without_keys": {
+      "step_1": {
+        "action": "User taps ✨ Generate Title button",
+        "condition": "No API keys configured yet"
+      },
+      "step_2": {
+        "what_user_sees": "Modal appears:\n✨ AI Features Available\n\nGenerate titles, summaries, and enhance notes with AI.\n\nTo use AI features, add your API keys in Settings.\n\n[Maybe Later] [Add Keys →]"
+      },
+      "step_3a": {
+        "action": "User taps 'Maybe Later'",
+        "what_happens": "Modal dismisses, no further action"
+      },
+      "step_3b": {
+        "action": "User taps 'Add Keys →'",
+        "what_happens": "API Keys modal opens → User adds keys → Comes back to note → Taps ✨ again → Now it works"
+      }
+    },
+
+    "manage_existing_keys": {
+      "view_status": {
+        "action": "Settings → AI Features card",
+        "shows": "Connection status, last verified timestamp, key count"
+      },
+      "test_keys": {
+        "action": "Tap 'Test Connection' button",
+        "what_happens": "Calls ai-verify-keys → Shows success/failure toast"
+      },
+      "update_keys": {
+        "action": "Tap 'Manage API Keys' → Edit fields → Save",
+        "what_happens": "Old keys replaced with new encrypted keys"
+      },
+      "delete_keys": {
+        "action": "Tap 'Manage API Keys' → Clear fields → Save",
+        "what_happens": "Keys set to NULL → AI features hidden → Status shows: ⚠ Not configured"
+      }
+    }
+  },
+
+  "technical_flow": {
+    "key_encryption_process": {
+      "step_1_user_pastes_key": {
+        "input": "sk-ant-api03-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+        "location": "API Keys modal, client-side"
+      },
+      "step_2_validate_format": {
+        "function": "validateKeyFormat(key)",
+        "regex": "^sk-ant-api03-[A-Za-z0-9_-]{95}$",
+        "passes": true,
+        "fails": "Show error: 'Invalid Anthropic key format'"
+      },
+      "step_3_encrypt_client_side": {
+        "function": "encryptKey(key, userSession)",
+        "method": "Web Crypto API (AES-GCM)",
+        "salt": "Derived from user session",
+        "output": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... (encrypted gibberish)"
+      },
+      "step_4_save_to_database": {
+        "table": "user_ai_keys",
+        "column": "anthropic_key_encrypted",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "note": "Plain text key NEVER stored, only encrypted version"
+      },
+      "step_5_client_forgets_key": {
+        "note": "After encryption and save, client discards plain text key from memory"
+      }
+    },
+
+    "api_call_flow": {
+      "step_1_user_action": {
+        "action": "User taps ✨ Generate Title button",
+        "location": "Note editor, client-side"
+      },
+      "step_2_client_service": {
+        "function": "generateTitle(noteContent)",
+        "file": "services/ai/claude.ts",
+        "code": "const response = await supabase.functions.invoke('ai-generate-title', { body: { content } });"
+      },
+      "step_3_edge_function_receives": {
+        "location": "Supabase Edge Function (server-side)",
+        "receives": {
+          "headers": "Authorization: Bearer <JWT token>",
+          "body": "{ content: 'note content here...' }"
+        }
+      },
+      "step_4_extract_user": {
+        "function": "getUser(authHeader)",
+        "validates": "JWT token signature",
+        "extracts": "user_id: '123e4567-e89b-12d3-a456-426614174000'"
+      },
+      "step_5_query_database": {
+        "sql": "SELECT anthropic_key_encrypted FROM user_ai_keys WHERE user_id = '123e4567-e89b-12d3-a456-426614174000'",
+        "returns": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "step_6_decrypt_server_side": {
+        "function": "decrypt(encryptedKey, serverSecret)",
+        "location": "Edge Function only, never sent to client",
+        "output": "sk-ant-api03-4twB3rVO6Zi... (plain text key)"
+      },
+      "step_7_call_claude_api": {
+        "client": "new Anthropic({ apiKey: decryptedKey })",
+        "request": {
+          "model": "claude-3-5-haiku-20241022",
+          "max_tokens": 50,
+          "temperature": 0.3,
+          "messages": [{ "role": "user", "content": "Generate title: <note content>" }]
+        },
+        "response": "Q4 Roadmap Discussion - Sarah"
+      },
+      "step_8_return_to_client": {
+        "function": "return new Response(JSON.stringify({ title: response.content[0].text }))",
+        "note": "Decrypted key NEVER sent back to client"
+      },
+      "step_9_client_receives": {
+        "receives": "{ title: 'Q4 Roadmap Discussion - Sarah' }",
+        "action": "setTitle(response.title)"
+      },
+      "step_10_user_sees": {
+        "what": "Title field auto-fills with AI-generated title"
+      }
+    },
+
+    "security_layers": {
+      "layer_1_client_encryption": {
+        "where": "React Native app",
+        "what": "Keys encrypted before leaving device",
+        "method": "Web Crypto API (AES-GCM)"
+      },
+      "layer_2_database_storage": {
+        "where": "Supabase PostgreSQL",
+        "what": "Only encrypted keys stored",
+        "protection": "RLS policies prevent cross-user access"
+      },
+      "layer_3_edge_function_decryption": {
+        "where": "Supabase Edge Function (server-side)",
+        "what": "Keys decrypted only when needed for API call",
+        "duration": "Decrypted key exists in memory for ~100ms, then discarded"
+      },
+      "layer_4_jwt_authentication": {
+        "where": "Every Edge Function call",
+        "what": "JWT token validates user identity",
+        "prevents": "User A from using User B's keys"
+      },
+      "layer_5_https_transport": {
+        "where": "All network calls",
+        "what": "TLS encryption in transit",
+        "ensures": "No plaintext keys ever transmitted"
+      }
+    }
+  },
+
+  "reusability_guide": {
+    "copy_to_new_project": {
+      "scenario": "You built a Task Manager app and want same AI features",
+      "total_time": "10 minutes",
+      "steps": [
+        {
+          "step": "1. Copy Component Files",
+          "command": "cp -r noted/components/ai/ task-manager/components/ai/\ncp -r noted/components/settings-cards/ai-settings-card.tsx task-manager/components/settings-cards/",
+          "time": "1 minute"
+        },
+        {
+          "step": "2. Copy Service Files",
+          "command": "cp -r noted/services/ai/ task-manager/services/ai/",
+          "time": "1 minute"
+        },
+        {
+          "step": "3. Copy Edge Functions",
+          "command": "cp -r noted/supabase/functions/ai-* task-manager/supabase/functions/\ncp -r noted/supabase/functions/_shared/ task-manager/supabase/functions/",
+          "time": "1 minute"
+        },
+        {
+          "step": "4. Copy Database Migration",
+          "command": "cp noted/supabase/migrations/*_add_user_ai_keys.sql task-manager/supabase/migrations/",
+          "time": "30 seconds"
+        },
+        {
+          "step": "5. Run Migration",
+          "command": "cd task-manager\nsupabase db push",
+          "time": "1 minute"
+        },
+        {
+          "step": "6. Add AI Settings Card to Settings Page",
+          "file": "task-manager/app/(tabs)/settings.tsx",
+          "code": "import { AISettingsCard } from '@/components/settings-cards/ai-settings-card';\n\n// Add card to JSX\n<AISettingsCard />",
+          "time": "2 minutes"
+        },
+        {
+          "step": "7. Add Generate Title Button to Task Editor",
+          "file": "task-manager/app/task-editor/[id].tsx",
+          "code": "import { generateTitle } from '@/services/ai';\n\n// In header:\n<IconButton \n  icon='auto-awesome'\n  onPress={async () => {\n    const title = await generateTitle(taskContent);\n    setTitle(title);\n  }}\n/>",
+          "time": "3 minutes"
+        },
+        {
+          "step": "8. Test in New App",
+          "actions": [
+            "Open Task Manager app",
+            "Go to Settings → AI Features",
+            "Add same API keys (or new ones)",
+            "Create task → Tap ✨",
+            "Verify title generates"
+          ],
+          "time": "2 minutes"
+        }
+      ],
+      "result": "Task Manager now has complete AI features with zero additional AI costs"
+    },
+
+    "what_to_modify_for_context": {
+      "edge_function_prompts": {
+        "file": "supabase/functions/ai-generate-title/index.ts",
+        "change": "Update prompt to match new app context",
+        "example_noted": "Generate a concise, descriptive title (max 50 chars) for this note:",
+        "example_task_manager": "Generate a clear, actionable task title (max 50 chars) for this task:",
+        "example_journal": "Generate an evocative title (max 50 chars) for this journal entry:"
+      },
+      "ui_copy": {
+        "file": "components/ai/ai-onboarding-prompt.tsx",
+        "change": "Update message to match app purpose",
+        "example_noted": "Generate titles, summaries, and enhance notes with AI.",
+        "example_task_manager": "Generate task titles and descriptions with AI.",
+        "example_journal": "Generate entry titles and reflections with AI."
+      }
+    },
+
+    "integration_checklist": {
+      "files_to_copy": [
+        "✓ components/ai/ (all files)",
+        "✓ components/settings-cards/ai-settings-card.tsx",
+        "✓ services/ai/ (all files)",
+        "✓ supabase/functions/ai-* (all Edge Functions)",
+        "✓ supabase/functions/_shared/ (shared utilities)",
+        "✓ supabase/migrations/*_add_user_ai_keys.sql"
+      ],
+      "modifications_needed": [
+        "✓ Add AISettingsCard to Settings page",
+        "✓ Add Generate Title button to editor(s)",
+        "✓ Update Edge Function prompts for context",
+        "✓ Update onboarding message copy"
+      ],
+      "deployment_steps": [
+        "✓ Run database migration",
+        "✓ Deploy Edge Functions to Supabase",
+        "✓ Test with own API keys",
+        "✓ Verify encryption works",
+        "✓ Test all error states"
+      ]
+    }
+  },
+
+  "expected_results": {
+    "settings_page_appearance": {
+      "before_byok": [
+        "Theme Settings card",
+        "Testing card",
+        "Account card"
+      ],
+      "after_byok": [
+        "Theme Settings card",
+        "Testing card",
+        "🤖 AI Features card ← NEW",
+        "Account card"
+      ],
+      "collapsed": "Shows: 🤖 AI Features [Status: ✓ Connected / ⚠ Not configured]",
+      "expanded_with_keys": [
+        "Anthropic API: ✓ Connected",
+        "Perplexity API: ✓ Connected",
+        "Last verified: 2 minutes ago",
+        "[Manage API Keys] button",
+        "[Test Connection] button"
+      ],
+      "expanded_without_keys": [
+        "Anthropic API: ⚠ Not configured",
+        "Perplexity API: ⚠ Not configured",
+        "[Manage API Keys] button"
+      ]
+    },
+
+    "note_editor_appearance": {
+      "header_before": "← [👁️ Preview] [💾 Save]",
+      "header_after": "← [✨] [👁️ Preview] [💾 Save]",
+      "new_button": {
+        "icon": "MaterialIcons: auto-awesome (sparkle)",
+        "color": "theme.colors.tint",
+        "tooltip": "Generate title with AI",
+        "states": {
+          "default": "Shows sparkle icon",
+          "loading": "Shows spinner, disabled",
+          "error": "Shows X icon briefly, then back to sparkle",
+          "success": "Shows checkmark briefly, then back to sparkle"
+        }
+      },
+      "conditional_display": "Only shows if user has configured Anthropic API key"
+    },
+
+    "behavior_scenarios": {
+      "scenario_1_success": {
+        "condition": "User has valid API keys",
+        "action": "Tap ✨ Generate Title",
+        "result": "Title generated in 1-2 seconds, auto-fills field",
+        "toast": "✅ Title generated!",
+        "cost": "$0.0001 to user's Anthropic account"
+      },
+      "scenario_2_no_keys": {
+        "condition": "User has not configured API keys",
+        "action": "Tap ✨ Generate Title",
+        "result": "Onboarding modal appears",
+        "options": ["Maybe Later", "Add Keys →"],
+        "toast": "None"
+      },
+      "scenario_3_invalid_key": {
+        "condition": "User has invalid/expired API key",
+        "action": "Tap ✨ Generate Title",
+        "result": "Error toast appears",
+        "toast": "❌ Invalid API key. Please update in Settings → AI Features",
+        "edge_function_returns": "401 Unauthorized"
+      },
+      "scenario_4_rate_limit": {
+        "condition": "User exceeded Anthropic rate limit",
+        "action": "Tap ✨ Generate Title",
+        "result": "Rate limit toast appears",
+        "toast": "⏱️ Rate limit exceeded. Try again in a few minutes.",
+        "edge_function_returns": "429 Too Many Requests"
+      },
+      "scenario_5_network_error": {
+        "condition": "No internet connection",
+        "action": "Tap ✨ Generate Title",
+        "result": "Network error toast appears",
+        "toast": "❌ Unable to connect. Check your internet connection.",
+        "retry": "User can tap ✨ again when back online"
+      }
+    },
+
+    "database_state": {
+      "before_keys_added": {
+        "user_ai_keys_table": "Empty (0 rows)"
+      },
+      "after_keys_added": {
+        "user_ai_keys_table": [
+          {
+            "id": "uuid-here",
+            "user_id": "123e4567-e89b-12d3-a456-426614174000",
+            "anthropic_key_encrypted": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "perplexity_key_encrypted": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            "keys_verified": true,
+            "last_verified_at": "2025-10-06 15:30:00",
+            "created_at": "2025-10-06 15:28:00",
+            "updated_at": "2025-10-06 15:30:00"
+          }
+        ]
+      },
+      "notes_table": {
+        "note": "UNCHANGED - AI features don't modify existing tables"
+      }
+    }
+  },
+
+  "cost_breakdown": {
+    "development_costs": {
+      "phase_1_infrastructure": "Database + Edge Functions setup",
+      "phase_2_ui": "Settings card + API Keys modal",
+      "phase_3_features": "Generate Title button + integration",
+      "phase_4_polish": "Testing + error handling",
+      "total_implementation": "One-time investment, reusable forever"
+    },
+
+    "testing_costs": {
+      "your_monthly_usage": {
+        "assumption": "250 notes per month, all use AI title generation",
+        "calculation": "250 notes × $0.0001 per title = $0.025/month",
+        "rounded": "$0.03/month",
+        "note": "You pay this to Anthropic directly"
+      },
+      "supabase_costs": {
+        "edge_function_invocations": "250 calls/month",
+        "free_tier_limit": "500,000 invocations/month",
+        "cost": "$0 (well within free tier)"
+      },
+      "database_storage": {
+        "encrypted_keys_size": "~500 bytes per user",
+        "cost": "$0 (negligible storage)"
+      },
+      "total_your_monthly_cost": "$0.03 for AI + $0 for infrastructure = $0.03/month"
+    },
+
+    "production_costs": {
+      "if_10_users": {
+        "ai_costs": "$0 (each user pays their own $0.01-2/month)",
+        "infrastructure": "$0 (within free tiers)",
+        "your_cost": "$0/month"
+      },
+      "if_100_users": {
+        "ai_costs": "$0 (each user pays their own)",
+        "infrastructure": "$0 (within free tiers)",
+        "your_cost": "$0/month"
+      },
+      "if_10000_users": {
+        "ai_costs": "$0 (each user pays their own)",
+        "infrastructure": "May exceed free tier Edge Function calls",
+        "estimated_infrastructure": "$25/month (Edge Functions)",
+        "your_cost": "$25/month (zero AI costs, just infrastructure)"
+      }
+    },
+
+    "scaling_economics": {
+      "traditional_approach": {
+        "1_user": "$0.03/month (you pay)",
+        "100_users": "$3/month (you pay)",
+        "10000_users": "$300/month (you pay)",
+        "problem": "Costs scale linearly with users"
+      },
+      "byok_approach": {
+        "1_user": "$0.03/month (you pay your own)",
+        "100_users": "$0/month (they pay their own)",
+        "10000_users": "$25/month infrastructure only (they pay their own AI)",
+        "benefit": "AI costs don't scale with users"
+      }
+    }
+  },
+
+  "phases_overview": {
+    "phase_1_infrastructure": {
+      "deliverables": [
+        "user_ai_keys database table created",
+        "RLS policies applied",
+        "ai-generate-title Edge Function deployed",
+        "ai-verify-keys Edge Function deployed",
+        "Shared utilities (_shared/decrypt.ts, get-user.ts) created",
+        "Key encryption utilities (client-side) created"
+      ],
+      "status_after": "Backend ready, no visible UI changes yet"
+    },
+    "phase_2_ui": {
+      "deliverables": [
+        "AI Settings card in Settings page",
+        "API Keys modal functional",
+        "Key status indicators working",
+        "Test Connection button working"
+      ],
+      "status_after": "Users can add/manage keys, but no AI features visible in editors yet"
+    },
+    "phase_3_features": {
+      "deliverables": [
+        "✨ Generate Title button in note editors",
+        "Title generation working end-to-end",
+        "Onboarding prompt for users without keys",
+        "Loading states",
+        "Success/error toasts"
+      ],
+      "status_after": "Full AI title generation feature complete and usable"
+    },
+    "phase_4_polish": {
+      "deliverables": [
+        "All error states handled gracefully",
+        "Clear, actionable error messages",
+        "Graceful degradation (hide buttons if no keys)",
+        "Tested on iOS, Android, Web",
+        "Documentation complete"
+      ],
+      "status_after": "Production-ready, polished AI module ready to copy to other projects"
+    }
+  },
+
+  "success_criteria": {
+    "functional": [
+      "✓ User can add API keys in Settings",
+      "✓ Keys encrypted before storage",
+      "✓ User can test keys (verify they work)",
+      "✓ User can generate title by tapping ✨ button",
+      "✓ Title appears in 1-2 seconds",
+      "✓ User can edit generated title",
+      "✓ All error states handled gracefully"
+    ],
+    "security": [
+      "✓ Keys encrypted client-side before storage",
+      "✓ Keys only decrypted server-side in Edge Functions",
+      "✓ RLS policies prevent cross-user access",
+      "✓ Plain text keys never logged",
+      "✓ All network calls use HTTPS"
+    ],
+    "reusability": [
+      "✓ All AI code isolated in components/ai/, services/ai/",
+      "✓ Can copy to new project in 10 minutes",
+      "✓ Feature flag can disable globally",
+      "✓ Can remove completely without breaking app",
+      "✓ Works across multiple projects"
+    ],
+    "cost": [
+      "✓ Zero AI costs for you in production",
+      "✓ Users pay their own API costs",
+      "✓ Infrastructure costs within free tier (up to 10K users)",
+      "✓ Testing costs < $1/month"
+    ]
+  },
+
+  "next_steps": {
+    "to_implement": [
+      "1. Review this complete picture",
+      "2. Confirm this matches your vision",
+      "3. Start Phase 1 (Infrastructure)",
+      "4. Test with your own API keys",
+      "5. Complete all 4 phases",
+      "6. Copy to other projects"
+    ],
+    "questions_to_consider": [
+      "Does the user flow match what you envisioned?",
+      "Are you comfortable with the encryption/security approach?",
+      "Is the reusability strategy clear?",
+      "Do you want to proceed with implementation?"
+    ]
+  }
+}

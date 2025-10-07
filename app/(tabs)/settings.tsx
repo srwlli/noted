@@ -61,15 +61,15 @@ export default function SettingsScreen() {
         isExpanded={expandedCard === 'profile'}
         onToggle={() => handleCardToggle('profile')}
       />
+      <DevSettingsCard
+        isExpanded={expandedCard === 'testing'}
+        onToggle={() => handleCardToggle('testing')}
+      />
       <AccountSettingsCard
         isExpanded={expandedCard === 'account'}
         onToggle={() => handleCardToggle('account')}
         onSignOut={handleSignOut}
         isSigningOut={isSigningOut}
-      />
-      <DevSettingsCard
-        isExpanded={expandedCard === 'developer'}
-        onToggle={() => handleCardToggle('developer')}
       />
 
       <ConfirmationModal

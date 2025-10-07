@@ -6,8 +6,6 @@
 
   "executive_summary": {
     "overview": "Tailored AI integration roadmap leveraging Claude API (Anthropic) and Perplexity API for intelligent note-taking features",
-    "total_timeline": "6 weeks (3 phases)",
-    "estimated_hours": "30-42 hours total",
     "primary_apis": {
       "claude": {
         "provider": "Anthropic",
@@ -77,8 +75,6 @@
 
   "phase_1_quick_wins": {
     "name": "Foundation & Quick Wins",
-    "duration": "Week 1-2",
-    "total_hours": "8-12 hours",
     "priority": "HIGH",
 
     "features": [
@@ -86,7 +82,6 @@
         "id": "1.1",
         "name": "Smart Note Titles",
         "api": "Claude Haiku",
-        "effort_hours": "2-3",
         "description": "Auto-generate descriptive titles from note content",
         "implementation": {
           "service_file": "services/ai/claude.ts",
@@ -117,7 +112,6 @@
         "id": "1.2",
         "name": "AI Summarization",
         "api": "Claude Haiku",
-        "effort_hours": "4-5",
         "description": "Auto-generate concise summaries for note previews",
         "implementation": {
           "service_file": "services/ai/claude.ts",
@@ -154,7 +148,6 @@
       {
         "id": "1.3",
         "name": "Service Infrastructure",
-        "effort_hours": "2-4",
         "description": "Build foundational AI service layer",
         "implementation": {
           "files_to_create": [
@@ -199,8 +192,6 @@
 
   "phase_2_research_enhancement": {
     "name": "Research & Categorization",
-    "duration": "Week 3-4",
-    "total_hours": "10-14 hours",
     "priority": "HIGH",
 
     "features": [
@@ -208,7 +199,6 @@
         "id": "2.1",
         "name": "Web-Enhanced Notes (Perplexity)",
         "api": "Perplexity Sonar",
-        "effort_hours": "6-8",
         "description": "Add real-time web research capabilities directly in markdown editor",
         "implementation": {
           "service_file": "services/ai/perplexity.ts",
@@ -245,7 +235,6 @@
         "id": "2.2",
         "name": "Smart Categorization",
         "api": "Claude Haiku (JSON mode)",
-        "effort_hours": "4-6",
         "description": "Auto-suggest tags, categories, and folder locations",
         "implementation": {
           "service_file": "services/ai/claude.ts",
@@ -300,8 +289,6 @@
 
   "phase_3_advanced_features": {
     "name": "Enhancement & Intelligence",
-    "duration": "Week 5-6",
-    "total_hours": "12-16 hours",
     "priority": "MEDIUM",
 
     "features": [
@@ -309,7 +296,6 @@
         "id": "3.1",
         "name": "Content Enhancement",
         "api": "Claude Sonnet",
-        "effort_hours": "6-8",
         "description": "AI-powered text improvement: grammar, tone, expansion, simplification",
         "implementation": {
           "service_file": "services/ai/claude.ts",
@@ -352,7 +338,6 @@
         "id": "3.2",
         "name": "Ask Your Notes (Hybrid RAG)",
         "api": "Perplexity + Local Search",
-        "effort_hours": "6-8",
         "description": "Chat interface combining user notes with web knowledge",
         "implementation": {
           "service_file": "services/ai/ask-notes.ts",
@@ -632,8 +617,8 @@
   },
 
   "implementation_roadmap": {
-    "week_1_2": {
-      "phase": "Phase 1 - Foundation",
+    "phase_1": {
+      "name": "Phase 1 - Foundation",
       "tasks": [
         "Create services/ai/claude.ts and perplexity.ts",
         "Add API keys to Supabase/Vercel environment",
@@ -652,8 +637,8 @@
         "Rate limiting implemented"
       ]
     },
-    "week_3_4": {
-      "phase": "Phase 2 - Research & Categorization",
+    "phase_2": {
+      "name": "Phase 2 - Research & Categorization",
       "tasks": [
         "Implement Perplexity research modal",
         "Add Research button to markdown toolbar",
@@ -671,8 +656,8 @@
         "Citation display complete"
       ]
     },
-    "week_5_6": {
-      "phase": "Phase 3 - Advanced Features",
+    "phase_3": {
+      "name": "Phase 3 - Advanced Features",
       "tasks": [
         "Implement content enhancement with Claude Sonnet",
         "Add Enhance dropdown to toolbar",
@@ -749,10 +734,10 @@
 
   "success_metrics": {
     "adoption": [
-      "% of users trying AI features in first week (target: 40%+)",
+      "% of users trying AI features initially (target: 40%+)",
       "% of notes with AI-generated titles (target: 30%+)",
       "% of notes with AI summaries (target: 50%+)",
-      "Daily AI requests per active user (target: 5+)"
+      "AI requests per active user (target: 5+ per session)"
     ],
     "quality": [
       "Title acceptance rate - not manually edited (target: 70%+)",
@@ -761,12 +746,12 @@
       "Research feature usage frequency (target: 20%+ of notes)"
     ],
     "engagement": [
-      "Average AI requests per user per week (target: 15+)",
-      "Time spent in chat interface (target: 5+ min/week)",
+      "Average AI requests per user (target: 15+ per period)",
+      "Time spent in chat interface (target: 5+ min per session)",
       "Acceptance rate of AI suggestions (target: 60%+)"
     ],
     "business": [
-      "Cost per user per month (target: <$0.50)",
+      "Cost per user (target: <$0.50 per period)",
       "Retention improvement with AI features (target: +15%)",
       "User satisfaction with AI features (target: 4.5/5)"
     ]
@@ -786,47 +771,34 @@
       "Test enhancement before/after UI",
       "Test chat interface with hybrid RAG"
     ],
-    "user_acceptance_tests": [
-      "Beta test with 10-20 internal users",
-      "Collect feedback on AI quality",
+    "personal_testing": [
+      "Test each feature with real notes",
+      "Collect personal feedback on AI quality",
       "Measure actual vs estimated costs",
-      "Test on multiple devices and platforms",
+      "Test on all target devices and platforms",
       "Verify offline/error state handling"
     ]
   },
 
   "rollout_strategy": {
-    "beta_phase": {
-      "duration": "2 weeks per phase",
-      "participants": "10-20 internal testers",
-      "feature_flags": "Enable AI features per user via Supabase",
+    "development_testing": {
+      "environment": "Personal development app (single user)",
+      "approach": "Implement and test each feature individually",
+      "feature_flags": "Enable AI features via environment variable",
       "monitoring": [
-        "Track feature usage rates",
-        "Collect user feedback surveys",
-        "Monitor error rates and API costs",
-        "Measure performance impact"
+        "Track API costs during development",
+        "Monitor error rates and performance",
+        "Collect personal usage feedback",
+        "Document issues and improvements"
       ]
     },
-    "public_launch": {
-      "approach": "Gradual rollout by user cohort",
-      "stages": [
-        "Phase 1: 10% of users (Week 1)",
-        "Phase 2: 50% of users (Week 2)",
-        "Phase 3: 100% of users (Week 3)"
-      ],
-      "communication": [
-        "Update 'Coming Soon' card → move to main features",
-        "Update Quick Start guide with AI features",
-        "Email announcement to users",
-        "Social media posts showcasing features"
-      ],
-      "monitoring": [
-        "Cost alerts and budget tracking",
-        "Error rate monitoring",
-        "Usage spike detection",
-        "User feedback collection"
-      ]
-    }
+    "implementation_notes": [
+      "Test each feature thoroughly before moving to next phase",
+      "Monitor API costs closely during development",
+      "Iterate based on personal feedback",
+      "Update 'Coming Soon' card when features are ready",
+      "Update Quick Start guide with AI features"
+    ]
   },
 
   "future_enhancements": {
@@ -834,25 +806,21 @@
       {
         "feature": "Semantic Search with pgvector",
         "description": "Upgrade from text search to vector embeddings for true semantic search",
-        "effort": "8-12 hours",
         "api": "Claude embeddings or OpenAI embeddings"
       },
       {
         "feature": "Voice Transcription",
         "description": "Record voice memos and transcribe with AI cleanup",
-        "effort": "10-12 hours",
         "api": "Whisper API (via Replicate or OpenAI)"
       },
       {
         "feature": "Duplicate Note Detection",
         "description": "Find and merge duplicate or similar notes",
-        "effort": "6-8 hours",
         "api": "Embeddings + cosine similarity"
       },
       {
         "feature": "Smart Reminders",
         "description": "Extract action items and deadlines from notes",
-        "effort": "8-10 hours",
         "api": "Claude with structured JSON output"
       }
     ],
@@ -877,17 +845,15 @@
     "recommended_start": {
       "option_a": {
         "name": "Quick Start (Recommended)",
-        "timeline": "Week 1",
         "tasks": [
-          "Day 1-2: Setup AI services (claude.ts, perplexity.ts)",
-          "Day 3-4: Implement Smart Titles",
-          "Day 5: Testing and deployment"
+          "Setup AI services (claude.ts, perplexity.ts)",
+          "Implement Smart Titles",
+          "Testing and deployment"
         ],
         "deliverable": "Smart Titles working in production"
       },
       "option_b": {
         "name": "Full Phase 1",
-        "timeline": "Week 1-2",
         "tasks": [
           "Complete all Phase 1 features (Titles + Summaries + Infrastructure)",
           "Thorough testing",
