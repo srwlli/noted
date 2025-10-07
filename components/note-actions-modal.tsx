@@ -15,10 +15,9 @@ interface NoteActionsModalProps {
   noteContent: string;
   isFavorite: boolean;
   onToggleFavorite: () => void;
-  onGenerateTitle?: () => void;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, isFavorite, onToggleFavorite, onGenerateTitle }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, isFavorite, onToggleFavorite }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
   const [title, setTitle] = useState(noteTitle);
   const [showAIActionsModal, setShowAIActionsModal] = useState(false);
@@ -65,10 +64,6 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   ];
 
   const handleAIActions = () => {
-    if (!onGenerateTitle) {
-      showComingSoon();
-      return;
-    }
     setShowAIActionsModal(true);
   };
 
@@ -142,17 +137,12 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
       </TouchableOpacity>
 
       {/* AI Actions Modal */}
-      {onGenerateTitle && (
-        <AIActionsModal
-          visible={showAIActionsModal}
-          onClose={() => setShowAIActionsModal(false)}
-          onGenerateTitle={() => {
-            setShowAIActionsModal(false);
-            onClose();
-            onGenerateTitle();
-          }}
-        />
-      )}
+      <AIActionsModal
+        visible={showAIActionsModal}
+        onClose={() => setShowAIActionsModal(false)}
+        noteId={noteId}
+        noteContent={noteContent}
+      />
     </Modal>
   );
 }
