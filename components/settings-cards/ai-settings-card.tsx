@@ -10,9 +10,10 @@ interface AISettingsCardProps {
   isExpanded: boolean;
   onToggle: () => void;
   onOpenApiKeys: () => void;
+  refreshTrigger?: number;
 }
 
-export function AISettingsCard({ isExpanded, onToggle, onOpenApiKeys }: AISettingsCardProps) {
+export function AISettingsCard({ isExpanded, onToggle, onOpenApiKeys, refreshTrigger }: AISettingsCardProps) {
   const { colors } = useThemeColors();
   const { user } = useAuth();
   const [hasKeys, setHasKeys] = useState(false);
@@ -22,7 +23,7 @@ export function AISettingsCard({ isExpanded, onToggle, onOpenApiKeys }: AISettin
     if (user && isExpanded) {
       checkApiKeys();
     }
-  }, [user, isExpanded]);
+  }, [user, isExpanded, refreshTrigger]);
 
   const checkApiKeys = async () => {
     try {

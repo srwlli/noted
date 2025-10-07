@@ -13,6 +13,7 @@ interface MarkdownToolbarDropdownProps {
   onInsertText?: (text: string) => void;
   selectedText?: string;
   anchorPosition?: { x: number; y: number };
+  onGenerateTitle?: () => void;
 }
 
 /**
@@ -25,6 +26,7 @@ export function MarkdownToolbarDropdown({
   onInsert,
   onInsertText,
   selectedText = '',
+  onGenerateTitle,
 }: MarkdownToolbarDropdownProps) {
   const { colors } = useThemeColors();
   const [showLinkModal, setShowLinkModal] = useState(false);
@@ -154,6 +156,18 @@ export function MarkdownToolbarDropdown({
                 onPress={() => setShowTableModal(true)}
                 colors={colors}
               />
+
+              {/* Generate Title */}
+              {onGenerateTitle && (
+                <ToolbarButton
+                  icon="auto-awesome"
+                  onPress={() => {
+                    onGenerateTitle();
+                    onClose();
+                  }}
+                  colors={colors}
+                />
+              )}
             </ScrollView>
           </View>
         </TouchableOpacity>

@@ -128,6 +128,11 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
     }
   }, [note.id, isFavorite, onFavoriteToggle]);
 
+  const handleGenerateTitle = useCallback(() => {
+    // Navigate to editor and the Generate Title will be available in the toolbar
+    router.push(`/note-editor/${note.id}`);
+  }, [note.id]);
+
   return (
     <>
       <Card
@@ -244,6 +249,7 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
         noteContent={note.content || ''}
         isFavorite={isFavorite}
         onToggleFavorite={handleToggleFavorite}
+        onGenerateTitle={handleGenerateTitle}
       />
     </>
   );

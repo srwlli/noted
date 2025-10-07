@@ -15,6 +15,7 @@ interface MarkdownEditorProps {
   onCloseToolbarDropdown?: () => void;
   mode?: 'edit' | 'preview';
   onExport?: () => void;
+  onGenerateTitle?: () => void;
 }
 
 export interface MarkdownEditorRef {
@@ -38,6 +39,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   onCloseToolbarDropdown,
   mode = 'edit',
   onExport,
+  onGenerateTitle,
 }, ref) {
   const { colors } = useThemeColors();
   const selectionRef = useRef({ start: 0, end: 0 });
@@ -300,6 +302,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
           onInsert={handleInsert}
           onInsertText={handleInsertText}
           selectedText={getSelectedText()}
+          onGenerateTitle={onGenerateTitle}
         />
       )}
     </View>

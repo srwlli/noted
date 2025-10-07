@@ -4,6 +4,7 @@ import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownEditor, MarkdownEditorRef } from '@/components/markdown/markdown-editor';
 import { MarkdownErrorBoundary } from '@/components/markdown/markdown-error-boundary';
+import { ConfirmationModal } from '@/components/confirmation-modal';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { notesService } from '@/services/notes';
 import { extractTitle } from '@/utils/note-parser';
@@ -26,6 +27,8 @@ function NewNoteScreenContent() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [generatingTitle, setGeneratingTitle] = useState(false);
+  const [pendingTitle, setPendingTitle] = useState<string | null>(null);
+  const [showTitleConfirmation, setShowTitleConfirmation] = useState(false);
   const { colors } = useThemeColors();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorRef = useRef<MarkdownEditorRef>(null);
@@ -108,22 +111,8 @@ function NewNoteScreenContent() {
       const result = await generateTitle(content);
 
       if (result.success) {
-        // Prepend title to content (if it doesn't start with a heading)
-        const hasHeading = content.trim().startsWith('#');
-        let newContent: string;
-
-        if (hasHeading) {
-          // Replace first line with new title
-          const lines = content.split('\n');
-          lines[0] = `# ${result.title}`;
-          newContent = lines.join('\n');
-        } else {
-          // Add title at the beginning
-          newContent = `# ${result.title}\n\n${content}`;
-        }
-
-        setContent(newContent);
-        toast.success('Title generated successfully');
+        setPendingTitle(result.title);
+        setShowTitleConfirmation(true);
       } else {
         toast.error(result.error);
       }
@@ -133,6 +122,36 @@ function NewNoteScreenContent() {
     } finally {
       setGeneratingTitle(false);
     }
+  };
+
+  const handleAcceptTitle = async () => {
+    if (!pendingTitle) return;
+
+    // Apply title to content
+    const hasHeading = content.trim().startsWith('#');
+    let newContent: string;
+
+    if (hasHeading) {
+      // Replace first line with new title
+      const lines = content.split('\n');
+      lines[0] = `# ${pendingTitle}`;
+      newContent = lines.join('\n');
+    } else {
+      // Add title at the beginning
+      newContent = `# ${pendingTitle}\n\n${content}`;
+    }
+
+    setContent(newContent);
+    toast.success('Title applied successfully');
+
+    // Clear pending state and close modal
+    setPendingTitle(null);
+    setShowTitleConfirmation(false);
+  };
+
+  const handleRejectTitle = () => {
+    setPendingTitle(null);
+    setShowTitleConfirmation(false);
   };
 
   return (
@@ -179,19 +198,6 @@ function NewNoteScreenContent() {
                   </TouchableOpacity>
                 </>
               )}
-              {mode === 'edit' && (
-                <TouchableOpacity
-                  onPress={handleGenerateTitle}
-                  disabled={generatingTitle}
-                  activeOpacity={0.7}
-                >
-                  {generatingTitle ? (
-                    <ActivityIndicator size="small" color={colors.tint} />
-                  ) : (
-                    <MaterialIcons name="auto-awesome" size={24} color={colors.tint} />
-                  )}
-                </TouchableOpacity>
-              )}
               {mode === 'preview' && (
                 <TouchableOpacity
                   onPress={handleExport}
@@ -232,8 +238,19 @@ function NewNoteScreenContent() {
           onCloseToolbarDropdown={() => setShowToolbar(false)}
           mode={mode}
           onExport={handleExport}
+          onGenerateTitle={!generatingTitle ? handleGenerateTitle : undefined}
         />
       </KeyboardAvoidingView>
+
+      <ConfirmationModal
+        visible={showTitleConfirmation}
+        title="AI Generated Title"
+        message={`Apply this title to your note?\n\n"${pendingTitle}"`}
+        confirmText="Accept"
+        cancelText="Reject"
+        onConfirm={handleAcceptTitle}
+        onCancel={handleRejectTitle}
+      />
     </>
   );
 }

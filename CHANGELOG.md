@@ -8,6 +8,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **AI Title Generation with Dual Access Points** (2025-10-07)
+  - Moved Generate Title feature from editor header to markdown toolbar dropdown
+  - Added AI Actions modal accessible from note bottom sheet (...) menu
+  - Toolbar access: Text format icon → ✨ Generate Title button
+  - Bottom sheet access: (...) menu → AI Actions → Generate Title
+  - Title confirmation modal shows generated title with Accept/Reject options
+  - Users must approve AI-generated titles before applying to note
+  - Prevents accidental title overwrites and gives users preview control
+  - AI Actions modal includes placeholder for future features (Summarize, Extract Tags)
+  - Automatically navigates to editor when Generate Title triggered from note list
+  - Generate Title button hidden during generation to prevent duplicate requests
+  - Confirmation flow works identically from both entry points
+- **API Keys Status Auto-Refresh** (2025-10-07)
+  - AI Features status updates immediately after saving API keys (no manual refresh needed)
+  - Added refresh trigger mechanism using state counter in Settings page
+  - APIKeysModal calls onKeysUpdated callback after successful save
+  - AISettingsCard re-checks API keys when refreshTrigger changes
+  - Eliminates confusing "Not configured" status after adding valid keys
+  - Better user feedback: Status changes from ⚠ Not configured → ✓ Configured instantly
 - **Share Action Card** (2025-10-07)
   - Share button now functional in Note Actions Modal
   - Mobile (iOS/Android): Opens native share sheet with note content

@@ -21,6 +21,7 @@ export default function SettingsScreen() {
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showApiKeysModal, setShowApiKeysModal] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [aiRefreshTrigger, setAiRefreshTrigger] = useState(0);
 
   const handleCardToggle = (cardId: string) => {
     if (expandedCard === cardId) {
@@ -53,6 +54,10 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleApiKeysUpdated = () => {
+    setAiRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <SharedPageLayout scrollable={true}>
       <ThemeSettingsCard
@@ -68,6 +73,7 @@ export default function SettingsScreen() {
         isExpanded={expandedCard === 'ai'}
         onToggle={() => handleCardToggle('ai')}
         onOpenApiKeys={() => setShowApiKeysModal(true)}
+        refreshTrigger={aiRefreshTrigger}
       />
       <DevSettingsCard
         isExpanded={expandedCard === 'testing'}
@@ -101,6 +107,7 @@ export default function SettingsScreen() {
       <ApiKeysModal
         visible={showApiKeysModal}
         onClose={() => setShowApiKeysModal(false)}
+        onKeysUpdated={handleApiKeysUpdated}
       />
     </SharedPageLayout>
   );

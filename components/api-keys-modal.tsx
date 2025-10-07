@@ -18,9 +18,10 @@ import { toast } from 'sonner-native';
 interface ApiKeysModalProps {
   visible: boolean;
   onClose: () => void;
+  onKeysUpdated?: () => void;
 }
 
-export function ApiKeysModal({ visible, onClose }: ApiKeysModalProps) {
+export function ApiKeysModal({ visible, onClose, onKeysUpdated }: ApiKeysModalProps) {
   const { colors } = useThemeColors();
   const { user } = useAuth();
   const [anthropicKey, setAnthropicKey] = useState('');
@@ -122,6 +123,7 @@ export function ApiKeysModal({ visible, onClose }: ApiKeysModalProps) {
       }
 
       toast.success('API keys saved successfully');
+      onKeysUpdated?.();
       onClose();
     } catch (err: any) {
       console.error('Error saving API keys:', err);
