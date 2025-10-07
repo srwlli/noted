@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
 import { AIActionsModal } from '@/components/ai-actions-modal';
+import { FolderPickerModal } from '@/components/folder-picker-modal';
 import { toast } from 'sonner-native';
 
 interface NoteActionsModalProps {
@@ -13,14 +14,17 @@ interface NoteActionsModalProps {
   noteId: string;
   noteTitle: string;
   noteContent: string;
+  folderId: string | null;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  onFolderChanged?: () => void;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, isFavorite, onToggleFavorite }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, folderId, isFavorite, onToggleFavorite, onFolderChanged }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
   const [title, setTitle] = useState(noteTitle);
   const [showAIActionsModal, setShowAIActionsModal] = useState(false);
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
 
   const showComingSoon = () => {
     toast.info('Coming Soon', { position: 'top-center' });
@@ -83,11 +87,15 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     setShowAIActionsModal(true);
   };
 
+  const handleOrganization = () => {
+    setShowFolderPicker(true);
+  };
+
   // Secondary actions
   const secondaryActions = [
     { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: handleAIActions, disabled: false },
     { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
-    { icon: 'folder-open' as const, label: 'Organization', onPress: showComingSoon, disabled: false },
+    { icon: 'folder-open' as const, label: 'Organization', onPress: handleOrganization, disabled: false },
   ];
 
   // Tertiary actions
@@ -158,6 +166,15 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
         onClose={() => setShowAIActionsModal(false)}
         noteId={noteId}
         noteContent={noteContent}
+      />
+
+      {/* Folder Picker Modal */}
+      <FolderPickerModal
+        visible={showFolderPicker}
+        onClose={() => setShowFolderPicker(false)}
+        noteId={noteId}
+        currentFolderId={folderId}
+        onFolderChanged={onFolderChanged}
       />
     </Modal>
   );
