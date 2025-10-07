@@ -37,9 +37,17 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
       const message = noteContent || '';
 
       if (Platform.OS === 'web') {
-        // Web: Copy to clipboard (Share API unreliable)
-        await Clipboard.setStringAsync(message);
-        toast.success('Note content copied to clipboard', { position: 'top-center' });
+        // Web: Try Web Share API first (supports email, SMS, etc.)
+        if (navigator.share) {
+          await navigator.share({
+            title: title,
+            text: message,
+          });
+        } else {
+          // Fallback: Copy to clipboard if Web Share API not available
+          await Clipboard.setStringAsync(message);
+          toast.success('Note content copied to clipboard', { position: 'top-center' });
+        }
       } else {
         // Mobile: Native share sheet
         await Share.share({
@@ -49,8 +57,11 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
         // Note: Share.share resolves on dismiss, no success toast needed
       }
     } catch (error) {
-      console.error('Share failed:', error);
-      toast.error('Failed to share note', { position: 'top-center' });
+      // User cancelled share or error occurred
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Share failed:', error);
+        toast.error('Failed to share note', { position: 'top-center' });
+      }
     }
   };
 
