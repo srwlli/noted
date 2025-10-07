@@ -26,6 +26,11 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     toast.info('Coming Soon', { position: 'top-center' });
   };
 
+  const handleEdit = () => {
+    onClose();
+    router.push(`/note-editor/${noteId}`);
+  };
+
   const handlePreview = () => {
     onClose();
     router.push(`/note-editor/${noteId}?mode=preview`);
@@ -68,7 +73,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   // Primary actions
   const favoriteIcon = (isFavorite ? 'star' : 'star-border') as 'star' | 'star-border';
   const primaryActions = [
-    { icon: 'edit' as const, label: 'Edit', onPress: showComingSoon, disabled: false },
+    { icon: 'edit' as const, label: 'Edit', onPress: handleEdit, disabled: false },
     { icon: favoriteIcon, label: isFavorite ? 'Unfavorite' : 'Favorite', onPress: onToggleFavorite, disabled: false },
     { icon: 'share' as const, label: 'Share', onPress: handleShare, disabled: false },
     { icon: 'visibility' as const, label: 'Preview', onPress: handlePreview, disabled: false },
