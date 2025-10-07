@@ -101,8 +101,8 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   // Tertiary actions
   const tertiaryActions = [
     { icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false },
-    { icon: 'delete' as const, label: 'Delete', onPress: showComingSoon, disabled: false, destructive: true },
     { icon: 'download' as const, label: 'Download', onPress: showComingSoon, disabled: false, destructive: false },
+    { icon: 'delete' as const, label: 'Delete', onPress: showComingSoon, disabled: false, destructive: true },
   ];
 
   return (
