@@ -12,7 +12,9 @@
       "Bash(npx supabase:*)",
       "Bash(ls:*)",
       "Bash(move index.tsx notes.tsx)",
-      "Bash(npx expo install:*)"
+      "Bash(npx expo install:*)",
+      "Bash(supabase:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

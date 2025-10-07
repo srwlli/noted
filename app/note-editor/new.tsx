@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, Share, Text } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, StyleSheet, TouchableOpacity, Share, Text, ActivityIndicator } from 'react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { MarkdownEditor, MarkdownEditorRef } from '@/components/markdown/markdown-editor';
@@ -8,6 +8,7 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 import { notesService } from '@/services/notes';
 import { extractTitle } from '@/utils/note-parser';
 import { markdownService } from '@/services/markdown-service';
+import { generateTitle } from '@/services/ai/generate-title';
 import { toast } from 'sonner-native';
 
 /**
@@ -24,6 +25,7 @@ function NewNoteScreenContent() {
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [generatingTitle, setGeneratingTitle] = useState(false);
   const { colors } = useThemeColors();
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const editorRef = useRef<MarkdownEditorRef>(null);
@@ -94,6 +96,45 @@ function NewNoteScreenContent() {
     }
   };
 
+  const handleGenerateTitle = async () => {
+    if (!content || content.trim().length === 0) {
+      toast.error('Please add some content to your note first');
+      return;
+    }
+
+    setGeneratingTitle(true);
+
+    try {
+      const result = await generateTitle(content);
+
+      if (result.success) {
+        // Prepend title to content (if it doesn't start with a heading)
+        const hasHeading = content.trim().startsWith('#');
+        let newContent: string;
+
+        if (hasHeading) {
+          // Replace first line with new title
+          const lines = content.split('\n');
+          lines[0] = `# ${result.title}`;
+          newContent = lines.join('\n');
+        } else {
+          // Add title at the beginning
+          newContent = `# ${result.title}\n\n${content}`;
+        }
+
+        setContent(newContent);
+        toast.success('Title generated successfully');
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      console.error('Generate title error:', error);
+      toast.error('Failed to generate title');
+    } finally {
+      setGeneratingTitle(false);
+    }
+  };
+
   return (
     <>
       <Stack.Screen
@@ -137,6 +178,19 @@ function NewNoteScreenContent() {
                     <MaterialIcons name="text-format" size={24} color={colors.text} />
                   </TouchableOpacity>
                 </>
+              )}
+              {mode === 'edit' && (
+                <TouchableOpacity
+                  onPress={handleGenerateTitle}
+                  disabled={generatingTitle}
+                  activeOpacity={0.7}
+                >
+                  {generatingTitle ? (
+                    <ActivityIndicator size="small" color={colors.tint} />
+                  ) : (
+                    <MaterialIcons name="auto-awesome" size={24} color={colors.tint} />
+                  )}
+                </TouchableOpacity>
               )}
               {mode === 'preview' && (
                 <TouchableOpacity

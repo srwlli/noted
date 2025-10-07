@@ -26,7 +26,7 @@ export function DevSettingsCard({ isExpanded, onToggle }: DevSettingsCardProps) 
             size={24}
             color={colors.textSecondary}
           />
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Developer</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Testing</Text>
         </>
       }
     >

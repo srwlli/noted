@@ -4,8 +4,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 import { ThemePickerModal } from '@/components/theme-picker-modal';
+import { ApiKeysModal } from '@/components/api-keys-modal';
 import { ThemeSettingsCard } from '@/components/settings-cards/theme-settings-card';
 import { ProfileSettingsCard } from '@/components/settings-cards/profile-settings-card';
+import { AISettingsCard } from '@/components/settings-cards/ai-settings-card';
 import { AccountSettingsCard } from '@/components/settings-cards/account-settings-card';
 import { DevSettingsCard } from '@/components/settings-cards/dev-settings-card';
 import { router } from 'expo-router';
@@ -17,6 +19,7 @@ export default function SettingsScreen() {
   const [showSignOutModal, setShowSignOutModal] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
+  const [showApiKeysModal, setShowApiKeysModal] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   const handleCardToggle = (cardId: string) => {
@@ -61,6 +64,11 @@ export default function SettingsScreen() {
         isExpanded={expandedCard === 'profile'}
         onToggle={() => handleCardToggle('profile')}
       />
+      <AISettingsCard
+        isExpanded={expandedCard === 'ai'}
+        onToggle={() => handleCardToggle('ai')}
+        onOpenApiKeys={() => setShowApiKeysModal(true)}
+      />
       <DevSettingsCard
         isExpanded={expandedCard === 'testing'}
         onToggle={() => handleCardToggle('testing')}
@@ -88,6 +96,11 @@ export default function SettingsScreen() {
         currentTheme={themeName}
         onSelectTheme={setTheme}
         onClose={() => setShowThemePicker(false)}
+      />
+
+      <ApiKeysModal
+        visible={showApiKeysModal}
+        onClose={() => setShowApiKeysModal(false)}
       />
     </SharedPageLayout>
   );
