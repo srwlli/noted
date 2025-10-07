@@ -240,6 +240,8 @@ export default function DashboardScreen() {
               <NoteItem
                 key={note.id}
                 note={note}
+                onEdit={loadDashboardData}
+                onMoveToFolder={loadDashboardData}
                 onFavoriteToggle={loadDashboardData}
                 onDelete={() => setDeleteNote(note)}
               />
@@ -283,6 +285,8 @@ export default function DashboardScreen() {
               <NoteItem
                 key={note.id}
                 note={note}
+                onEdit={loadDashboardData}
+                onMoveToFolder={loadDashboardData}
                 onFavoriteToggle={loadDashboardData}
                 onDelete={() => setDeleteNote(note)}
               />

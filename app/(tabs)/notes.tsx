@@ -216,7 +216,7 @@ export default function NotesScreen() {
             <NoteItem
               key={note.id}
               note={note}
-              onEdit={() => handleEditNote(note)}
+              onEdit={loadNotes}
               onDelete={() => setDeleteNote(note)}
               onMoveToFolder={loadNotes}
             />

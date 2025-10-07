@@ -247,6 +247,8 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
         isFavorite={isFavorite}
         onToggleFavorite={handleToggleFavorite}
         onFolderChanged={onMoveToFolder}
+        onNoteUpdated={onEdit}
+        onDelete={handleDelete}
       />
     </>
   );

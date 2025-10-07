@@ -12,13 +12,14 @@ interface AIActionsModalProps {
   onClose: () => void;
   noteId: string;
   noteContent: string;
+  onTitleUpdated?: () => void;
 }
 
 /**
  * Bottom sheet modal for AI-powered actions
  * Handles title generation in-place without navigation
  */
-export function AIActionsModal({ visible, onClose, noteId, noteContent }: AIActionsModalProps) {
+export function AIActionsModal({ visible, onClose, noteId, noteContent, onTitleUpdated }: AIActionsModalProps) {
   const { colors } = useThemeColors();
   const [loading, setLoading] = useState(false);
   const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
@@ -64,6 +65,9 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent }: AIActi
 
       await notesService.updateNote(noteId, generatedTitle, newContent);
       toast.success('Title saved successfully', { position: 'top-center' });
+
+      // Trigger parent refresh
+      onTitleUpdated?.();
 
       // Reset and close
       setGeneratedTitle(null);

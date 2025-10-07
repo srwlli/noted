@@ -18,9 +18,11 @@ interface NoteActionsModalProps {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onFolderChanged?: () => void;
+  onNoteUpdated?: () => void;
+  onDelete?: () => void;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, folderId, isFavorite, onToggleFavorite, onFolderChanged }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, folderId, isFavorite, onToggleFavorite, onFolderChanged, onNoteUpdated, onDelete }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
   const [title, setTitle] = useState(noteTitle);
   const [showAIActionsModal, setShowAIActionsModal] = useState(false);
@@ -98,11 +100,16 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     { icon: 'folder-open' as const, label: 'Organization', onPress: handleOrganization, disabled: false },
   ];
 
+  const handleDelete = () => {
+    onClose();
+    onDelete?.();
+  };
+
   // Tertiary actions
   const tertiaryActions = [
     { icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false },
     { icon: 'download' as const, label: 'Download', onPress: showComingSoon, disabled: false, destructive: false },
-    { icon: 'delete' as const, label: 'Delete', onPress: showComingSoon, disabled: false, destructive: true },
+    { icon: 'delete' as const, label: 'Delete', onPress: handleDelete, disabled: false, destructive: true },
   ];
 
   return (
@@ -166,6 +173,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
         onClose={() => setShowAIActionsModal(false)}
         noteId={noteId}
         noteContent={noteContent}
+        onTitleUpdated={onNoteUpdated}
       />
 
       {/* Folder Picker Modal */}
