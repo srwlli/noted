@@ -1,0 +1,252 @@
+{
+  "title": "Copy Button Functionality Implementation Plan",
+  "version": "1.0",
+  "date": "2025-10-08",
+  "status": "Ready to Implement",
+  "priority": "Low",
+  "effort": "5 minutes",
+
+  "summary": {
+    "issue": "Copy button in NoteActionsModal bottom sheet shows 'Coming Soon' instead of copying note content",
+    "current_behavior": "Clicking Copy button shows toast: 'Coming Soon'",
+    "desired_behavior": "Clicking Copy button copies note content to clipboard with success toast",
+    "affected_component": "components/note-actions-modal.tsx"
+  },
+
+  "analysis": {
+    "current_implementation": {
+      "file": "components/note-actions-modal.tsx",
+      "line": 124,
+      "code": "{ icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false }",
+      "issue": "onPress points to showComingSoon() instead of copy handler"
+    },
+    "working_implementation": {
+      "file": "components/note-item.tsx",
+      "lines": "64-71",
+      "code": "const handleCopy = useCallback(async () => {\n  try {\n    await Clipboard.setStringAsync(note.content || '');\n    toast.success('Note content copied to clipboard');\n  } catch {\n    toast.error('Failed to copy content');\n  }\n}, [note.content]);",
+      "description": "Note card (...) menu has fully functional Copy button with proper error handling"
+    },
+    "comparison": {
+      "note_card_menu": {
+        "location": "components/note-item.tsx:190-193",
+        "handler": "handleCopy",
+        "toast_message": "Note content copied to clipboard",
+        "toast_position": "default (bottom)",
+        "working": true
+      },
+      "bottom_sheet_modal": {
+        "location": "components/note-actions-modal.tsx:124",
+        "handler": "showComingSoon",
+        "toast_message": "Coming Soon",
+        "toast_position": "top-center",
+        "working": false
+      }
+    }
+  },
+
+  "dependencies": {
+    "existing_imports": [
+      "import * as Clipboard from 'expo-clipboard'; (line 3)",
+      "import { toast } from 'sonner-native'; (line 10)"
+    ],
+    "available_props": [
+      "noteContent (line 17) - the content to copy"
+    ],
+    "no_new_dependencies_required": true
+  },
+
+  "implementation": {
+    "step_1_create_handler": {
+      "description": "Add handleCopy function to NoteActionsModal component",
+      "location": "After line 91 (after handleShare function)",
+      "code": "const handleCopy = async () => {\n  try {\n    await Clipboard.setStringAsync(noteContent);\n    toast.success('Note content copied to clipboard', { position: 'top-center' });\n  } catch (error) {\n    console.error('Copy failed:', error);\n    toast.error('Failed to copy content', { position: 'top-center' });\n  }\n};",
+      "notes": [
+        "Uses top-center toast position to appear above bottom sheet",
+        "Matches pattern from handleShare function",
+        "Includes error handling and logging"
+      ]
+    },
+    "step_2_update_action": {
+      "description": "Update tertiaryActions array to use handleCopy instead of showComingSoon",
+      "location": "Line 124",
+      "old_code": "{ icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false }",
+      "new_code": "{ icon: 'content-copy' as const, label: 'Copy', onPress: handleCopy, disabled: false, destructive: false }",
+      "notes": [
+        "Only change is onPress: showComingSoon → onPress: handleCopy",
+        "All other properties remain unchanged"
+      ]
+    }
+  },
+
+  "code_diff": {
+    "file": "components/note-actions-modal.tsx",
+    "changes": [
+      {
+        "action": "ADD",
+        "location": "After line 91",
+        "code": "\n  const handleCopy = async () => {\n    try {\n      await Clipboard.setStringAsync(noteContent);\n      toast.success('Note content copied to clipboard', { position: 'top-center' });\n    } catch (error) {\n      console.error('Copy failed:', error);\n      toast.error('Failed to copy content', { position: 'top-center' });\n    }\n  };"
+      },
+      {
+        "action": "MODIFY",
+        "location": "Line 124",
+        "old": "{ icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false }",
+        "new": "{ icon: 'content-copy' as const, label: 'Copy', onPress: handleCopy, disabled: false, destructive: false }"
+      }
+    ],
+    "lines_added": 9,
+    "lines_modified": 1,
+    "total_changes": 2
+  },
+
+  "testing_plan": {
+    "test_scenarios": [
+      {
+        "scenario": "Copy button with content",
+        "steps": [
+          "1. Open a note with content",
+          "2. Long press note card or tap (...) menu to open bottom sheet",
+          "3. Tap 'Copy' button",
+          "4. Verify toast appears: 'Note content copied to clipboard' (top-center)",
+          "5. Paste into another app to verify clipboard content"
+        ],
+        "expected_result": "Note content copied successfully with success toast"
+      },
+      {
+        "scenario": "Copy button with empty note",
+        "steps": [
+          "1. Open a note with no content (empty string)",
+          "2. Open bottom sheet actions modal",
+          "3. Tap 'Copy' button",
+          "4. Verify toast appears: 'Note content copied to clipboard'",
+          "5. Verify clipboard is empty when pasting"
+        ],
+        "expected_result": "Empty string copied without error"
+      },
+      {
+        "scenario": "Copy button error handling",
+        "steps": [
+          "1. Simulate clipboard failure (permission denied, API error)",
+          "2. Tap 'Copy' button",
+          "3. Verify error toast appears: 'Failed to copy content' (top-center)",
+          "4. Verify error logged to console"
+        ],
+        "expected_result": "Graceful error handling with user-friendly message"
+      },
+      {
+        "scenario": "Toast position verification",
+        "steps": [
+          "1. Open bottom sheet modal (covers bottom 80% of screen)",
+          "2. Tap 'Copy' button",
+          "3. Verify toast appears at top-center (above modal)",
+          "4. Verify toast is fully visible and not hidden by bottom sheet"
+        ],
+        "expected_result": "Toast visible above bottom sheet backdrop"
+      }
+    ],
+    "platforms_to_test": [
+      "Web (browser clipboard API)",
+      "iOS (native clipboard)",
+      "Android (native clipboard)"
+    ]
+  },
+
+  "comparison_with_note_card": {
+    "similarities": [
+      "Both use Clipboard.setStringAsync from expo-clipboard",
+      "Both show success toast with same message",
+      "Both have try/catch error handling",
+      "Both copy noteContent"
+    ],
+    "differences": [
+      {
+        "aspect": "Toast position",
+        "note_card": "default (bottom)",
+        "bottom_sheet": "top-center",
+        "reason": "Bottom sheet covers bottom of screen, toast must appear above it"
+      },
+      {
+        "aspect": "Handler pattern",
+        "note_card": "useCallback with [note.content] dependency",
+        "bottom_sheet": "regular async function (no useCallback needed)",
+        "reason": "NoteActionsModal remounts on each open, no optimization needed"
+      },
+      {
+        "aspect": "Error logging",
+        "note_card": "No console.error (silent failure)",
+        "bottom_sheet": "Includes console.error for debugging",
+        "reason": "Better debugging experience in bottom sheet"
+      }
+    ]
+  },
+
+  "user_experience_improvements": {
+    "before": [
+      "User taps Copy button",
+      "Sees 'Coming Soon' toast",
+      "Must use note card (...) menu → Copy as workaround",
+      "Inconsistent UX: Some buttons work, Copy doesn't"
+    ],
+    "after": [
+      "User taps Copy button",
+      "Note content copied to clipboard instantly",
+      "Success toast confirms action completed",
+      "Consistent UX: All action buttons functional"
+    ]
+  },
+
+  "future_enhancements": [
+    "Add haptic feedback on successful copy (Haptics.notificationAsync)",
+    "Add 'Copy as Markdown' vs 'Copy as Plain Text' options",
+    "Show character count in toast (e.g., '1,234 characters copied')",
+    "Add copy confirmation animation (checkmark icon)",
+    "Support copying specific sections (title only, content only, both)"
+  ],
+
+  "related_actions": {
+    "also_showing_coming_soon": [
+      {
+        "action": "Export",
+        "location": "line 112",
+        "priority": "Medium",
+        "complexity": "Medium",
+        "plan": "improvements/bottom-sheet-card/plan-mvp/export-action-mvp-plan-final.json"
+      },
+      {
+        "action": "Download",
+        "location": "line 114",
+        "priority": "Low",
+        "complexity": "Medium",
+        "plan": "improvements/bottom-sheet-card/plan-mvp/upload-action-mvp-plan.json (misnamed, should be download)"
+      }
+    ],
+    "fully_functional": [
+      "Edit (line 96)",
+      "Favorite (line 97)",
+      "Share (line 98)",
+      "Preview (line 99)",
+      "Organization (line 113)",
+      "AI Actions (line 125)",
+      "Delete (line 126)"
+    ]
+  },
+
+  "final_state": {
+    "functional_actions": "10 out of 10",
+    "coming_soon_actions": "0 out of 10",
+    "completion_percentage": "100%",
+    "user_satisfaction": "All bottom sheet actions work as expected"
+  },
+
+  "recommendation": {
+    "action": "Implement immediately",
+    "rationale": [
+      "5-minute fix (2 simple changes)",
+      "Zero new dependencies required",
+      "All infrastructure already exists (Clipboard, toast, noteContent)",
+      "Working implementation already exists in note-item.tsx",
+      "High user impact (frequently used action)",
+      "Low risk (isolated change, easy to test)"
+    ],
+    "estimated_time": "5 minutes implementation + 5 minutes testing = 10 minutes total"
+  }
+}

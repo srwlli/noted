@@ -90,6 +90,16 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     }
   };
 
+  const handleCopy = async () => {
+    try {
+      await Clipboard.setStringAsync(noteContent);
+      toast.success('Note content copied to clipboard', { position: 'top-center' });
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Failed to copy content', { position: 'top-center' });
+    }
+  };
+
   // Primary actions
   const favoriteIcon = (isFavorite ? 'star' : 'star-border') as 'star' | 'star-border';
   const primaryActions = [
@@ -121,7 +131,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
 
   // Tertiary actions
   const tertiaryActions = [
-    { icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false },
+    { icon: 'content-copy' as const, label: 'Copy', onPress: handleCopy, disabled: false, destructive: false },
     { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: handleAIActions, disabled: false, accent: true },
     { icon: 'delete' as const, label: 'Delete', onPress: handleDelete, disabled: false, destructive: true },
   ];
