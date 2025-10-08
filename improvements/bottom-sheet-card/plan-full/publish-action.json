@@ -1,0 +1,658 @@
+{
+  "title": "Publish Action - Public Note Sharing",
+  "subtitle": "Generate shareable public links for notes with styled HTML rendering",
+  "version": "1.0.0",
+  "date": "2025-10-07",
+  "status": "planning",
+
+  "overview": {
+    "description": "Publish notes as public HTML pages with unique shareable links, stored in database with folder organization",
+    "trigger": "Publish button in NoteActionsModal (future implementation)",
+    "design_pattern": "Publish options → Generate HTML → Create public link → Save to database",
+    "purpose": "Share notes publicly without requiring recipients to have account, create portfolio/documentation sites, enable embedding"
+  },
+
+  "executive_summary": {
+    "goal": "Enable users to publish notes as public HTML pages accessible via shareable links",
+    "key_concept": "Self-hosted note publishing (not external services like Medium)",
+    "current_state": "No publishing functionality exists",
+    "new_approach": "Generate styled HTML, save to database, serve via public route with unique slug",
+    "benefits": [
+      "Share notes without recipient needing account",
+      "SEO-friendly public pages",
+      "Portfolio and documentation hosting",
+      "Embeddable content via iframe",
+      "Version history of published notes",
+      "Custom themes for published pages",
+      "Password protection option",
+      "Analytics (view counts, referrers)"
+    ]
+  },
+
+  "core_features": {
+    "public_link_generation": {
+      "format": "https://noted.app/p/[unique-slug]",
+      "slug_options": [
+        "Random (e.g., /p/abc123xyz)",
+        "Note title-based (e.g., /p/my-awesome-note)",
+        "Custom slug (user-defined, subject to availability)"
+      ],
+      "collision_handling": "Append random suffix if slug exists",
+      "example_urls": [
+        "https://noted.app/p/getting-started-with-react",
+        "https://noted.app/p/xyz789",
+        "https://noted.app/p/my-portfolio"
+      ]
+    },
+
+    "html_rendering": {
+      "approach": "Server-side rendering of markdown to themed HTML",
+      "theme_selection": "User chooses theme (same 10 themes as app)",
+      "mode_selection": "Light/dark mode default",
+      "features": [
+        "Syntax highlighting for code blocks",
+        "Table of contents (auto-generated from headings)",
+        "Light/dark mode toggle button",
+        "Copy code buttons",
+        "Responsive design (mobile-friendly)",
+        "Print-friendly styles",
+        "Open Graph meta tags (for social sharing previews)",
+        "Custom CSS injection (future)"
+      ],
+      "template": "Reuse HTML export template with additional metadata and branding"
+    },
+
+    "database_storage": {
+      "table": "published_notes",
+      "purpose": "Store published note metadata and HTML content",
+      "folder_association": "Published notes inherit folder_id from original note",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "description": "Primary key"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "description": "Owner of published note"
+        },
+        {
+          "name": "note_id",
+          "type": "uuid",
+          "description": "Source note (foreign key to notes table)"
+        },
+        {
+          "name": "folder_id",
+          "type": "uuid",
+          "description": "Folder association (same as source note)"
+        },
+        {
+          "name": "slug",
+          "type": "text",
+          "description": "Unique URL slug",
+          "unique": true,
+          "indexed": true
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "description": "Published note title (for SEO)"
+        },
+        {
+          "name": "html_content",
+          "type": "text",
+          "description": "Rendered HTML content"
+        },
+        {
+          "name": "theme",
+          "type": "text",
+          "description": "Selected theme name"
+        },
+        {
+          "name": "color_mode",
+          "type": "text",
+          "description": "light or dark"
+        },
+        {
+          "name": "visibility",
+          "type": "text",
+          "description": "public, unlisted, or password_protected",
+          "default": "public"
+        },
+        {
+          "name": "password_hash",
+          "type": "text",
+          "description": "Hashed password (if password_protected)",
+          "nullable": true
+        },
+        {
+          "name": "view_count",
+          "type": "integer",
+          "description": "Number of views",
+          "default": 0
+        },
+        {
+          "name": "seo_description",
+          "type": "text",
+          "description": "Meta description for SEO (optional)",
+          "nullable": true
+        },
+        {
+          "name": "og_image_url",
+          "type": "text",
+          "description": "Open Graph image for social previews (optional)",
+          "nullable": true
+        },
+        {
+          "name": "published_at",
+          "type": "timestamp",
+          "description": "When note was published"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp",
+          "description": "Last update timestamp"
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp",
+          "description": "Optional expiration date (auto-unpublish)",
+          "nullable": true
+        }
+      ],
+      "rls_policies": [
+        "Public read access to public/unlisted notes",
+        "User can only edit/delete their own published notes",
+        "Password-protected notes require password verification"
+      ]
+    },
+
+    "visibility_options": {
+      "public": {
+        "description": "Visible to anyone with link, indexed by search engines",
+        "use_case": "Blog posts, portfolio, public documentation",
+        "seo": "Full SEO (meta tags, sitemap inclusion)"
+      },
+      "unlisted": {
+        "description": "Accessible via direct link only, not indexed",
+        "use_case": "Sharing with specific people without password",
+        "seo": "No SEO (noindex meta tag)",
+        "robots_meta": "<meta name=\"robots\" content=\"noindex, nofollow\">"
+      },
+      "password_protected": {
+        "description": "Requires password to view",
+        "use_case": "Private sharing, client deliverables",
+        "implementation": "Password prompt on page load, stored as bcrypt hash"
+      }
+    }
+  },
+
+  "user_experience": {
+    "publish_flow": {
+      "step_1": "User opens note actions modal",
+      "step_2": "User taps 'Publish' button",
+      "step_3": "Publish options modal appears",
+      "step_4": "User selects theme, visibility, slug options",
+      "step_5": "User taps 'Publish' button",
+      "step_6": "System generates HTML and saves to database",
+      "step_7": "Success modal shows shareable link",
+      "step_8": "User can copy link, open preview, or share directly"
+    },
+
+    "publish_options_modal": {
+      "title": "Publish Note",
+      "subtitle": "Make your note public",
+      "sections": [
+        {
+          "section": "URL Settings",
+          "options": [
+            {
+              "label": "URL Slug",
+              "type": "text input with suggestions",
+              "suggestions": [
+                "Auto-generate from title",
+                "Random (abc123xyz)",
+                "Custom (user types)"
+              ],
+              "validation": "Check availability in real-time",
+              "preview": "noted.app/p/[slug]"
+            }
+          ]
+        },
+        {
+          "section": "Appearance",
+          "options": [
+            {
+              "label": "Theme",
+              "type": "dropdown or grid picker",
+              "default": "Current theme",
+              "choices": "All 10 app themes"
+            },
+            {
+              "label": "Color Mode",
+              "type": "toggle (Light / Dark)",
+              "default": "Current mode",
+              "note": "Readers can still toggle on published page"
+            }
+          ]
+        },
+        {
+          "section": "Visibility",
+          "options": [
+            {
+              "label": "Who can view?",
+              "type": "radio buttons",
+              "choices": [
+                "Public (anyone, SEO indexed)",
+                "Unlisted (link only, not indexed)",
+                "Password protected"
+              ],
+              "default": "Unlisted"
+            },
+            {
+              "label": "Password",
+              "type": "password input",
+              "visible_when": "visibility === password_protected",
+              "validation": "Min 6 characters"
+            }
+          ]
+        },
+        {
+          "section": "Advanced (Optional)",
+          "collapsible": true,
+          "options": [
+            {
+              "label": "SEO Description",
+              "type": "textarea",
+              "placeholder": "Brief description for search engines (150-160 chars)",
+              "char_limit": 160
+            },
+            {
+              "label": "Expiration Date",
+              "type": "date picker",
+              "placeholder": "Auto-unpublish after this date (optional)"
+            }
+          ]
+        }
+      ],
+      "buttons": [
+        {
+          "label": "Cancel",
+          "action": "Close modal"
+        },
+        {
+          "label": "Publish",
+          "action": "Generate and save",
+          "style": "Primary (tint color)"
+        }
+      ]
+    },
+
+    "success_modal": {
+      "title": "Note Published!",
+      "content": {
+        "link_display": {
+          "format": "Large, selectable text: noted.app/p/[slug]",
+          "copyable": true,
+          "qr_code": "Optional QR code for easy mobile sharing (future)"
+        },
+        "actions": [
+          {
+            "label": "Copy Link",
+            "icon": "content-copy",
+            "action": "Copy to clipboard"
+          },
+          {
+            "label": "Open Preview",
+            "icon": "open-in-new",
+            "action": "Open in browser (web) or in-app browser (mobile)"
+          },
+          {
+            "label": "Share",
+            "icon": "share",
+            "action": "Native share sheet with link"
+          }
+        ],
+        "visibility_indicator": "Badge showing 'Public', 'Unlisted', or 'Password Protected'",
+        "edit_link": "Manage Published Note → Opens published note settings"
+      }
+    },
+
+    "published_note_view": {
+      "url": "noted.app/p/[slug]",
+      "layout": "Clean reading experience (full-width content)",
+      "header": {
+        "title": "Note title",
+        "metadata": [
+          "Published on [date]",
+          "By [username] (optional)",
+          "Reading time estimate"
+        ],
+        "actions": [
+          "Theme toggle (light/dark)",
+          "Print button",
+          "Share button"
+        ]
+      },
+      "content": {
+        "toc": "Auto-generated table of contents (for long notes)",
+        "markdown_rendered": "Fully styled HTML with theme",
+        "code_blocks": "Syntax highlighting + copy buttons",
+        "images": "Embedded and optimized",
+        "tables": "Responsive and styled"
+      },
+      "footer": {
+        "branding": "Made with Noted",
+        "links": [
+          "Create your own notes (CTA to sign up)",
+          "Report abuse"
+        ]
+      },
+      "analytics": {
+        "tracking": "Increment view_count on each unique visit",
+        "privacy": "No personal data collected, only aggregate views"
+      }
+    },
+
+    "manage_published_notes": {
+      "location": "New section in app: 'Published' tab or folder filter",
+      "list_view": {
+        "display": "List of published notes with metadata",
+        "columns": [
+          "Title",
+          "Slug",
+          "Visibility",
+          "Views",
+          "Published date"
+        ],
+        "actions_per_note": [
+          "Open (view public page)",
+          "Copy link",
+          "Edit (update content/settings)",
+          "Unpublish (delete from public)",
+          "Analytics (view stats - future)"
+        ]
+      },
+      "bulk_actions": [
+        "Unpublish selected",
+        "Change visibility"
+      ]
+    }
+  },
+
+  "technical_implementation": {
+    "architecture": {
+      "storage": "Supabase database (published_notes table)",
+      "serving": "Next.js dynamic route or Supabase Edge Function",
+      "caching": "CDN caching for public notes (Cloudflare/Vercel)",
+      "seo": "Server-side rendered for SEO (important for public notes)"
+    },
+
+    "new_components": [
+      {
+        "file": "components/publish/publish-options-modal.tsx",
+        "purpose": "Modal for publish configuration",
+        "props": {
+          "visible": "boolean",
+          "onClose": "() => void",
+          "noteId": "string",
+          "noteTitle": "string",
+          "noteContent": "string",
+          "folderId": "string | null"
+        }
+      },
+      {
+        "file": "components/publish/publish-success-modal.tsx",
+        "purpose": "Success modal with shareable link",
+        "props": {
+          "visible": "boolean",
+          "onClose": "() => void",
+          "publishedNote": "PublishedNote"
+        }
+      },
+      {
+        "file": "components/publish/published-notes-list.tsx",
+        "purpose": "List of user's published notes",
+        "features": ["View, edit, unpublish actions", "Analytics preview"]
+      }
+    ],
+
+    "new_services": [
+      {
+        "file": "services/publish/publish-service.ts",
+        "purpose": "Handle publishing logic",
+        "exports": [
+          "publishNote(noteId, options)",
+          "unpublishNote(publishedId)",
+          "updatePublishedNote(publishedId, options)",
+          "getPublishedNotes(userId)",
+          "getPublishedNoteBySlug(slug)",
+          "incrementViewCount(publishedId)"
+        ]
+      },
+      {
+        "file": "services/publish/slug-generator.ts",
+        "purpose": "Generate and validate URL slugs",
+        "exports": [
+          "generateSlug(title)",
+          "checkSlugAvailability(slug)",
+          "sanitizeSlug(input)"
+        ]
+      },
+      {
+        "file": "services/publish/html-renderer.ts",
+        "purpose": "Render markdown to themed HTML for publishing",
+        "exports": [
+          "renderPublishedPage(noteContent, options)"
+        ]
+      }
+    ],
+
+    "new_routes": [
+      {
+        "route": "/p/[slug]",
+        "purpose": "Public view of published note",
+        "implementation": "Dynamic route (Next.js or Expo Router)",
+        "ssr": "Server-side render for SEO",
+        "meta_tags": "Dynamic Open Graph and Twitter Card tags"
+      },
+      {
+        "route": "/published",
+        "purpose": "User's published notes management (authenticated)",
+        "access": "Requires login"
+      }
+    ],
+
+    "database_migrations": [
+      {
+        "migration": "create_published_notes_table.sql",
+        "creates": "published_notes table with all columns"
+      },
+      {
+        "migration": "add_folder_id_to_published_notes.sql",
+        "adds": "folder_id column to published_notes",
+        "foreign_key": "References folders(id) ON DELETE SET NULL"
+      },
+      {
+        "migration": "create_published_notes_indexes.sql",
+        "indexes": [
+          "slug (unique)",
+          "user_id + published_at (for user's list)",
+          "visibility (for filtering)"
+        ]
+      }
+    ],
+
+    "slug_generation_logic": {
+      "step_1_sanitize": "Convert title to lowercase, replace spaces with hyphens, remove special chars",
+      "step_2_truncate": "Limit to 60 characters",
+      "step_3_check": "Query database to check if slug exists",
+      "step_4_collision": "If exists, append random 6-char suffix (e.g., -xyz123)",
+      "step_5_validate": "Ensure slug matches regex: ^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "examples": [
+        "Getting Started with React → getting-started-with-react",
+        "10 Tips for Better Code → 10-tips-for-better-code",
+        "My Awesome Note (collision) → my-awesome-note-abc123"
+      ]
+    },
+
+    "html_template": {
+      "base": "Extend existing HTML export template (themed-html-export)",
+      "additions": [
+        "Open Graph meta tags for social previews",
+        "Twitter Card meta tags",
+        "Canonical URL tag",
+        "JSON-LD structured data for SEO",
+        "Branding footer (Made with Noted)",
+        "Analytics tracking script (view count)",
+        "Password protection form (if applicable)"
+      ],
+      "example_meta_tags": "<meta property=\"og:title\" content=\"[Note Title]\" />\n<meta property=\"og:description\" content=\"[SEO Description]\" />\n<meta property=\"og:image\" content=\"[OG Image URL]\" />\n<meta property=\"og:url\" content=\"https://noted.app/p/[slug]\" />\n<meta property=\"og:type\" content=\"article\" />\n<meta name=\"twitter:card\" content=\"summary_large_image\" />"
+    },
+
+    "password_protection_implementation": {
+      "flow": "User visits /p/[slug] → If password_protected → Show password form → Verify password → Show content",
+      "verification": "bcrypt.compare(input, password_hash)",
+      "session": "Store verification in session cookie (30min TTL)",
+      "security": "Rate limit password attempts (5 attempts per 15min per IP)"
+    }
+  },
+
+  "folder_integration": {
+    "inheritance": "Published notes inherit folder_id from source note",
+    "benefits": [
+      "Organize published notes by folder",
+      "Filter published notes by folder",
+      "Bulk unpublish by folder",
+      "Folder-level analytics (e.g., 'Work' folder has 1000 views)"
+    ],
+    "display": {
+      "in_app": "Published notes show folder badge",
+      "in_list": "'Published' section grouped by folder",
+      "filter": "Filter dropdown: All / By Folder"
+    },
+    "behavior": {
+      "folder_deleted": "Published notes remain published but folder_id set to NULL",
+      "note_deleted": "Option to unpublish or keep published (user choice)"
+    }
+  },
+
+  "seo_optimization": {
+    "meta_tags": [
+      "Title tag (note title)",
+      "Meta description (auto-generated or user-provided)",
+      "Open Graph tags (for Facebook, LinkedIn)",
+      "Twitter Card tags",
+      "Canonical URL"
+    ],
+    "structured_data": {
+      "format": "JSON-LD",
+      "type": "Article or TechArticle",
+      "fields": [
+        "headline (note title)",
+        "author (username)",
+        "datePublished",
+        "dateModified",
+        "description"
+      ]
+    },
+    "sitemap": "Generate dynamic sitemap.xml with all public published notes",
+    "robots_txt": "Allow indexing of /p/* for public notes, disallow for unlisted"
+  },
+
+  "analytics_features": {
+    "basic_metrics": [
+      "View count (total)",
+      "Unique visitors (estimated via IP hashing)",
+      "Referrer sources (where views came from)",
+      "Geographic distribution (country-level)",
+      "View trend (views over time chart)"
+    ],
+    "implementation": {
+      "tracking": "Lightweight server-side tracking on page load",
+      "privacy": "No cookies, no personal data, IP hashed",
+      "storage": "published_notes_analytics table (separate from main table)"
+    },
+    "display": {
+      "location": "Published note detail view → Analytics tab",
+      "charts": [
+        "View count badge (quick view)",
+        "Line chart of views over time",
+        "Pie chart of referrer sources"
+      ]
+    }
+  },
+
+  "monetization_opportunities": {
+    "free_tier": {
+      "limit": "Up to 5 published notes",
+      "features": "Basic themes, public/unlisted visibility"
+    },
+    "pro_tier": {
+      "limit": "Unlimited published notes",
+      "features": [
+        "Custom domains (e.g., notes.yourdomain.com)",
+        "Password protection",
+        "Custom CSS",
+        "Analytics dashboard",
+        "No 'Made with Noted' branding",
+        "Expiration dates",
+        "Custom Open Graph images"
+      ]
+    }
+  },
+
+  "comparison_publish_vs_share": {
+    "share": {
+      "action": "Send note content directly via Share sheet",
+      "recipient": "Requires recipient to receive file/text",
+      "persistence": "No permanent link, one-time share",
+      "use_case": "Quick sharing with specific people"
+    },
+    "publish": {
+      "action": "Create public web page with unique URL",
+      "recipient": "Anyone with link can view in browser",
+      "persistence": "Permanent link (until unpublished)",
+      "use_case": "Portfolio, documentation, blog, public sharing"
+    }
+  },
+
+  "comparison_publish_vs_export": {
+    "export": {
+      "output": "Download file locally",
+      "hosting": "User hosts/shares manually",
+      "use_case": "Offline access, manual control"
+    },
+    "publish": {
+      "output": "Hosted web page with URL",
+      "hosting": "Noted hosts publicly",
+      "use_case": "Online sharing, portfolio, SEO"
+    }
+  },
+
+  "future_enhancements": {
+    "custom_domains": "Allow users to publish to custom domains (e.g., notes.example.com)",
+    "collections": "Group multiple published notes into a collection/blog",
+    "custom_templates": "User-created HTML templates",
+    "comments": "Enable comments on published notes (Disqus or custom)",
+    "social_features": "Like/upvote published notes, featured notes feed",
+    "versioning": "Track published versions, allow reverting",
+    "collaborative_editing": "Multiple authors for one published note",
+    "export_to_substack": "Export collection as Substack newsletter",
+    "rss_feed": "Generate RSS feed of user's published notes"
+  },
+
+  "notes": [
+    "Publish creates self-hosted public pages (not external services)",
+    "Slug generation critical for SEO and clean URLs",
+    "Password protection adds privacy without account requirement",
+    "Folder association helps organize published notes",
+    "View counts provide basic analytics without privacy concerns",
+    "SEO optimization essential for public notes discovery",
+    "Can later add custom domains for Pro users",
+    "Published notes stored in database (not static files)",
+    "Cache published pages aggressively for performance",
+    "Consider rate limiting to prevent abuse (spam publishing)"
+  ]
+}

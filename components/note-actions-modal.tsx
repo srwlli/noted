@@ -6,6 +6,7 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
 import { AIActionsModal } from '@/components/ai-actions-modal';
 import { FolderPickerModal } from '@/components/folder-picker-modal';
+import { notesService } from '@/services/notes';
 import { toast } from 'sonner-native';
 
 interface NoteActionsModalProps {
@@ -30,6 +31,19 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
 
   const showComingSoon = () => {
     toast.info('Coming Soon', { position: 'top-center' });
+  };
+
+  const handleTitleBlur = async () => {
+    if (title.trim() !== noteTitle.trim()) {
+      try {
+        await notesService.updateNote(noteId, title.trim(), noteContent);
+        onNoteUpdated?.();
+      } catch (error) {
+        console.error('Failed to update title:', error);
+        toast.error('Failed to update title', { position: 'top-center' });
+        setTitle(noteTitle); // Revert on error
+      }
+    }
   };
 
   const handleEdit = () => {
@@ -95,9 +109,9 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
 
   // Secondary actions
   const secondaryActions = [
-    { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: handleAIActions, disabled: false },
     { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
     { icon: 'folder-open' as const, label: 'Organization', onPress: handleOrganization, disabled: false },
+    { icon: 'download' as const, label: 'Download', onPress: showComingSoon, disabled: false },
   ];
 
   const handleDelete = () => {
@@ -108,7 +122,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   // Tertiary actions
   const tertiaryActions = [
     { icon: 'content-copy' as const, label: 'Copy', onPress: showComingSoon, disabled: false, destructive: false },
-    { icon: 'download' as const, label: 'Download', onPress: showComingSoon, disabled: false, destructive: false },
+    { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: handleAIActions, disabled: false, accent: true },
     { icon: 'delete' as const, label: 'Delete', onPress: handleDelete, disabled: false, destructive: true },
   ];
 
@@ -142,6 +156,9 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
               style={[styles.titleInput, { color: colors.text, borderColor: colors.border }]}
               value={title}
               onChangeText={setTitle}
+              onBlur={handleTitleBlur}
+              returnKeyType="done"
+              blurOnSubmit
               placeholder="Note title"
               placeholderTextColor={colors.textSecondary}
             />

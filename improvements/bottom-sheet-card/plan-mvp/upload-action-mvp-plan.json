@@ -1,0 +1,2003 @@
+{
+  "title": "Upload Action MVP - Google Drive Only",
+  "subtitle": "Direct upload to Google Drive",
+  "version": "1.0.0",
+  "date": "2025-10-07",
+  "status": "ready-to-implement",
+
+  "overview": {
+    "description": "MVP implementation of direct Google Drive upload functionality, allowing users to upload notes to Google Drive without downloading files locally",
+    "trigger": "Upload button in NoteActionsModal",
+    "design_pattern": "Upload button → Google OAuth (if needed) → Upload options → Upload → Confirmation",
+    "purpose": "Seamless Google Drive backup and sync"
+  },
+
+  "modal_styling_requirements": {
+    "pattern": "Match NoteActionsModal and FolderPickerModal existing pattern",
+    "purpose": "Ensure visual consistency across all app modals",
+    "styles": {
+      "backdrop": {
+        "backgroundColor": "rgba(0, 0, 0, 0.5)",
+        "flex": 1,
+        "justifyContent": "flex-end"
+      },
+      "bottomSheet": {
+        "borderTopLeftRadius": 20,
+        "borderTopRightRadius": 20,
+        "paddingBottom": 80,
+        "maxHeight": "80%",
+        "backgroundColor": "colors.elevatedSurface"
+      },
+      "handle": {
+        "width": 40,
+        "height": 4,
+        "borderRadius": 2,
+        "backgroundColor": "colors.border",
+        "description": "Drag indicator at top of modal"
+      },
+      "scrollView": {
+        "flexShrink": 1,
+        "description": "Allow content to naturally size based on content"
+      }
+    },
+    "behavior": "FLEX - Modal height adapts to content size, capped at 80% screen height",
+    "animationType": "slide",
+    "note": "All upload-related modals (GoogleOAuthConnectModal, GoogleDriveUploadModal, GoogleDriveFolderPicker) must follow this pattern"
+  },
+
+  "ui_behavior_standards": {
+    "purpose": "Upload action serves as reference implementation for behavioral consistency",
+    "status": "✅ REFERENCE IMPLEMENTATION - Other actions (Export, Embed) should follow these patterns",
+    "standards_followed": {
+      "modal_pattern": "✅ Bottom sheet with flex sizing (maxHeight 80%)",
+      "button_states": "✅ Shows state in sublabel ('Connect Drive' / 'Google Drive' / 'Please wait')",
+      "progress_indication": "✅ Progress bar in modal during upload (>2s action)",
+      "toast_pattern": "✅ Uses loading toast with ID replacement pattern",
+      "modal_close_timing": "✅ Closes after completion, not during action (finally block)",
+      "success_actions": "✅ Provides 'Open in Drive' action button in success toast",
+      "error_handling": "✅ Specific error messages for each scenario (auth, quota, network, rate limit)"
+    },
+    "implementation_notes": [
+      "Upload already follows all UI/behavior standards",
+      "Export and Embed plans have been updated to match these patterns",
+      "Upload's multi-modal OAuth flow is more complex but still follows core principles"
+    ]
+  },
+
+  "executive_summary": {
+    "goal": "Enable direct uploads to Google Drive without local file downloads",
+    "mvp_scope": "Google Drive only - validate core upload architecture before expanding to other services",
+    "current_state": "No upload functionality exists - users must export and manually upload",
+    "new_approach": "Direct Google Drive API v3 integration with OAuth 2.0 authentication",
+    "benefits": [
+      "No intermediate file downloads required",
+      "Automatic backup to Google Drive",
+      "Cross-device sync via Drive",
+      "Shareable link generation",
+      "Version control via Drive's native versioning"
+    ]
+  },
+
+  "google_drive_integration": {
+    "name": "Google Drive",
+    "icon": "cloud-upload",
+    "authentication": "OAuth 2.0",
+    "api_version": "Google Drive API v3",
+    "use_cases": [
+      "Automatic backup",
+      "Cross-device sync",
+      "Sharing via Drive links",
+      "Cloud storage"
+    ],
+    "features": [
+      "Choose destination folder",
+      "Automatic folder creation (e.g., 'Noted Backups')",
+      "File naming (title.md)",
+      "Shareable link generation after upload",
+      "Success/error feedback"
+    ],
+    "api_endpoints": {
+      "upload_multipart": "POST /upload/drive/v3/files?uploadType=multipart (recommended for metadata + content)",
+      "upload_simple": "POST /upload/drive/v3/files?uploadType=media (content only)",
+      "folder_creation": "POST /drive/v3/files with mimeType: application/vnd.google-apps.folder",
+      "permissions": "POST /drive/v3/files/{fileId}/permissions (for shareable link)",
+      "list_files_and_folders": "GET /drive/v3/files?q=mimeType='application/vnd.google-apps.folder' AND trashed=false",
+      "get_file_metadata": "GET /drive/v3/files/{fileId}?fields=id,name,parents,mimeType",
+      "update_file": "PATCH /drive/v3/files/{fileId} (for updating existing file)",
+      "delete_file": "DELETE /drive/v3/files/{fileId}",
+      "get_quota": "GET /drive/v3/about?fields=storageQuota"
+    },
+    "oauth_scopes": [
+      "https://www.googleapis.com/auth/drive.file (access to files created by app - RECOMMENDED, limited scope)",
+      "https://www.googleapis.com/auth/drive (full Drive access - NOT RECOMMENDED, too broad)"
+    ],
+    "recommended_scope": "drive.file - Only access files/folders created by this app, more privacy-friendly"
+  },
+
+  "user_experience": {
+    "upload_action_card_in_bottom_sheet": {
+      "location": "NoteActionsModal action grid",
+      "position": "Replace existing 'Download' card OR add as new card",
+      "grid_layout": "3x3 grid, Upload card in Row 3",
+
+      "card_design": {
+        "component": "ActionCard with Upload button",
+        "uses_existing_components": true,
+        "note": "Reuses ActionButton and ActionCard from existing modal"
+      },
+
+      "upload_action_card_states": {
+        "not_connected": {
+          "icon": "cloud-upload-outline",
+          "label": "Upload",
+          "sublabel": "Connect Drive",
+          "icon_color": "gray/default",
+          "on_tap": "Show Google OAuth connect modal"
+        },
+        "connected": {
+          "icon": "cloud-upload",
+          "label": "Upload",
+          "sublabel": "Google Drive",
+          "icon_color": "default",
+          "on_tap": "Show upload options modal"
+        },
+        "uploading": {
+          "icon": "cloud-upload (animated/spinner)",
+          "label": "Uploading...",
+          "sublabel": "Please wait",
+          "disabled": true,
+          "icon_color": "primary/blue"
+        }
+      },
+
+      "integration_with_note_actions_modal": {
+        "file": "components/note-actions-modal.tsx",
+        "action_grid_update": {
+          "current_grid": [
+            "Row 1: Edit, Share, Duplicate",
+            "Row 2: AI Actions, Export, Organization",
+            "Row 3: Copy, Delete, Download"
+          ],
+          "proposed_grid_option_1": [
+            "Row 1: Edit, Share, Duplicate",
+            "Row 2: AI Actions, Export, Organization",
+            "Row 3: Upload, Copy, Delete"
+          ],
+          "proposed_grid_option_2": [
+            "Row 1: Edit, Share, Duplicate",
+            "Row 2: AI Actions, Export, Upload",
+            "Row 3: Organization, Copy, Delete"
+          ],
+          "note": "Download card removed or replaced with Upload (both serve similar purpose)"
+        }
+      },
+
+      "implementation": {
+        "component_file": "components/upload/upload-to-drive-button.tsx",
+        "note": "This is the same component already listed in new_components section",
+        "props": {
+          "noteId": "string",
+          "noteTitle": "string",
+          "noteContent": "string",
+          "onUploadStart": "() => void (optional callback)",
+          "onUploadSuccess": "(fileUrl: string) => void"
+        },
+        "state_management": {
+          "check_connection": "On component mount, call checkGoogleDriveConnection()",
+          "update_on_connection_change": "Listen for connection status changes",
+          "show_appropriate_state": "Render card based on connection status"
+        },
+        "code_structure": "export function UploadToDriveButton({ noteId, noteTitle, noteContent, onUploadSuccess }) {\n  const [connectionStatus, setConnectionStatus] = useState<'not_connected' | 'connected' | 'uploading'>('not_connected');\n  const [showOAuthModal, setShowOAuthModal] = useState(false);\n  const [showUploadModal, setShowUploadModal] = useState(false);\n\n  useEffect(() => {\n    checkGoogleDriveConnection().then(isConnected => {\n      setConnectionStatus(isConnected ? 'connected' : 'not_connected');\n    });\n  }, []);\n\n  const handleTap = () => {\n    if (connectionStatus === 'not_connected') {\n      setShowOAuthModal(true);\n    } else if (connectionStatus === 'connected') {\n      setShowUploadModal(true);\n    }\n  };\n\n  return (\n    <>\n      <ActionCard>\n        <PrimaryActionRow\n          icon={connectionStatus === 'uploading' ? 'cloud-upload-outline' : 'cloud-upload'}\n          label=\"Upload\"\n          sublabel={connectionStatus === 'not_connected' ? 'Connect Drive' : connectionStatus === 'uploading' ? 'Please wait' : 'Google Drive'}\n          onPress={handleTap}\n          disabled={connectionStatus === 'uploading'}\n        />\n      </ActionCard>\n\n      <GoogleOAuthConnectModal\n        visible={showOAuthModal}\n        onClose={() => setShowOAuthModal(false)}\n        onConnected={() => {\n          setConnectionStatus('connected');\n          setShowOAuthModal(false);\n          setShowUploadModal(true); // Auto-open upload modal after connecting\n        }}\n      />\n\n      <GoogleDriveUploadModal\n        visible={showUploadModal}\n        onClose={() => setShowUploadModal(false)}\n        noteTitle={noteTitle}\n        noteContent={noteContent}\n        onUploadStart={() => setConnectionStatus('uploading')}\n        onUploadSuccess={(url) => {\n          setConnectionStatus('connected');\n          setShowUploadModal(false);\n          onUploadSuccess?.(url);\n        }}\n      />\n    </>\n  );\n}"
+      }
+    },
+
+    "upload_flow": {
+      "step_1": "User opens note actions modal",
+      "step_2": "User taps 'Upload' action card",
+      "step_3_auth_check": "Check if Google Drive is connected",
+      "step_4a_not_connected": "If not connected: Show 'Connect Google Drive' modal → OAuth flow",
+      "step_4b_connected": "If connected: Show upload options modal",
+      "step_5_options": "User selects folder and file options",
+      "step_6_upload": "Upload begins with progress indicator",
+      "step_7_success": "Success toast with 'Open in Drive' link",
+      "step_8_action": "Optional: User taps link to view file in Google Drive app/web"
+    },
+
+
+    "oauth_flow": {
+      "step_1": "User taps Upload when not connected",
+      "step_2": "Show info modal: 'Connect Google Drive to upload notes'",
+      "step_3": "User taps 'Connect' button",
+      "step_4": "OAuth consent screen opens (browser or in-app WebView)",
+      "step_5": "User grants permissions to Noted app",
+      "step_6": "Redirect back to app with auth code",
+      "step_7": "Exchange auth code for tokens (via Edge Function)",
+      "step_8": "Store encrypted tokens in database",
+      "step_9": "Show 'Connected!' success message",
+      "step_10": "Auto-open upload options modal"
+    },
+
+    "react_native_oauth_implementation": {
+      "library": "expo-auth-session",
+      "why": "Handles deep linking, WebView, and platform differences automatically",
+      "installation": "npx expo install expo-auth-session expo-crypto expo-web-browser",
+
+      "deep_linking_setup": {
+        "app_json": {
+          "expo": {
+            "scheme": "noted",
+            "android": {
+              "intentFilters": [
+                {
+                  "action": "VIEW",
+                  "data": {
+                    "scheme": "noted",
+                    "host": "oauth-callback"
+                  },
+                  "category": ["BROWSABLE", "DEFAULT"]
+                }
+              ]
+            },
+            "ios": {
+              "bundleIdentifier": "com.noted.app",
+              "associatedDomains": ["applinks:noted.app"]
+            }
+          }
+        },
+        "redirect_uris_by_platform": {
+          "ios_android": "noted://oauth-callback",
+          "web_dev": "http://localhost:19006/oauth-callback",
+          "web_prod": "https://noted.app/oauth-callback",
+          "note": "All variants must be registered in Google Cloud Console"
+        }
+      },
+
+      "pkce_implementation": {
+        "required": "YES - PKCE is mandatory for mobile OAuth to prevent authorization code interception",
+        "handled_by": "expo-auth-session (automatic)",
+        "flow": {
+          "step_1_generate_verifier": "const codeVerifier = crypto.getRandomValues(new Uint8Array(32)).toString('base64url')",
+          "step_2_generate_challenge": "const codeChallenge = sha256(codeVerifier).toString('base64url')",
+          "step_3_send_challenge": "Include code_challenge and code_challenge_method=S256 in OAuth URL",
+          "step_4_send_verifier": "Include code_verifier when exchanging auth code for tokens"
+        },
+        "expo_auth_session_handles_automatically": true,
+        "manual_implementation_if_needed": {
+          "oauth_url_params": {
+            "response_type": "code",
+            "client_id": "GOOGLE_CLIENT_ID",
+            "redirect_uri": "noted://oauth-callback",
+            "scope": "https://www.googleapis.com/auth/drive.file",
+            "state": "random_csrf_token",
+            "code_challenge": "generated_challenge",
+            "code_challenge_method": "S256"
+          },
+          "token_exchange_params": {
+            "grant_type": "authorization_code",
+            "code": "received_auth_code",
+            "redirect_uri": "noted://oauth-callback",
+            "client_id": "GOOGLE_CLIENT_ID",
+            "code_verifier": "original_verifier"
+          }
+        }
+      },
+
+      "state_parameter_csrf_protection": {
+        "purpose": "Prevent CSRF attacks by validating OAuth callback",
+        "implementation": {
+          "step_1_generate": "const state = crypto.randomUUID();",
+          "step_2_store": "Store in AsyncStorage or in-memory during OAuth flow",
+          "step_3_send": "Include state parameter in OAuth URL",
+          "step_4_validate": "When callback received, verify state matches stored value"
+        },
+        "expo_auth_session_handles_automatically": true
+      },
+
+      "implementation_code_example": {
+        "file": "services/upload/google-drive.ts",
+        "code_snippet": "import * as AuthSession from 'expo-auth-session';\nimport * as WebBrowser from 'expo-web-browser';\n\nWebBrowser.maybeCompleteAuthSession();\n\nconst discovery = {\n  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/v2/auth',\n  tokenEndpoint: 'https://oauth2.googleapis.com/token',\n};\n\nconst [request, response, promptAsync] = AuthSession.useAuthRequest(\n  {\n    clientId: 'YOUR_CLIENT_ID',\n    scopes: ['https://www.googleapis.com/auth/drive.file'],\n    redirectUri: AuthSession.makeRedirectUri({ scheme: 'noted' }),\n  },\n  discovery\n);\n\n// Trigger OAuth\nawait promptAsync();"
+      },
+
+      "platform_specifics": {
+        "ios": {
+          "behavior": "Opens in SFAuthenticationSession (secure, native)",
+          "redirect": "Automatic deep link handling",
+          "notes": "Requires associated domains for production"
+        },
+        "android": {
+          "behavior": "Opens in Chrome Custom Tabs (if available) or browser",
+          "redirect": "Intent filter handles deep link",
+          "notes": "Works with debug and production builds"
+        },
+        "web": {
+          "behavior": "Opens in new tab/popup",
+          "redirect": "Redirects to web app URL",
+          "notes": "Use window.location for redirect"
+        }
+      },
+
+      "oauth_flow_states": {
+        "initiating": {
+          "user_action": "User taps 'Connect Google Drive'",
+          "app_state": "Show loading indicator",
+          "action": "Call promptAsync()"
+        },
+        "user_in_browser": {
+          "user_action": "User sees Google consent screen",
+          "app_state": "App in background, waiting",
+          "timeout": "User has unlimited time (no app timeout)"
+        },
+        "redirect_received": {
+          "user_action": "User grants permission → redirect",
+          "app_state": "App comes to foreground",
+          "action": "AuthSession captures response with auth code"
+        },
+        "exchanging_token": {
+          "user_action": "None (app handles)",
+          "app_state": "Show 'Connecting...' message",
+          "action": "Send auth code to Edge Function to exchange for tokens"
+        },
+        "success": {
+          "user_action": "None",
+          "app_state": "Show 'Connected!' success message",
+          "action": "Store connection status, open upload modal"
+        },
+        "cancelled": {
+          "user_action": "User closes browser without granting",
+          "app_state": "Show 'Connection cancelled' message",
+          "action": "Return to previous screen"
+        },
+        "error": {
+          "user_action": "None",
+          "app_state": "Show error toast",
+          "action": "Log error, allow retry"
+        }
+      },
+
+      "critical_considerations": {
+        "redirect_uri_mismatch": {
+          "problem": "Google OAuth fails if redirect URI doesn't match exactly",
+          "solution": "Use AuthSession.makeRedirectUri() dynamically, log it, register ALL variants in Google Console (dev, staging, prod)"
+        },
+        "state_parameter": {
+          "problem": "CSRF attacks possible without state validation",
+          "solution": "expo-auth-session handles this automatically with crypto.getRandomValues()"
+        },
+        "token_exchange_security": {
+          "problem": "Auth code must never be exposed to client after exchange",
+          "solution": "Immediately send to Edge Function, get back only success/failure (not tokens)"
+        },
+        "webview_vs_browser": {
+          "problem": "WebView doesn't support Google OAuth (blocked for security)",
+          "solution": "expo-web-browser uses ASWebAuthenticationSession (iOS) / Chrome Custom Tabs (Android), not WebView"
+        }
+      }
+    },
+
+    "upload_options_modal": {
+      "title": "Upload to Google Drive",
+      "options": [
+        {
+          "label": "Folder",
+          "type": "folder_picker",
+          "default": "Root folder",
+          "description": "Choose where to save this note",
+          "features": [
+            "Show user's Drive folders",
+            "Create new folder option",
+            "Recently used folders at top",
+            "Default: 'Noted Backups' (auto-created if doesn't exist)"
+          ]
+        },
+        {
+          "label": "File name",
+          "type": "text_input",
+          "default": "Note title",
+          "suffix": ".md",
+          "editable": true,
+          "validation": "No special characters: / \\ : * ? \" < > |"
+        },
+        {
+          "label": "Include timestamp",
+          "type": "toggle",
+          "default": false,
+          "description": "Append date to filename (e.g., 'Note_2025-10-07.md')"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Cancel",
+          "style": "secondary",
+          "action": "Close modal"
+        },
+        {
+          "label": "Upload",
+          "style": "primary",
+          "action": "Begin upload",
+          "disabled_when": "Filename is empty or invalid"
+        }
+      ]
+    },
+
+    "folder_picker": {
+      "important_note": "Google Picker API is JavaScript-only and NOT compatible with React Native. Must build custom folder browser using Drive Files API.",
+      "title": "Select Folder",
+      "implementation": "Custom React Native modal using Drive Files API",
+
+      "custom_folder_browser": {
+        "api_used": "GET /drive/v3/files",
+        "query_params": {
+          "q": "mimeType='application/vnd.google-apps.folder' AND trashed=false",
+          "fields": "files(id, name, parents, modifiedTime)",
+          "orderBy": "modifiedTime desc",
+          "pageSize": 50
+        },
+        "edge_function": "google-drive-folders",
+        "component": "components/upload/google-drive-folder-picker.tsx"
+      },
+
+      "features": {
+        "mvp_included": [
+          "List folders in root (My Drive)",
+          "Tap folder to navigate into it",
+          "Breadcrumb navigation (My Drive > Folder1 > Folder2)",
+          "Create new folder button",
+          "Default 'Noted Backups' folder (auto-created)",
+          "Select folder button"
+        ],
+        "mvp_excluded": [
+          "Search folders (too complex for MVP)",
+          "Recently used folders (requires tracking)",
+          "Nested navigation (show only root level for MVP)"
+        ],
+        "phase_2_enhancements": [
+          "Search folders by name",
+          "Recently used folders at top",
+          "Folder breadcrumb navigation",
+          "Shared with me folders"
+        ]
+      },
+
+      "mvp_simplification": {
+        "approach": "Flat folder list (root level only) for MVP",
+        "reason": "Nested navigation requires complex state management and multiple API calls",
+        "user_flow": [
+          "User opens folder picker",
+          "Shows list of folders in 'My Drive' root",
+          "User selects folder or creates new one",
+          "Upload happens to selected folder"
+        ],
+        "default_folder": {
+          "name": "Noted Backups",
+          "auto_create": true,
+          "description": "If user doesn't select folder, auto-create 'Noted Backups' in root and use it",
+          "create_on_first_upload": true
+        }
+      },
+
+      "api_implementation": {
+        "list_root_folders": {
+          "endpoint": "GET /drive/v3/files",
+          "query": "mimeType='application/vnd.google-apps.folder' AND 'root' in parents AND trashed=false",
+          "response": "{ files: [ { id, name, parents, modifiedTime } ] }"
+        },
+        "create_folder": {
+          "endpoint": "POST /drive/v3/files",
+          "body": "{ name: 'Noted Backups', mimeType: 'application/vnd.google-apps.folder' }",
+          "response": "{ id, name }"
+        }
+      },
+
+      "ui_design": {
+        "modal_title": "Select Folder",
+        "empty_state": "No folders found. Create one to get started.",
+        "loading_state": "Loading folders...",
+        "folder_list_item": {
+          "icon": "folder icon",
+          "name": "Folder name",
+          "tap_action": "Select this folder"
+        },
+        "actions": [
+          {
+            "button": "Create Folder",
+            "position": "Bottom of list",
+            "action": "Show inline folder name input"
+          },
+          {
+            "button": "Use Default",
+            "action": "Close picker, use 'Noted Backups' (auto-created)"
+          }
+        ]
+      }
+    },
+
+    "progress_indicator": {
+      "during_upload": {
+        "visual": "Linear progress bar in modal",
+        "text": "Uploading to Google Drive...",
+        "percentage": "Show % if available",
+        "cancelable": true,
+        "cancel_button": "Cancel Upload"
+      },
+
+      "upload_cancellation": {
+        "implementation": "AbortController API (supported by Drive API)",
+        "client_side": {
+          "create_controller": "const abortController = new AbortController();",
+          "pass_to_function": "uploadToGoogleDrive(noteData, options, abortController.signal)",
+          "cancel_on_button_tap": "abortController.abort(); // User taps Cancel"
+        },
+        "edge_function": {
+          "accept_signal": "Accept abort signal from client (via timeout mechanism)",
+          "alternative": "Edge Functions can't directly receive AbortSignal, but upload can timeout",
+          "workaround": "Set reasonable timeout (60s), client closes modal to 'cancel' UX-wise"
+        },
+        "user_experience": {
+          "during_upload": "Cancel button visible",
+          "on_cancel": "Upload stops, modal closes, toast: 'Upload cancelled'",
+          "note": "Edge Function may complete even if user cancels (eventual consistency OK)"
+        },
+        "mvp_approach": {
+          "client_cancel": "Close modal, stop showing progress",
+          "backend": "Upload may complete anyway (user won't see result)",
+          "reason": "True cancellation requires streaming/chunked uploads (complex for MVP)"
+        }
+      },
+      "on_success": {
+        "toast": "Uploaded to Google Drive",
+        "duration": "4 seconds",
+        "action_button": "Open in Drive",
+        "action": "Opens file in Google Drive app/web",
+        "auto_dismiss": true
+      },
+      "on_error": {
+        "toast": "Upload failed: [error message]",
+        "retry_button": "Retry",
+        "fallback_message": "Try exporting instead",
+        "action": "Re-open upload options modal with previous settings"
+      }
+    },
+
+    "error_scenarios": {
+      "auth_expired": {
+        "message": "Google Drive connection expired",
+        "action": "Re-authenticate",
+        "flow": "Trigger OAuth flow again"
+      },
+      "network_error": {
+        "message": "Network error. Check your connection.",
+        "action": "Retry"
+      },
+      "quota_exceeded": {
+        "message": "Google Drive storage full",
+        "action": "Open Drive to manage storage"
+      },
+      "permission_denied": {
+        "message": "Permission denied. Reconnect Google Drive.",
+        "action": "Re-authenticate"
+      },
+      "invalid_filename": {
+        "message": "Invalid filename. Remove special characters.",
+        "action": "Edit filename in modal"
+      }
+    }
+  },
+
+  "technical_implementation": {
+    "architecture": {
+      "frontend": "React Native components for upload UI",
+      "backend": "Supabase Edge Functions for OAuth and API proxying",
+      "storage": "Supabase database for encrypted tokens",
+      "security": "All OAuth tokens stored server-side, never exposed to client"
+    },
+
+    "new_components": [
+      {
+        "file": "components/upload/upload-to-drive-button.tsx",
+        "purpose": "Upload action button in NoteActionsModal",
+        "props": {
+          "noteId": "string",
+          "noteTitle": "string",
+          "noteContent": "string",
+          "onUploadSuccess": "(fileUrl: string) => void"
+        },
+        "features": [
+          "Shows connection status",
+          "Handles OAuth initiation",
+          "Opens upload options modal"
+        ]
+      },
+      {
+        "file": "components/upload/google-drive-upload-modal.tsx",
+        "purpose": "Upload options modal for Google Drive",
+        "props": {
+          "visible": "boolean",
+          "onClose": "() => void",
+          "noteTitle": "string",
+          "noteContent": "string",
+          "onUpload": "(options: UploadOptions) => Promise<void>"
+        },
+        "features": [
+          "Folder picker",
+          "Filename editor",
+          "Upload progress",
+          "Error handling"
+        ]
+      },
+      {
+        "file": "components/upload/google-drive-folder-picker.tsx",
+        "purpose": "Folder selection modal",
+        "props": {
+          "visible": "boolean",
+          "onClose": "() => void",
+          "onSelectFolder": "(folderId: string, folderName: string) => void"
+        },
+        "features": [
+          "List user's Drive folders",
+          "Create new folder",
+          "Search folders",
+          "Recently used folders"
+        ]
+      },
+      {
+        "file": "components/upload/google-oauth-connect-modal.tsx",
+        "purpose": "First-time OAuth connection modal",
+        "props": {
+          "visible": "boolean",
+          "onClose": "() => void",
+          "onConnect": "() => void"
+        },
+        "content": "Explains why Google Drive access is needed, what permissions are requested"
+      }
+    ],
+
+    "new_services": [
+      {
+        "file": "services/upload/google-drive.ts",
+        "purpose": "Google Drive API integration",
+        "exports": [
+          "checkGoogleDriveConnection(): Promise<boolean>",
+          "initializeGoogleOAuth(): Promise<void>",
+          "uploadToGoogleDrive(noteData, options): Promise<{fileId, fileUrl}>",
+          "listDriveFolders(query?): Promise<Folder[]>",
+          "createDriveFolder(name, parentId?): Promise<{folderId, folderName}>",
+          "disconnectGoogleDrive(): Promise<void>"
+        ],
+        "implementation_notes": [
+          "All API calls go through Supabase Edge Functions",
+          "Never expose tokens to client",
+          "Handle token refresh automatically",
+          "Proper error handling with user-friendly messages"
+        ]
+      },
+      {
+        "file": "services/upload/types.ts",
+        "purpose": "TypeScript interfaces for upload functionality",
+        "exports": [
+          "UploadOptions",
+          "DriveFolder",
+          "UploadResult",
+          "GoogleDriveConnection"
+        ]
+      }
+    ],
+
+    "supabase_edge_functions": [
+      {
+        "function": "google-oauth-init",
+        "file": "supabase/functions/google-oauth-init/index.ts",
+        "purpose": "Initialize Google OAuth flow",
+        "method": "POST",
+        "request": {
+          "userId": "string"
+        },
+        "response": {
+          "authUrl": "string (Google OAuth consent screen URL)"
+        },
+        "implementation": [
+          "Generate state parameter (CSRF protection)",
+          "Store state in database temporarily",
+          "Return Google OAuth URL with client_id, scopes, redirect_uri"
+        ]
+      },
+      {
+        "function": "google-oauth-callback",
+        "file": "supabase/functions/google-oauth-callback/index.ts",
+        "purpose": "Handle OAuth callback and exchange code for tokens",
+        "method": "GET",
+        "query_params": {
+          "code": "string (OAuth code)",
+          "state": "string (CSRF token)"
+        },
+        "implementation": [
+          "Validate state parameter",
+          "Exchange code for access_token and refresh_token",
+          "Encrypt tokens using Supabase vault",
+          "Store in user_google_drive_connections table",
+          "Redirect back to app with success"
+        ]
+      },
+      {
+        "function": "google-drive-upload",
+        "file": "supabase/functions/google-drive-upload/index.ts",
+        "purpose": "Upload file to Google Drive",
+        "method": "POST",
+        "request": {
+          "userId": "string",
+          "fileName": "string",
+          "fileContent": "string (markdown content)",
+          "folderId": "string | null",
+          "includeTimestamp": "boolean"
+        },
+        "response": {
+          "success": "boolean",
+          "fileId": "string",
+          "fileUrl": "string (viewable link)",
+          "error": "string | null"
+        },
+        "implementation": [
+          "Retrieve user's encrypted tokens",
+          "Check token expiration, refresh if needed",
+          "Create folder if folderId is 'CREATE_DEFAULT'",
+          "Upload file to Drive using multipart upload",
+          "Set file permissions for sharing (anyone with link)",
+          "Return shareable link"
+        ]
+      },
+      {
+        "function": "google-drive-folders",
+        "file": "supabase/functions/google-drive-folders/index.ts",
+        "purpose": "List user's Google Drive folders",
+        "method": "GET",
+        "query_params": {
+          "userId": "string",
+          "query": "string (optional search)"
+        },
+        "response": {
+          "folders": "Array<{id, name, path}>"
+        }
+      },
+      {
+        "function": "google-drive-create-folder",
+        "file": "supabase/functions/google-drive-create-folder/index.ts",
+        "purpose": "Create a new folder in Google Drive",
+        "method": "POST",
+        "request": {
+          "userId": "string",
+          "folderName": "string",
+          "parentFolderId": "string | null"
+        },
+        "response": {
+          "folderId": "string",
+          "folderName": "string"
+        }
+      }
+    ],
+
+    "database_schema": {
+      "table": "user_google_drive_connections",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "description": "Primary key",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "description": "Foreign key to auth.users",
+          "references": "auth.users(id)",
+          "on_delete": "CASCADE"
+        },
+        {
+          "name": "access_token_encrypted",
+          "type": "text",
+          "description": "Encrypted OAuth access token",
+          "nullable": false
+        },
+        {
+          "name": "refresh_token_encrypted",
+          "type": "text",
+          "description": "Encrypted OAuth refresh token",
+          "nullable": false
+        },
+        {
+          "name": "token_expires_at",
+          "type": "timestamp with time zone",
+          "description": "Access token expiration time",
+          "nullable": false
+        },
+        {
+          "name": "scopes",
+          "type": "text[]",
+          "description": "Granted OAuth scopes",
+          "nullable": false
+        },
+        {
+          "name": "user_email",
+          "type": "text",
+          "description": "Google account email",
+          "nullable": true
+        },
+        {
+          "name": "connected_at",
+          "type": "timestamp with time zone",
+          "description": "When user connected Google Drive",
+          "default": "now()"
+        },
+        {
+          "name": "last_used_at",
+          "type": "timestamp with time zone",
+          "description": "Last upload timestamp",
+          "nullable": true
+        },
+        {
+          "name": "default_folder_id",
+          "type": "text",
+          "description": "User's preferred upload folder",
+          "nullable": true
+        },
+        {
+          "name": "last_token_refresh_at",
+          "type": "timestamp with time zone",
+          "description": "When access token was last refreshed",
+          "nullable": true
+        },
+        {
+          "name": "refresh_token_valid",
+          "type": "boolean",
+          "description": "Whether refresh token is still valid (false if revoked)",
+          "default": true
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_user_google_drive ON user_google_drive_connections(user_id);",
+        "CREATE INDEX idx_last_used ON user_google_drive_connections(last_used_at DESC);",
+        "CREATE INDEX idx_token_validity ON user_google_drive_connections(refresh_token_valid) WHERE refresh_token_valid = true;"
+      ],
+
+      "rls_policies": {
+        "enable_rls": "ALTER TABLE user_google_drive_connections ENABLE ROW LEVEL SECURITY;",
+        "policies": [
+          {
+            "name": "users_select_own_connection",
+            "operation": "SELECT",
+            "sql": "CREATE POLICY users_select_own_connection ON user_google_drive_connections FOR SELECT TO authenticated USING (user_id = auth.uid());"
+          },
+          {
+            "name": "users_insert_own_connection",
+            "operation": "INSERT",
+            "sql": "CREATE POLICY users_insert_own_connection ON user_google_drive_connections FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());"
+          },
+          {
+            "name": "users_update_own_connection",
+            "operation": "UPDATE",
+            "sql": "CREATE POLICY users_update_own_connection ON user_google_drive_connections FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());"
+          },
+          {
+            "name": "users_delete_own_connection",
+            "operation": "DELETE",
+            "sql": "CREATE POLICY users_delete_own_connection ON user_google_drive_connections FOR DELETE TO authenticated USING (user_id = auth.uid());"
+          }
+        ],
+        "important_note": "Token columns (access_token_encrypted, refresh_token_encrypted) should NEVER be exposed to client, even with RLS. Use Edge Functions with service role to access tokens."
+      },
+
+      "token_encryption": {
+        "wrong_approach": "Supabase Vault is for application secrets (API keys), NOT user data",
+        "correct_approach": "Use pgcrypto extension for column-level encryption",
+
+        "setup": {
+          "step_1_enable_extension": "CREATE EXTENSION IF NOT EXISTS pgcrypto;",
+          "step_2_create_encryption_key": {
+            "method": "Store encryption key in Supabase secrets (not in code)",
+            "key_name": "GOOGLE_TOKEN_ENCRYPTION_KEY",
+            "generate": "openssl rand -base64 32",
+            "store": "Supabase Dashboard → Project Settings → Secrets"
+          }
+        },
+
+        "encryption_functions": {
+          "encrypt_token": {
+            "sql": "CREATE OR REPLACE FUNCTION encrypt_token(token TEXT)\nRETURNS TEXT AS $$\nBEGIN\n  RETURN encode(\n    pgp_sym_encrypt(\n      token::text,\n      current_setting('app.settings.encryption_key'),\n      'cipher-algo=aes256'\n    ),\n    'base64'\n  );\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;"
+          },
+          "decrypt_token": {
+            "sql": "CREATE OR REPLACE FUNCTION decrypt_token(encrypted_token TEXT)\nRETURNS TEXT AS $$\nBEGIN\n  RETURN pgp_sym_decrypt(\n    decode(encrypted_token, 'base64'),\n    current_setting('app.settings.encryption_key')\n  )::text;\nEND;\n$$ LANGUAGE plpgsql SECURITY DEFINER;",
+            "note": "SECURITY DEFINER ensures only this function can access encryption key"
+          }
+        },
+
+        "usage_in_edge_functions": {
+          "insert_example": "await supabase\n  .from('user_google_drive_connections')\n  .insert({\n    user_id: userId,\n    access_token_encrypted: await encrypt_token(accessToken),\n    refresh_token_encrypted: await encrypt_token(refreshToken),\n    ...\n  })",
+          "select_example": "const { data } = await supabase.rpc('decrypt_token', {\n  encrypted_token: row.access_token_encrypted\n});\nconst accessToken = data;"
+        },
+
+        "alternative_simpler_approach": {
+          "method": "Use Supabase built-in encryption with pgsodium",
+          "requires": "Supabase Pro plan or self-hosted",
+          "column_type": "Use 'pgsodium.encrypted_text' type instead of 'text'",
+          "automatic": "Encryption/decryption handled automatically by Supabase",
+          "recommendation": "Use pgcrypto for MVP (works on free tier), migrate to pgsodium later if needed"
+        }
+      },
+
+      "security_notes": [
+        "Tokens are NEVER returned to client in SELECT queries",
+        "Edge Functions use service role to decrypt tokens (bypass RLS)",
+        "Client only sees connection status (boolean), never tokens",
+        "Encryption key stored in Supabase secrets, never in code or database",
+        "Use SECURITY DEFINER functions to control who can decrypt"
+      ]
+    },
+
+    "oauth_configuration": {
+      "google_cloud_console_setup": [
+        "Create new project in Google Cloud Console",
+        "Enable Google Drive API",
+        "Create OAuth 2.0 credentials (Web application)",
+        "Set authorized redirect URIs (Supabase Edge Function URL)",
+        "Configure OAuth consent screen (app name, logo, privacy policy)",
+        "Add scopes: drive.file, drive.folder"
+      ],
+      "environment_variables": {
+        "GOOGLE_CLIENT_ID": "Your Google OAuth client ID",
+        "GOOGLE_CLIENT_SECRET": "Your Google OAuth client secret",
+        "GOOGLE_REDIRECT_URI": "https://[project].supabase.co/functions/v1/google-oauth-callback"
+      },
+      "scopes_requested": [
+        "https://www.googleapis.com/auth/drive.file",
+        "https://www.googleapis.com/auth/drive.folder"
+      ],
+      "scope_descriptions": {
+        "drive.file": "View and manage Google Drive files created by this app",
+        "drive.folder": "View and manage Google Drive folders"
+      }
+    },
+
+    "security_considerations": {
+      "token_storage": "All OAuth tokens encrypted at rest using pgcrypto (AES-256)",
+      "token_usage": "Tokens only used server-side (Edge Functions), never sent to client",
+      "token_refresh": "Automatically refresh expired tokens before API calls",
+      "token_revocation": "User can disconnect Google Drive (deletes tokens + calls Google revoke API)",
+      "csrf_protection": "State parameter in OAuth flow prevents CSRF attacks (handled by expo-auth-session)",
+      "pkce": "PKCE flow mandatory for mobile OAuth (handled by expo-auth-session)",
+      "https_only": "All OAuth redirects use HTTPS",
+      "scope_minimization": "Only request drive.file scope (not full Drive access)",
+      "audit_log": "Log upload attempts (user_id, timestamp, success/failure) for security review"
+    },
+
+    "rate_limiting_and_quota_management": {
+      "google_drive_api_limits": {
+        "per_user_quota": "1,000 requests per 100 seconds per user",
+        "queries_per_day": "1 billion queries per day (shared across all users)",
+        "upload_limit": "10,000 requests per 100 seconds per project",
+        "source": "https://developers.google.com/drive/api/guides/limits"
+      },
+
+      "rate_limit_handling": {
+        "429_error": {
+          "error": "HTTP 429 Too Many Requests",
+          "response_header": "Retry-After: <seconds>",
+          "action": "Exponential backoff with Retry-After value"
+        },
+        "exponential_backoff": {
+          "formula": "delay = min(2^attempt * 1000, 32000) ms",
+          "max_attempts": 5,
+          "example": "1s, 2s, 4s, 8s, 16s, 32s (capped)"
+        },
+        "implementation_location": "Edge Function: google-drive-upload"
+      },
+
+      "client_side_throttling": {
+        "purpose": "Prevent user from spamming upload button",
+        "implementation": {
+          "disable_button": "Disable Upload button during upload",
+          "debounce": "300ms debounce on Upload button",
+          "cooldown": "5 second cooldown between uploads (optional for MVP)"
+        }
+      },
+
+      "edge_function_rate_limiting": {
+        "per_user_limit": "100 uploads per day (configurable)",
+        "storage": "Track in upload_queue table or separate rate_limit_tracker table",
+        "check": "Before initiating upload, count uploads in last 24 hours",
+        "error_response": "{ error: 'Daily upload limit reached (100). Try again tomorrow.', code: 429 }",
+        "mvp_approach": "Skip per-user rate limiting for MVP, add in Phase 2 if abuse detected"
+      },
+
+      "monitoring": {
+        "track_metrics": [
+          "429 errors per day",
+          "Average upload requests per user",
+          "Peak upload times"
+        ],
+        "alert_thresholds": {
+          "429_errors": "Alert if > 100 per day",
+          "quota_usage": "Alert if approaching 80% of daily quota"
+        }
+      }
+    },
+
+    "duplicate_upload_detection": {
+      "problem": "User could upload same note multiple times, creating 'Note.md (1), (2), (3)...' in Drive",
+
+      "mvp_approach": "Allow duplicates (simpler)",
+      "reason": "Google Drive handles duplicates gracefully by auto-renaming. Detection adds complexity.",
+
+      "phase_2_prevention": {
+        "method_1_check_by_name": {
+          "api": "GET /drive/v3/files?q=name='Note.md' AND 'folderId' in parents",
+          "action": "If file exists, ask user: 'Note.md already exists. Overwrite or create new?'",
+          "complexity": "Medium"
+        },
+        "method_2_track_uploads": {
+          "table": "upload_history (note_id, file_id, uploaded_at)",
+          "check": "If note_id exists in history, show 'Already uploaded' with 'Update' or 'Create New' options",
+          "complexity": "High (requires tracking)"
+        },
+        "method_3_content_hash": {
+          "check": "Hash note content, compare with previously uploaded files",
+          "complexity": "Very High (requires storing hashes, comparing content)"
+        }
+      },
+
+      "recommended_phase_2": "Method 1 (check by name) - Balance of simplicity and usefulness"
+    },
+
+    "token_refresh_failure_handling": {
+      "overview": "Refresh tokens can expire or be revoked by user. Must handle gracefully without silent failures.",
+
+      "refresh_token_lifetime": {
+        "google_policy": "Refresh tokens expire if unused for 6 months OR user revokes access",
+        "detection": "Google returns 400 or 401 when refresh token is invalid",
+        "app_behavior": "Mark connection as invalid, prompt re-authentication"
+      },
+
+      "token_refresh_flow": {
+        "step_1_check_expiration": {
+          "when": "Before every Drive API call",
+          "action": "Check if access_token expires within 5 minutes",
+          "logic": "if (token_expires_at - now() < 5 minutes) → attempt refresh"
+        },
+        "step_2_attempt_refresh": {
+          "action": "POST to Google token endpoint with refresh_token",
+          "request": {
+            "grant_type": "refresh_token",
+            "refresh_token": "encrypted_refresh_token",
+            "client_id": "GOOGLE_CLIENT_ID",
+            "client_secret": "GOOGLE_CLIENT_SECRET"
+          },
+          "success_response": {
+            "access_token": "new_access_token",
+            "expires_in": 3600,
+            "token_type": "Bearer"
+          },
+          "success_action": [
+            "Update access_token_encrypted",
+            "Update token_expires_at (now + expires_in)",
+            "Update last_token_refresh_at",
+            "Continue with original API call"
+          ]
+        },
+        "step_3_handle_refresh_failure": {
+          "error_codes": {
+            "invalid_grant": "Refresh token expired or revoked",
+            "invalid_client": "Client credentials wrong (config error)",
+            "unauthorized_client": "Client not authorized (OAuth config issue)"
+          },
+          "action_on_invalid_grant": [
+            "Set refresh_token_valid = false in database",
+            "Return error to client: AUTH_EXPIRED",
+            "Client shows re-authentication prompt"
+          ],
+          "action_on_other_errors": [
+            "Log error for debugging",
+            "Retry once after 2 seconds",
+            "If still fails → mark as invalid and prompt re-auth"
+          ]
+        }
+      },
+
+      "user_facing_behavior": {
+        "scenario_1_user_tries_upload": {
+          "trigger": "User taps Upload button",
+          "backend_detects": "Refresh token invalid",
+          "error_returned": "{ error: 'AUTH_EXPIRED', code: 401 }",
+          "ui_response": {
+            "toast": "Google Drive connection expired. Please reconnect.",
+            "action_button": "Reconnect",
+            "on_tap": "Trigger OAuth flow again (same as initial connection)"
+          }
+        },
+        "scenario_2_silent_refresh_success": {
+          "trigger": "User taps Upload, access token expired but refresh works",
+          "backend": "Silently refreshes token, continues upload",
+          "ui_response": "User sees normal upload progress (no interruption)"
+        },
+        "scenario_3_user_revoked_in_google": {
+          "trigger": "User revoked app access in Google Account settings",
+          "detection": "Next upload attempt → refresh fails with invalid_grant",
+          "ui_response": "Same as scenario_1 (reconnect prompt)",
+          "note": "App can't detect revocation until next API call"
+        }
+      },
+
+      "edge_function_implementation": {
+        "function": "google-drive-upload (and all Drive API functions)",
+        "pseudocode": "async function uploadToDrive(userId, file) {\n  // 1. Get user's tokens\n  const conn = await getConnection(userId);\n  if (!conn || !conn.refresh_token_valid) {\n    return { error: 'AUTH_EXPIRED', code: 401 };\n  }\n\n  // 2. Check if access token needs refresh\n  if (isTokenExpiringSoon(conn.token_expires_at)) {\n    const refreshResult = await refreshAccessToken(conn.refresh_token);\n    if (refreshResult.error) {\n      // Refresh failed → mark as invalid\n      await markTokenInvalid(userId);\n      return { error: 'AUTH_EXPIRED', code: 401 };\n    }\n    // Update tokens\n    await updateTokens(userId, refreshResult.access_token, refreshResult.expires_in);\n  }\n\n  // 3. Proceed with upload using valid access token\n  const result = await callDriveAPI(file);\n  return result;\n}"
+      },
+
+      "database_updates": {
+        "mark_invalid_query": "UPDATE user_google_drive_connections SET refresh_token_valid = false WHERE user_id = $1",
+        "update_after_refresh": "UPDATE user_google_drive_connections SET access_token_encrypted = $1, token_expires_at = $2, last_token_refresh_at = NOW() WHERE user_id = $3"
+      },
+
+      "client_side_handling": {
+        "service_method": "services/upload/google-drive.ts → uploadToGoogleDrive()",
+        "error_handling": "try {\n  const result = await supabase.functions.invoke('google-drive-upload', { body });\n  if (result.error?.code === 401) {\n    // Token expired\n    showReconnectPrompt();\n    return;\n  }\n  // Handle other errors or success\n} catch (error) {\n  // Network or other errors\n  showErrorToast('Upload failed. Please try again.');\n}",
+        "reconnect_prompt_component": "components/upload/reconnect-google-drive-modal.tsx"
+      },
+
+      "periodic_validation": {
+        "optional_feature": "Check token validity on app startup (Settings screen)",
+        "frequency": "Once per app launch (not every screen change)",
+        "purpose": "Proactively detect invalid tokens before user tries to upload",
+        "implementation": "Call Edge Function: check-drive-connection → returns { connected: boolean, needs_reauth: boolean }",
+        "ui_indicator": "Settings → Google Drive section shows 'Connected' or 'Reconnect Required'"
+      },
+
+      "testing_scenarios": [
+        "Simulate token expiration (manually set token_expires_at to past)",
+        "Simulate refresh failure (mock Google API 400 response)",
+        "Test user revoking access in Google Account settings",
+        "Test upload after token has been refreshed",
+        "Test concurrent uploads with expired token",
+        "Test re-authentication flow after expiration"
+      ]
+    },
+
+    "upload_queue_and_retry_mechanism": {
+      "overview": "Network failures during upload should not lose user work. Implement retry logic and failed upload queue.",
+
+      "failure_scenarios": {
+        "network_timeout": "User's internet drops mid-upload",
+        "api_error": "Google Drive API returns 500/503 (service unavailable)",
+        "rate_limit": "Google API rate limit exceeded (429)",
+        "partial_upload": "Upload starts but fails before completion",
+        "app_backgrounded": "User switches apps during upload (mobile only)"
+      },
+
+      "retry_strategy": {
+        "immediate_retry": {
+          "errors": ["Network timeout", "500 Internal Server Error", "503 Service Unavailable"],
+          "max_attempts": 3,
+          "backoff": "Exponential (2s, 4s, 8s)",
+          "user_feedback": "Show 'Retrying...' message in upload modal"
+        },
+        "no_retry": {
+          "errors": ["400 Bad Request", "Invalid filename", "File too large"],
+          "reason": "User error or validation issue - retry won't help",
+          "user_feedback": "Show error message with fix suggestion"
+        },
+        "manual_retry": {
+          "errors": ["Auth expired", "Quota exceeded", "Permission denied"],
+          "reason": "Requires user action to resolve",
+          "user_feedback": "Show error with action button (Reconnect/Manage Storage)"
+        }
+      },
+
+      "upload_queue_database": {
+        "table": "upload_queue",
+        "purpose": "Persist failed uploads for later retry",
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()"
+          },
+          {
+            "name": "user_id",
+            "type": "uuid",
+            "references": "auth.users(id)"
+          },
+          {
+            "name": "note_id",
+            "type": "uuid",
+            "references": "notes(id)",
+            "nullable": true,
+            "note": "Nullable if note was deleted after upload queued"
+          },
+          {
+            "name": "note_title",
+            "type": "text",
+            "description": "Cached title (in case note deleted)"
+          },
+          {
+            "name": "note_content",
+            "type": "text",
+            "description": "Cached content at time of upload attempt"
+          },
+          {
+            "name": "upload_service",
+            "type": "text",
+            "description": "For MVP: always 'google_drive'"
+          },
+          {
+            "name": "upload_options",
+            "type": "jsonb",
+            "description": "Folder ID, filename, timestamp options"
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "description": "pending | retrying | failed | completed",
+            "default": "'pending'"
+          },
+          {
+            "name": "attempt_count",
+            "type": "integer",
+            "default": 0
+          },
+          {
+            "name": "last_error",
+            "type": "text",
+            "nullable": true
+          },
+          {
+            "name": "last_attempt_at",
+            "type": "timestamp with time zone",
+            "nullable": true
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": "now()"
+          },
+          {
+            "name": "completed_at",
+            "type": "timestamp with time zone",
+            "nullable": true
+          }
+        ],
+        "indexes": [
+          "CREATE INDEX idx_upload_queue_user ON upload_queue(user_id, status)",
+          "CREATE INDEX idx_upload_queue_pending ON upload_queue(status) WHERE status IN ('pending', 'retrying')"
+        ]
+      },
+
+      "retry_flow": {
+        "step_1_upload_fails": {
+          "trigger": "Network error or API failure during upload",
+          "action": "Insert into upload_queue with status = 'pending'"
+        },
+        "step_2_immediate_retry": {
+          "when": "If error is retryable (500, 503, timeout)",
+          "action": "Wait exponential backoff → retry up to 3 times",
+          "success": "Mark as completed, show success toast",
+          "failure_after_3_attempts": "Keep in queue as 'failed', show manual retry option"
+        },
+        "step_3_manual_retry": {
+          "trigger": "User taps 'Retry' button in failed uploads list",
+          "action": "Reset attempt_count, set status = 'retrying', attempt upload again",
+          "success": "Remove from queue, show success",
+          "failure": "Increment attempt_count, update last_error, show error"
+        },
+        "step_4_background_retry": {
+          "optional": "For future enhancement",
+          "when": "App comes to foreground or periodic check",
+          "action": "Retry all pending uploads",
+          "note": "MVP: Manual retry only"
+        }
+      },
+
+      "user_interface": {
+        "failed_uploads_indicator": {
+          "location": "Settings screen or Upload button",
+          "visual": "Badge with count (e.g., '2 failed uploads')",
+          "color": "Orange/warning color",
+          "on_tap": "Open failed uploads list"
+        },
+        "failed_uploads_list": {
+          "component": "components/upload/failed-uploads-list.tsx",
+          "location": "Settings → Google Drive → Failed Uploads",
+          "display": [
+            "Note title",
+            "Error message (user-friendly)",
+            "Time of failure",
+            "Retry button",
+            "Delete from queue button"
+          ],
+          "empty_state": "'No failed uploads' message"
+        },
+        "retry_button_behavior": {
+          "on_tap": "Set status to 'retrying', show loading state, attempt upload",
+          "success": "Remove from list, show 'Upload successful' toast",
+          "failure": "Update error message, keep in list, allow retry again"
+        }
+      },
+
+      "edge_function_updates": {
+        "google_drive_upload_modification": {
+          "add_retry_logic": "Wrap Drive API call in try-catch with retry loop",
+          "pseudocode": "async function uploadWithRetry(file, options) {\n  const MAX_RETRIES = 3;\n  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {\n    try {\n      const result = await callDriveAPI(file);\n      return { success: true, ...result };\n    } catch (error) {\n      if (!isRetryable(error) || attempt === MAX_RETRIES) {\n        return { success: false, error: error.message, retryable: isRetryable(error) };\n      }\n      await sleep(Math.pow(2, attempt) * 1000); // Exponential backoff\n    }\n  }\n}",
+          "return_format": "{ success: boolean, fileId?: string, fileUrl?: string, error?: string, retryable?: boolean }"
+        }
+      },
+
+      "client_side_implementation": {
+        "upload_service_update": {
+          "file": "services/upload/google-drive.ts",
+          "function": "uploadToGoogleDrive()",
+          "flow": "1. Call Edge Function\n2. If success → return result\n3. If failure:\n   - If retryable → Edge Function already retried\n   - Add to local queue (upload_queue table)\n   - Show 'Upload failed. View in Failed Uploads' toast\n   - Return error"
+        },
+        "add_to_queue": {
+          "function": "addToUploadQueue(noteData, uploadOptions, error)",
+          "action": "INSERT INTO upload_queue (...) VALUES (...)",
+          "notification": "Update badge count in UI"
+        },
+        "retry_from_queue": {
+          "function": "retryUpload(queueItemId)",
+          "action": "1. Get queue item\n2. Call uploadToGoogleDrive() again\n3. If success → DELETE from queue\n4. If failure → UPDATE attempt_count, last_error"
+        }
+      },
+
+      "mvp_scope": {
+        "included": [
+          "Database table for failed uploads",
+          "Immediate retry with exponential backoff (3 attempts)",
+          "Manual retry from Settings/Failed Uploads list",
+          "User-friendly error messages",
+          "Failed uploads badge indicator"
+        ],
+        "excluded_from_mvp": [
+          "Background retry (periodic checks)",
+          "Push notifications for failed uploads",
+          "Automatic retry when network restored",
+          "Batch retry all failed uploads"
+        ],
+        "future_enhancements": [
+          "Background job to retry pending uploads",
+          "Smart retry based on error type",
+          "Upload history (successful uploads)",
+          "Offline mode with upload queue"
+        ]
+      },
+
+      "error_messages": {
+        "network_timeout": {
+          "technical": "Network request timeout",
+          "user_friendly": "Upload timed out. Check your connection and retry.",
+          "retryable": true
+        },
+        "drive_api_500": {
+          "technical": "500 Internal Server Error",
+          "user_friendly": "Google Drive is temporarily unavailable. Retry in a moment.",
+          "retryable": true
+        },
+        "drive_api_429": {
+          "technical": "429 Too Many Requests",
+          "user_friendly": "Too many uploads. Please wait a minute and retry.",
+          "retryable": true
+        },
+        "quota_exceeded": {
+          "technical": "403 Storage quota exceeded",
+          "user_friendly": "Your Google Drive is full. Free up space and retry.",
+          "retryable": false,
+          "action": "Manage Storage"
+        },
+        "auth_expired": {
+          "technical": "401 Unauthorized",
+          "user_friendly": "Google Drive connection expired. Reconnect and retry.",
+          "retryable": false,
+          "action": "Reconnect"
+        }
+      },
+
+      "testing_scenarios": [
+        "Simulate network timeout during upload",
+        "Simulate Drive API 500 error",
+        "Test exponential backoff timing",
+        "Test max retry limit (3 attempts)",
+        "Test manual retry from failed uploads list",
+        "Test deleting note after upload queued",
+        "Test failed uploads badge count",
+        "Test retry after reconnecting auth",
+        "Test concurrent failed uploads"
+      ]
+    },
+
+    "file_size_and_quota_validation": {
+      "overview": "Validate file size and user's Drive quota before attempting upload to prevent wasted API calls and confusing errors.",
+
+      "file_size_limits": {
+        "google_drive_api_limit": "5GB per file",
+        "practical_note_limit": "5MB (markdown notes rarely exceed this)",
+        "app_enforced_limit": "10MB (safety buffer)",
+        "reason": "Notes are text-based, images embedded as base64 may increase size"
+      },
+
+      "pre_upload_validation": {
+        "step_1_calculate_size": {
+          "when": "User taps Upload in options modal",
+          "action": "Calculate note content size in bytes",
+          "formula": "new Blob([noteContent]).size",
+          "unit": "Bytes → convert to MB for display"
+        },
+        "step_2_check_size_limit": {
+          "condition": "if (fileSizeMB > 10)",
+          "user_message": "Note is too large to upload (10MB limit). Try removing images or splitting the note.",
+          "action": "Block upload, show error toast",
+          "alternative": "Suggest Export instead"
+        },
+        "step_3_check_drive_quota": {
+          "when": "After size validation passes",
+          "action": "Call Edge Function: check-drive-quota",
+          "api_call": "GET https://www.googleapis.com/drive/v3/about?fields=storageQuota",
+          "response": "{ limit: string, usage: string, usageInDrive: string }",
+          "calculation": "availableSpace = limit - usage"
+        },
+        "step_4_quota_validation": {
+          "condition": "if (fileSizeMB > availableSpaceMB)",
+          "user_message": "Not enough space in Google Drive. Free up space or upgrade storage.",
+          "action": "Block upload, show error with 'Manage Storage' button",
+          "manage_storage_link": "https://drive.google.com/settings/storage"
+        },
+        "step_5_quota_warning": {
+          "condition": "if (availableSpaceMB - fileSizeMB < 100MB)",
+          "user_message": "Warning: Google Drive is almost full (less than 100MB remaining)",
+          "action": "Show warning but allow upload",
+          "ui": "Yellow warning banner in upload modal"
+        }
+      },
+
+      "edge_function_quota_check": {
+        "function": "check-drive-quota",
+        "file": "supabase/functions/check-drive-quota/index.ts",
+        "method": "GET",
+        "query_params": {
+          "userId": "string"
+        },
+        "implementation": [
+          "Retrieve user's access token",
+          "Call Drive API: GET /drive/v3/about?fields=storageQuota",
+          "Parse quota response",
+          "Return formatted quota info"
+        ],
+        "response": {
+          "success": "boolean",
+          "quota": {
+            "limitMB": "number",
+            "usageMB": "number",
+            "availableMB": "number",
+            "percentUsed": "number"
+          },
+          "error": "string | null"
+        },
+        "caching": {
+          "strategy": "Cache quota data for 5 minutes (avoid repeated API calls)",
+          "implementation": "Store in user_google_drive_connections.metadata.quota_cache",
+          "invalidation": "After successful upload, update cached usage"
+        }
+      },
+
+      "user_interface": {
+        "upload_modal_size_display": {
+          "location": "Below filename input in upload modal",
+          "text": "File size: 1.2 MB",
+          "color": {
+            "green": "< 1MB",
+            "orange": "1-5MB",
+            "red": "> 5MB (with warning)"
+          }
+        },
+        "quota_display": {
+          "location": "Bottom of upload modal",
+          "text": "Drive storage: 8.5 GB of 15 GB available",
+          "visual": "Optional: Small progress bar",
+          "update": "Refresh when modal opens"
+        },
+        "validation_errors": {
+          "file_too_large": {
+            "title": "File Too Large",
+            "message": "This note is [X] MB, which exceeds the 10 MB upload limit.",
+            "suggestion": "Try removing images or splitting into multiple notes.",
+            "action": "Export instead"
+          },
+          "quota_exceeded": {
+            "title": "Google Drive Full",
+            "message": "Not enough space in your Google Drive. You need [X] MB but only have [Y] MB available.",
+            "action": "Manage Storage (opens Drive settings)"
+          },
+          "quota_warning": {
+            "title": "Drive Almost Full",
+            "message": "You have less than 100 MB remaining in Google Drive.",
+            "action": "Continue anyway / Manage Storage"
+          }
+        }
+      },
+
+      "optimization": {
+        "quota_caching": {
+          "strategy": "Cache quota check for 5 minutes",
+          "reason": "Avoid API call on every upload",
+          "invalidation": "After successful upload (update cached usage)"
+        },
+        "size_calculation": {
+          "client_side": "Calculate size before calling Edge Function",
+          "reason": "Save Edge Function invocation if file too large",
+          "implementation": "const sizeBytes = new TextEncoder().encode(content).length"
+        }
+      },
+
+      "mvp_scope": {
+        "included": [
+          "Client-side file size check (10MB limit)",
+          "Drive quota check before upload",
+          "User-friendly error messages",
+          "File size display in upload modal",
+          "Quota warning for low storage"
+        ],
+        "optional_for_mvp": [
+          "Quota display in upload modal (nice-to-have)",
+          "Progress bar for quota usage",
+          "Quota caching (implement if time permits)"
+        ],
+        "excluded_from_mvp": [
+          "Automatic compression for large files",
+          "Split large notes into multiple files",
+          "Upload to multiple drives if one is full"
+        ]
+      },
+
+      "testing_scenarios": [
+        "Test upload with note < 1MB (should succeed)",
+        "Test upload with note > 10MB (should block)",
+        "Simulate Drive quota exceeded (mock API response)",
+        "Simulate Drive with < 100MB available (warning)",
+        "Test quota cache expiration",
+        "Test size calculation accuracy",
+        "Test with note containing large base64 images"
+      ]
+    },
+
+    "edge_function_timeout_configuration": {
+      "overview": "Configure appropriate timeouts for Edge Functions to handle large uploads and slow networks.",
+
+      "supabase_edge_function_limits": {
+        "default_timeout": "60 seconds",
+        "maximum_timeout": "300 seconds (5 minutes)",
+        "payload_size_limit": "10MB request body",
+        "response_size_limit": "6MB",
+        "note": "Timeouts apply per function invocation"
+      },
+
+      "timeout_configuration_per_function": {
+        "google_oauth_init": {
+          "timeout": "10 seconds",
+          "reason": "Simple auth URL generation",
+          "failure_mode": "User sees connection error, can retry"
+        },
+        "google_oauth_callback": {
+          "timeout": "15 seconds",
+          "reason": "Token exchange with Google, usually fast but account for network latency",
+          "failure_mode": "OAuth fails, user must restart flow"
+        },
+        "google_drive_upload": {
+          "timeout": "60 seconds (default)",
+          "reason": "Most notes upload in < 5 seconds, 60s handles slow networks + large files",
+          "failure_mode": "Upload fails, added to retry queue",
+          "timeout_error_handling": "Return { success: false, error: 'Upload timed out', retryable: true }"
+        },
+        "google_drive_folders": {
+          "timeout": "15 seconds",
+          "reason": "Listing folders is usually fast (< 2s)",
+          "failure_mode": "Folder picker shows error, user can retry"
+        },
+        "google_drive_create_folder": {
+          "timeout": "10 seconds",
+          "reason": "Creating folder is quick",
+          "failure_mode": "Folder creation fails, user can retry"
+        },
+        "check_drive_quota": {
+          "timeout": "10 seconds",
+          "reason": "Simple API call to get quota info",
+          "failure_mode": "Quota check skipped, upload proceeds without validation (acceptable)"
+        }
+      },
+
+      "timeout_implementation": {
+        "deno_deploy_config": {
+          "note": "Timeouts configured in deno.json or function code",
+          "default": "Uses Supabase default (60s)",
+          "custom": "Wrap fetch calls with AbortController for custom timeouts"
+        },
+        "example_custom_timeout": {
+          "code": "const controller = new AbortController();\nconst timeoutId = setTimeout(() => controller.abort(), 60000); // 60s\n\ntry {\n  const response = await fetch(url, {\n    signal: controller.signal,\n    ...options\n  });\n  clearTimeout(timeoutId);\n  return response;\n} catch (error) {\n  if (error.name === 'AbortError') {\n    throw new Error('Request timed out');\n  }\n  throw error;\n}"
+        }
+      },
+
+      "client_side_timeout_handling": {
+        "upload_modal": {
+          "show_timeout_warning": "After 30 seconds, show 'Upload is taking longer than usual...' message",
+          "user_action": "Allow cancel, timeout handled by Edge Function",
+          "timeout_error": "If Edge Function returns timeout error → add to retry queue"
+        },
+        "folder_picker": {
+          "timeout_handling": "Show 'Loading folders timed out. Retry?' message",
+          "fallback": "Use default folder (Noted Backups) if folder list fails"
+        }
+      },
+
+      "upload_size_vs_timeout": {
+        "estimation": {
+          "1MB_note": "~2-5 seconds (typical 4G/WiFi)",
+          "5MB_note": "~10-15 seconds",
+          "10MB_note": "~20-30 seconds",
+          "slow_network": "3G may take 2-3x longer"
+        },
+        "recommendation": "60 second timeout handles 10MB files even on slow networks"
+      },
+
+      "monitoring_and_logging": {
+        "log_timeout_occurrences": "Log all timeout errors for analysis",
+        "metrics_to_track": [
+          "Average upload duration by file size",
+          "Timeout frequency",
+          "Network conditions (if available)"
+        ],
+        "adjust_timeouts": "If timeouts are frequent (>5%), consider increasing timeout or optimizing upload"
+      },
+
+      "mvp_configuration": {
+        "use_defaults": "Use Supabase default 60s timeout for all functions",
+        "custom_timeouts_later": "Optimize timeout values in Phase 2 based on real usage data",
+        "immediate_action": "Document expected timeout behavior in error messages"
+      },
+
+      "testing_scenarios": [
+        "Test upload with simulated 50s delay (should succeed)",
+        "Test upload with simulated 70s delay (should timeout)",
+        "Test OAuth callback with slow network",
+        "Test folder list with API delay",
+        "Monitor actual upload times for 1MB, 5MB, 10MB notes"
+      ]
+    },
+
+    "connected_services_ui": {
+      "overview": "Settings screen section for managing Google Drive connection and viewing upload history.",
+
+      "settings_screen_location": {
+        "section": "Settings → Cloud Services → Google Drive",
+        "alternative": "Settings → Google Drive (top-level if only one service)",
+        "access": "Tappable row in Settings list"
+      },
+
+      "google_drive_settings_screen": {
+        "title": "Google Drive",
+        "sections": [
+          {
+            "section": "Connection Status",
+            "content": [
+              {
+                "type": "status_card",
+                "connected_state": {
+                  "icon": "check-circle (green)",
+                  "title": "Connected",
+                  "subtitle": "user@gmail.com",
+                  "last_used": "Last upload: 2 hours ago",
+                  "action_button": "Disconnect"
+                },
+                "not_connected_state": {
+                  "icon": "cloud-off (gray)",
+                  "title": "Not Connected",
+                  "subtitle": "Connect Google Drive to upload notes",
+                  "action_button": "Connect"
+                },
+                "expired_state": {
+                  "icon": "alert-circle (orange)",
+                  "title": "Connection Expired",
+                  "subtitle": "Reconnect to continue uploading",
+                  "action_button": "Reconnect"
+                }
+              }
+            ]
+          },
+          {
+            "section": "Default Settings",
+            "content": [
+              {
+                "type": "setting_row",
+                "label": "Default Folder",
+                "value": "Noted Backups",
+                "on_tap": "Open folder picker to change default",
+                "note": "Only shown if connected"
+              },
+              {
+                "type": "toggle",
+                "label": "Include Timestamp in Filename",
+                "value": "boolean",
+                "description": "Append date to uploaded filenames",
+                "default": false
+              }
+            ]
+          },
+          {
+            "section": "Storage Info",
+            "content": [
+              {
+                "type": "storage_card",
+                "title": "Drive Storage",
+                "usage": "8.5 GB of 15 GB used (57%)",
+                "visual": "Progress bar",
+                "action": "Manage Storage (opens Google Drive)"
+              }
+            ],
+            "note": "Only shown if connected"
+          },
+          {
+            "section": "Failed Uploads",
+            "content": [
+              {
+                "type": "failed_uploads_row",
+                "label": "Failed Uploads",
+                "badge": "Count of failed uploads (if > 0)",
+                "on_tap": "Open failed uploads list",
+                "empty_state": "No failed uploads"
+              }
+            ],
+            "note": "Only shown if connected"
+          },
+          {
+            "section": "About",
+            "content": [
+              {
+                "type": "info_row",
+                "label": "Connected Since",
+                "value": "January 7, 2025"
+              },
+              {
+                "type": "info_row",
+                "label": "Total Uploads",
+                "value": "42 notes",
+                "note": "Optional metric"
+              },
+              {
+                "type": "link_row",
+                "label": "Privacy Policy",
+                "on_tap": "Open privacy policy for Drive integration"
+              }
+            ]
+          }
+        ]
+      },
+
+      "disconnect_flow": {
+        "step_1_user_taps_disconnect": {
+          "action": "Show confirmation modal"
+        },
+        "step_2_confirmation_modal": {
+          "title": "Disconnect Google Drive?",
+          "message": "You'll need to reconnect to upload notes again. Previously uploaded files will remain in your Drive.",
+          "actions": [
+            {
+              "label": "Cancel",
+              "style": "secondary"
+            },
+            {
+              "label": "Disconnect",
+              "style": "destructive",
+              "color": "red"
+            }
+          ]
+        },
+        "step_3_disconnect_action": {
+          "backend_call": "Edge Function: disconnect-google-drive",
+          "actions": [
+            "Revoke tokens with Google OAuth (POST https://oauth2.googleapis.com/revoke)",
+            "DELETE from user_google_drive_connections WHERE user_id = $1",
+            "Clear any cached data"
+          ]
+        },
+        "step_4_success": {
+          "toast": "Google Drive disconnected",
+          "ui_update": "Show 'Not Connected' state in settings"
+        }
+      },
+
+      "failed_uploads_list_screen": {
+        "title": "Failed Uploads",
+        "empty_state": {
+          "icon": "check-circle",
+          "title": "No Failed Uploads",
+          "subtitle": "All uploads succeeded"
+        },
+        "list_item": {
+          "note_title": "Note title",
+          "error_message": "User-friendly error",
+          "timestamp": "Failed 2 hours ago",
+          "actions": [
+            {
+              "button": "Retry",
+              "style": "primary",
+              "on_tap": "Attempt upload again"
+            },
+            {
+              "button": "Remove",
+              "style": "secondary",
+              "on_tap": "Delete from queue"
+            }
+          ]
+        },
+        "batch_actions": {
+          "clear_all": "Remove All (at bottom of list)",
+          "retry_all": "Retry All (future enhancement)"
+        }
+      },
+
+      "components_to_create": [
+        {
+          "file": "app/settings/google-drive.tsx",
+          "purpose": "Google Drive settings screen"
+        },
+        {
+          "file": "components/settings/connection-status-card.tsx",
+          "purpose": "Reusable connection status display"
+        },
+        {
+          "file": "components/settings/storage-info-card.tsx",
+          "purpose": "Drive storage usage display"
+        },
+        {
+          "file": "components/upload/failed-uploads-list.tsx",
+          "purpose": "Failed uploads list screen"
+        },
+        {
+          "file": "components/upload/disconnect-confirmation-modal.tsx",
+          "purpose": "Disconnect confirmation"
+        }
+      ],
+
+      "database_queries": {
+        "get_connection_status": "SELECT user_email, connected_at, last_used_at, refresh_token_valid FROM user_google_drive_connections WHERE user_id = $1",
+        "get_failed_uploads_count": "SELECT COUNT(*) FROM upload_queue WHERE user_id = $1 AND status = 'failed'",
+        "get_failed_uploads": "SELECT * FROM upload_queue WHERE user_id = $1 AND status IN ('pending', 'failed') ORDER BY created_at DESC",
+        "delete_connection": "DELETE FROM user_google_drive_connections WHERE user_id = $1"
+      },
+
+      "mvp_scope": {
+        "included": [
+          "Connection status card",
+          "Connect/Disconnect buttons",
+          "Failed uploads list",
+          "Disconnect confirmation",
+          "Basic settings screen"
+        ],
+        "optional_for_mvp": [
+          "Default folder setting",
+          "Storage info card (if time permits)",
+          "Upload statistics"
+        ],
+        "excluded_from_mvp": [
+          "Upload history (successful uploads)",
+          "Usage analytics",
+          "Multiple account support",
+          "Advanced upload settings"
+        ]
+      },
+
+      "testing_scenarios": [
+        "Test connect flow from settings",
+        "Test disconnect flow with confirmation",
+        "Test settings screen when not connected",
+        "Test settings screen when connected",
+        "Test failed uploads list with items",
+        "Test failed uploads list empty state",
+        "Test retry from failed uploads list",
+        "Test remove from failed uploads list"
+      ]
+    }
+  },
+
+  "implementation_checklist": [
+    {
+      "phase": "Setup",
+      "tasks": [
+        "Create Google Cloud project and enable Drive API",
+        "Configure OAuth 2.0 credentials",
+        "Add environment variables to Supabase",
+        "Create database migration for user_google_drive_connections table",
+        "Run migration in development"
+      ]
+    },
+    {
+      "phase": "Backend",
+      "tasks": [
+        "Create google-oauth-init Edge Function",
+        "Create google-oauth-callback Edge Function",
+        "Create google-drive-upload Edge Function",
+        "Create google-drive-folders Edge Function",
+        "Create google-drive-create-folder Edge Function",
+        "Test all Edge Functions with Postman/curl",
+        "Add error handling and logging"
+      ]
+    },
+    {
+      "phase": "Frontend Services",
+      "tasks": [
+        "Create services/upload/types.ts",
+        "Create services/upload/google-drive.ts",
+        "Implement checkGoogleDriveConnection()",
+        "Implement initializeGoogleOAuth()",
+        "Implement uploadToGoogleDrive()",
+        "Implement listDriveFolders()",
+        "Implement createDriveFolder()",
+        "Implement disconnectGoogleDrive()"
+      ]
+    },
+    {
+      "phase": "Frontend Components",
+      "tasks": [
+        "Create google-oauth-connect-modal.tsx",
+        "Create google-drive-folder-picker.tsx",
+        "Create google-drive-upload-modal.tsx",
+        "Create upload-to-drive-button.tsx",
+        "Add Upload button to NoteActionsModal",
+        "Test OAuth flow end-to-end",
+        "Test upload flow with various options",
+        "Test error scenarios"
+      ]
+    },
+    {
+      "phase": "Testing",
+      "tasks": [
+        "Test first-time OAuth connection",
+        "Test upload with default folder",
+        "Test upload with custom folder",
+        "Test upload with folder creation",
+        "Test upload with timestamp",
+        "Test token refresh (expired token scenario)",
+        "Test network error handling",
+        "Test disconnection flow",
+        "Test with multiple notes",
+        "Test concurrent uploads (if applicable)"
+      ]
+    },
+    {
+      "phase": "Polish",
+      "tasks": [
+        "Add loading states to all buttons",
+        "Add success animations",
+        "Add error toasts with helpful messages",
+        "Add 'Open in Drive' action after upload",
+        "Add connection status indicator",
+        "Update Settings screen with Google Drive disconnect option",
+        "Add upload history (optional)",
+        "Documentation for users"
+      ]
+    }
+  ],
+
+  "future_enhancements": {
+    "phase_2_features": [
+      "Add more cloud services (Dropbox, OneDrive)",
+      "Batch upload (multiple notes at once)",
+      "Automatic backup on save (opt-in)",
+      "Upload history log",
+      "Conflict resolution (if file exists)",
+      "PDF and HTML export to Drive",
+      "Bi-directional sync (edit in Drive, sync to app)"
+    ]
+  },
+
+  "notes": [
+    "MVP focuses on Google Drive only to validate architecture",
+    "OAuth flow must be secure (server-side token handling)",
+    "Default 'Noted Backups' folder for simplicity",
+    "Shareable link generation is key feature",
+    "Token refresh handled automatically in Edge Functions",
+    "User should be able to disconnect easily from Settings",
+    "Consider rate limits: 1000 requests per 100 seconds per user (Drive API)",
+    "File size limit: 5GB (Drive API), but notes are typically <1MB"
+  ]
+}

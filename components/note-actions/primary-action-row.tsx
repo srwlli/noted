@@ -6,9 +6,11 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 interface PrimaryAction {
   icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
+  sublabel?: string;  // Optional secondary text (e.g., 'Connect Drive', 'Publish first')
   onPress: () => void;
   disabled?: boolean;
   destructive?: boolean;
+  accent?: boolean;
 }
 
 interface PrimaryActionRowProps {
@@ -26,8 +28,22 @@ export function PrimaryActionRow({ actions, title }: PrimaryActionRowProps) {
       )}
       <View style={styles.row}>
       {actions.map((action, index) => {
-        const iconColor = action.destructive ? '#dc2626' : colors.text;
-        const textColor = action.destructive ? '#dc2626' : colors.text;
+        const iconColor = action.destructive
+          ? '#dc2626'
+          : action.accent
+          ? colors.tint
+          : colors.text;
+        const textColor = action.destructive
+          ? '#dc2626'
+          : action.accent
+          ? colors.tint
+          : colors.text;
+        const backgroundColor = action.accent
+          ? `${colors.tint}15` // 15 is ~8% opacity in hex
+          : colors.surface;
+        const borderColor = action.accent
+          ? colors.tint
+          : colors.border;
 
         return (
           <TouchableOpacity
@@ -35,8 +51,8 @@ export function PrimaryActionRow({ actions, title }: PrimaryActionRowProps) {
             style={[
               styles.button,
               {
-                backgroundColor: colors.surface,
-                borderColor: colors.border,
+                backgroundColor,
+                borderColor,
               },
               action.disabled && styles.disabled
             ]}
@@ -59,6 +75,17 @@ export function PrimaryActionRow({ actions, title }: PrimaryActionRowProps) {
             >
               {action.label}
             </Text>
+            {action.sublabel && (
+              <Text
+                style={[
+                  styles.sublabel,
+                  { color: colors.textSecondary },
+                  action.disabled && styles.disabled
+                ]}
+              >
+                {action.sublabel}
+              </Text>
+            )}
           </TouchableOpacity>
         );
       })}
@@ -96,6 +123,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  sublabel: {
+    fontSize: 12,
+    fontWeight: '400',
+    textAlign: 'center',
+    marginTop: -4,
   },
   disabled: {
     opacity: 0.5,

@@ -244,8 +244,8 @@ const styles = StyleSheet.create({
   bottomSheet: {
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 32,
-    maxHeight: '70%',
+    paddingBottom: 80, // Account for tab bar (49px) + extra padding
+    maxHeight: '80%', // Allow taller sheets but cap at 80%
   },
   handleContainer: {
     alignItems: 'center',
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   scrollView: {
-    maxHeight: 400,
+    flexShrink: 1, // Allow content to naturally size based on folder count
   },
   loadingContainer: {
     alignItems: 'center',

@@ -1,0 +1,714 @@
+{
+  "title": "Publish Action MVP - Make Notes Publicly Accessible",
+  "subtitle": "Create shareable public URLs for notes with one-click publish/unpublish",
+  "version": "0.1.0-mvp",
+  "date": "2025-10-08",
+  "status": "ready_for_execution",
+
+  "mvp_scope": {
+    "goal": "Enable users to publish private notes as public web pages with shareable URLs",
+    "what_we_include": [
+      "Publish button in NoteActionsModal",
+      "Simple publish modal with URL preview",
+      "Automatic slug generation from note title",
+      "Public note view route (/p/[slug])",
+      "Copy public URL to clipboard",
+      "Unpublish functionality",
+      "published_notes database table",
+      "RLS policies for public access",
+      "Slug uniqueness validation",
+      "Note not found / unpublished handling"
+    ],
+    "what_we_exclude": [
+      "Custom slug editing (auto-generated only)",
+      "SEO metadata (og:image, description)",
+      "Password protection",
+      "Expiration dates / time-limited links",
+      "View count analytics",
+      "Public note comments",
+      "Custom domains",
+      "QR code generation",
+      "Social media auto-posting"
+    ]
+  },
+
+  "dependency_chain": {
+    "purpose": "Publish is prerequisite for Embed feature",
+    "chain": "Private Note → Publish (creates /p/[slug]) → Embed (iframe to /p/[slug])",
+    "blocked_features": [
+      "Embed action (requires public URL)",
+      "Upload to Google Docs (requires published note for sharing)"
+    ],
+    "note": "Export works independently (no Publish dependency)"
+  },
+
+  "modal_styling_requirements": {
+    "pattern": "Match NoteActionsModal, FolderPickerModal, and EmbedModal pattern",
+    "purpose": "Ensure visual consistency across all app modals",
+    "styles": {
+      "backdrop": {
+        "backgroundColor": "rgba(0, 0, 0, 0.5)",
+        "flex": 1,
+        "justifyContent": "flex-end"
+      },
+      "bottomSheet": {
+        "borderTopLeftRadius": 20,
+        "borderTopRightRadius": 20,
+        "paddingBottom": 80,
+        "maxHeight": "80%",
+        "backgroundColor": "colors.elevatedSurface"
+      },
+      "handle": {
+        "width": 40,
+        "height": 4,
+        "borderRadius": 2,
+        "backgroundColor": "colors.border",
+        "description": "Drag indicator at top of modal"
+      },
+      "scrollView": {
+        "flexShrink": 1,
+        "description": "Allow content to naturally size based on content"
+      }
+    },
+    "behavior": "FLEX - Modal height adapts to content size, capped at 80% screen height",
+    "animationType": "slide",
+    "note": "PublishModal must follow this exact styling pattern"
+  },
+
+  "ui_behavior_standards": {
+    "purpose": "Ensure behavioral consistency across Export, Embed, Upload, and Publish actions",
+    "modal_pattern": "All modals use bottom sheet pattern with flex sizing (maxHeight 80%)",
+    "button_states": {
+      "unpublished": {
+        "label": "Publish",
+        "icon": "public",
+        "sublabel": null,
+        "disabled": false,
+        "action": "Opens PublishModal"
+      },
+      "published": {
+        "label": "Published",
+        "icon": "check-circle",
+        "sublabel": "Tap to unpublish",
+        "disabled": false,
+        "accent": true,
+        "action": "Opens PublishModal (shows URL + Unpublish)"
+      }
+    },
+    "toast_pattern": "Use loading toast with ID replacement: toast.loading(msg) → toast.success/error(msg, { id })",
+    "modal_close_timing": "Modal stays open after publish (allows copy URL). Close on user action only.",
+    "clipboard_action": "Copy URL button uses Expo Clipboard API (requires HTTPS in production)",
+    "reference_implementation": "Export and Upload actions follow all standards - use as reference"
+  },
+
+  "user_flow_unpublished": {
+    "step_1": "User opens NoteActionsModal for unpublished note",
+    "step_2": "User sees 'Publish' button (icon: public)",
+    "step_3": "User taps 'Publish' button",
+    "step_4": "PublishModal opens showing preview: 'Your note will be available at: https://noted.app/p/note-title-slug'",
+    "step_5": "User taps 'Publish Note' button",
+    "step_6": "Loading toast: 'Publishing note...'",
+    "step_7": "Success toast: 'Note published!' (replaces loading toast)",
+    "step_8": "Modal updates to show: Public URL + Copy URL button + Unpublish button",
+    "step_9": "User taps 'Copy URL' to copy public link",
+    "step_10": "Toast: 'Link copied to clipboard!'",
+    "step_11": "User closes modal or taps Unpublish"
+  },
+
+  "user_flow_published": {
+    "step_1": "User opens NoteActionsModal for published note",
+    "step_2": "User sees 'Published' button with accent styling (icon: check-circle, sublabel: 'Tap to unpublish')",
+    "step_3": "User taps 'Published' button",
+    "step_4": "PublishModal opens showing: Public URL + Copy URL button + Unpublish button",
+    "step_5a": "User taps 'Copy URL' → Toast: 'Link copied!'",
+    "step_5b": "User taps 'Unpublish' → Confirmation prompt",
+    "step_6": "User confirms unpublish",
+    "step_7": "Loading toast: 'Unpublishing note...'",
+    "step_8": "Success toast: 'Note unpublished'",
+    "step_9": "Modal closes, button reverts to 'Publish' state"
+  },
+
+  "database_schema": {
+    "table": "published_notes",
+    "purpose": "Track which notes are publicly accessible and their slugs",
+    "columns": [
+      {
+        "name": "id",
+        "type": "UUID",
+        "default": "uuid_generate_v4()",
+        "primary_key": true
+      },
+      {
+        "name": "note_id",
+        "type": "UUID",
+        "references": "notes(id) ON DELETE CASCADE",
+        "unique": true,
+        "not_null": true,
+        "description": "One-to-one with notes table"
+      },
+      {
+        "name": "user_id",
+        "type": "UUID",
+        "references": "auth.users(id) ON DELETE CASCADE",
+        "not_null": true,
+        "description": "Owner of the published note"
+      },
+      {
+        "name": "slug",
+        "type": "TEXT",
+        "unique": true,
+        "not_null": true,
+        "description": "URL-safe slug for public access"
+      },
+      {
+        "name": "published_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "default": "NOW()",
+        "not_null": true
+      },
+      {
+        "name": "updated_at",
+        "type": "TIMESTAMP WITH TIME ZONE",
+        "default": "NOW()",
+        "not_null": true,
+        "description": "Updated when note content changes"
+      }
+    ],
+    "indexes": [
+      {
+        "name": "idx_published_notes_slug",
+        "columns": ["slug"],
+        "unique": true,
+        "description": "Fast slug lookup for public route"
+      },
+      {
+        "name": "idx_published_notes_note_id",
+        "columns": ["note_id"],
+        "unique": true,
+        "description": "Fast check if note is published"
+      },
+      {
+        "name": "idx_published_notes_user_id",
+        "columns": ["user_id"],
+        "description": "List all published notes for a user"
+      }
+    ],
+    "migration_file": "supabase/migrations/[timestamp]_create_published_notes.sql"
+  },
+
+  "slug_generation": {
+    "algorithm": "URL-safe transformation of note title with collision handling",
+    "steps": [
+      "1. Take note title (first 60 chars if longer)",
+      "2. Convert to lowercase",
+      "3. Replace spaces with hyphens",
+      "4. Remove special characters (keep alphanumeric, hyphens, underscores)",
+      "5. Remove consecutive hyphens (-- → -)",
+      "6. Trim leading/trailing hyphens",
+      "7. If empty after cleaning, use 'untitled-note'",
+      "8. Check uniqueness in database",
+      "9. If collision, append random 6-char suffix: slug-a3b9f2",
+      "10. Retry until unique (max 5 attempts)"
+    ],
+    "examples": [
+      {
+        "title": "My First Note!",
+        "slug": "my-first-note"
+      },
+      {
+        "title": "React Best Practices (2024)",
+        "slug": "react-best-practices-2024"
+      },
+      {
+        "title": "Untitled",
+        "slug": "untitled-note"
+      },
+      {
+        "title": "My First Note! (collision)",
+        "slug": "my-first-note-a3b9f2"
+      }
+    ],
+    "implementation": "services/publish/slug-generator.ts",
+    "validation": "Slug must match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/"
+  },
+
+  "rls_policies": {
+    "purpose": "Allow public read access to published notes, restrict write to owners",
+    "policies": [
+      {
+        "table": "published_notes",
+        "name": "Anyone can view published notes",
+        "operation": "SELECT",
+        "using": "true",
+        "description": "Public read access for all published notes"
+      },
+      {
+        "table": "published_notes",
+        "name": "Users can publish their own notes",
+        "operation": "INSERT",
+        "with_check": "auth.uid() = user_id",
+        "description": "Only note owner can publish"
+      },
+      {
+        "table": "published_notes",
+        "name": "Users can unpublish their own notes",
+        "operation": "DELETE",
+        "using": "auth.uid() = user_id",
+        "description": "Only note owner can unpublish"
+      },
+      {
+        "table": "published_notes",
+        "name": "Users can update their published notes",
+        "operation": "UPDATE",
+        "using": "auth.uid() = user_id",
+        "description": "Allow updating updated_at timestamp"
+      }
+    ],
+    "notes_table_policy": {
+      "name": "Anyone can view published note content",
+      "operation": "SELECT",
+      "using": "EXISTS (SELECT 1 FROM published_notes WHERE published_notes.note_id = notes.id)",
+      "description": "Allow public read of note content if published"
+    }
+  },
+
+  "routes": {
+    "public_note_view": {
+      "path": "app/p/[slug].tsx",
+      "purpose": "Public view of published note (accessible without login)",
+      "layout": "Minimal - header with logo + note title, markdown content, no navigation",
+      "components": [
+        "Logo/branding in header",
+        "Note title (read-only)",
+        "Markdown renderer (react-native-markdown-display)",
+        "Theme support (light/dark based on system preference)"
+      ],
+      "data_fetching": {
+        "method": "Server-side fetch from published_notes + notes tables",
+        "query": "SELECT notes.* FROM notes JOIN published_notes ON notes.id = published_notes.note_id WHERE published_notes.slug = $1",
+        "error_handling": "404 page if slug not found or note unpublished"
+      },
+      "seo": {
+        "meta_title": "note.title || 'Noted - Published Note'",
+        "meta_description": "First 160 chars of note content (MVP: skip, Phase 2)",
+        "og_image": "Default Noted logo (MVP: skip, Phase 2)"
+      }
+    },
+    "embed_route": {
+      "path": "app/embed/[slug].tsx",
+      "purpose": "Embeddable view (no chrome) - created in Embed feature",
+      "relationship": "Uses same published_notes lookup, even more minimal layout",
+      "note": "Embed route depends on /p/[slug] existing first"
+    }
+  },
+
+  "ui_components": {
+    "publish_button": {
+      "location": "NoteActionsModal - Row 2 (Secondary Actions)",
+      "position": "After Export, before Organization",
+      "states": {
+        "unpublished": {
+          "icon": "public",
+          "label": "Publish",
+          "sublabel": null,
+          "disabled": false,
+          "accent": false,
+          "action": "Opens PublishModal"
+        },
+        "published": {
+          "icon": "check-circle",
+          "label": "Published",
+          "sublabel": "Tap to manage",
+          "disabled": false,
+          "accent": true,
+          "action": "Opens PublishModal (management view)"
+        }
+      },
+      "implementation": "Use PrimaryActionRow with dynamic accent prop based on publish status"
+    },
+    "publish_modal": {
+      "component": "PublishModal (new)",
+      "file": "components/publish/publish-modal.tsx",
+      "layout": "Bottom sheet modal (like NoteActionsModal)",
+      "props": {
+        "visible": "boolean",
+        "onClose": "() => void",
+        "noteId": "string",
+        "noteTitle": "string",
+        "isPublished": "boolean",
+        "currentSlug": "string | null",
+        "onPublishChanged": "() => void (refresh parent state)"
+      },
+      "sections_unpublished": [
+        {
+          "section": "Header",
+          "content": "Title: 'Publish Note' + drag handle"
+        },
+        {
+          "section": "Preview",
+          "content": "Text: 'Your note will be available at:' + URL preview (https://noted.app/p/generated-slug)"
+        },
+        {
+          "section": "Actions",
+          "buttons": [
+            {
+              "label": "Publish Note",
+              "style": "Primary (accent color)",
+              "action": "Call publishNote service"
+            },
+            {
+              "label": "Cancel",
+              "style": "Secondary (outline)",
+              "action": "Close modal"
+            }
+          ]
+        }
+      ],
+      "sections_published": [
+        {
+          "section": "Header",
+          "content": "Title: 'Published Note' + drag handle"
+        },
+        {
+          "section": "URL Display",
+          "content": "Public URL in copyable text field + Copy URL button"
+        },
+        {
+          "section": "Actions",
+          "buttons": [
+            {
+              "label": "Copy URL",
+              "style": "Primary (accent color)",
+              "icon": "content-copy",
+              "action": "Copy to clipboard + toast"
+            },
+            {
+              "label": "Unpublish",
+              "style": "Destructive (red)",
+              "icon": "delete",
+              "action": "Show confirmation → unpublish"
+            }
+          ]
+        }
+      ],
+      "state": {
+        "isPublishing": "boolean (loading state)",
+        "isUnpublishing": "boolean (loading state)",
+        "generatedSlug": "string | null (preview before publish)",
+        "publicUrl": "string | null (full URL after publish)"
+      }
+    },
+    "confirmation_dialog": {
+      "purpose": "Confirm unpublish action (destructive)",
+      "title": "Unpublish note?",
+      "message": "The public link will stop working. You can publish again later.",
+      "buttons": [
+        {
+          "label": "Cancel",
+          "style": "Secondary"
+        },
+        {
+          "label": "Unpublish",
+          "style": "Destructive (red)"
+        }
+      ],
+      "implementation": "Native Alert.alert or custom modal"
+    }
+  },
+
+  "technical_implementation": {
+    "new_files": [
+      {
+        "file": "services/publish/publish-service.ts",
+        "exports": [
+          "publishNote(noteId: string, noteTitle: string): Promise<{ slug: string, publicUrl: string }>",
+          "unpublishNote(noteId: string): Promise<void>",
+          "getPublishedStatus(noteId: string): Promise<{ isPublished: boolean, slug: string | null }>",
+          "getPublishedNoteBySlug(slug: string): Promise<Note | null>"
+        ],
+        "dependencies": ["slug-generator.ts", "supabase client"]
+      },
+      {
+        "file": "services/publish/slug-generator.ts",
+        "exports": [
+          "generateSlug(title: string): string",
+          "ensureUniqueSlug(baseSlug: string): Promise<string>"
+        ],
+        "logic": "URL-safe transformation + collision handling"
+      },
+      {
+        "file": "components/publish/publish-modal.tsx",
+        "description": "Bottom sheet modal for publish/unpublish",
+        "dependencies": ["publish-service.ts", "expo-clipboard"]
+      },
+      {
+        "file": "app/p/[slug].tsx",
+        "description": "Public note view route",
+        "dependencies": ["publish-service.ts", "markdown-renderer"]
+      },
+      {
+        "file": "supabase/migrations/[timestamp]_create_published_notes.sql",
+        "description": "Database migration for published_notes table + RLS policies"
+      }
+    ],
+    "modifications_needed": [
+      {
+        "file": "components/note-actions-modal.tsx",
+        "changes": [
+          "Import publish-service.ts",
+          "Add state: const [publishedStatus, setPublishedStatus] = useState({ isPublished: false, slug: null })",
+          "Add useEffect to fetch publish status on mount",
+          "Add Publish button to secondaryActions row",
+          "Add PublishModal component",
+          "Handle onPublishChanged callback to refresh state"
+        ]
+      },
+      {
+        "file": "types/database.ts (if exists)",
+        "changes": [
+          "Add PublishedNote interface",
+          "Add published_notes table type"
+        ]
+      }
+    ]
+  },
+
+  "publish_service_implementation": {
+    "file": "services/publish/publish-service.ts",
+    "code_outline": {
+      "publishNote": {
+        "steps": [
+          "1. Validate noteId exists and user owns it",
+          "2. Check if already published (return existing if so)",
+          "3. Generate slug from note title",
+          "4. Ensure slug uniqueness (add suffix if collision)",
+          "5. Insert into published_notes table",
+          "6. Return { slug, publicUrl: `https://noted.app/p/${slug}` }"
+        ],
+        "error_handling": [
+          "Note not found → throw 'Note not found'",
+          "User doesn't own note → throw 'Unauthorized'",
+          "Database error → throw 'Failed to publish note'"
+        ]
+      },
+      "unpublishNote": {
+        "steps": [
+          "1. Validate noteId exists and user owns published entry",
+          "2. Delete from published_notes table (CASCADE removes entry)",
+          "3. Return success"
+        ],
+        "error_handling": [
+          "Note not published → throw 'Note not published'",
+          "User doesn't own note → throw 'Unauthorized'",
+          "Database error → throw 'Failed to unpublish note'"
+        ]
+      },
+      "getPublishedStatus": {
+        "steps": [
+          "1. Query published_notes WHERE note_id = $1",
+          "2. Return { isPublished: !!result, slug: result?.slug || null }"
+        ]
+      },
+      "getPublishedNoteBySlug": {
+        "steps": [
+          "1. Query: SELECT notes.* FROM notes JOIN published_notes ON notes.id = published_notes.note_id WHERE published_notes.slug = $1",
+          "2. Return note or null"
+        ],
+        "usage": "Used by /p/[slug] route for public access"
+      }
+    }
+  },
+
+  "error_handling": {
+    "purpose": "Consistent error handling across all publish actions",
+    "error_scenarios": {
+      "note_not_found": {
+        "condition": "noteId doesn't exist in database",
+        "message": "Note not found",
+        "action": "Show error toast, close modal"
+      },
+      "unauthorized": {
+        "condition": "User doesn't own the note",
+        "message": "You don't have permission to publish this note",
+        "action": "Show error toast, close modal"
+      },
+      "slug_generation_failed": {
+        "condition": "Cannot generate unique slug after 5 attempts",
+        "message": "Failed to generate unique URL. Please try again.",
+        "action": "Show error toast, allow retry"
+      },
+      "database_error": {
+        "condition": "Supabase query fails",
+        "message": "Failed to publish note. Please try again.",
+        "action": "Show error toast with retry option"
+      },
+      "network_error": {
+        "condition": "No internet connection",
+        "message": "No internet connection",
+        "action": "Show error toast, keep modal open for retry"
+      },
+      "clipboard_error": {
+        "condition": "Clipboard API fails (HTTPS required on web)",
+        "message": "Failed to copy link. Try again or copy manually.",
+        "action": "Show error toast, keep URL visible for manual copy"
+      },
+      "already_published": {
+        "condition": "Attempting to publish already-published note",
+        "message": "Note is already published",
+        "action": "Skip publish, show existing URL (not an error, info toast)"
+      }
+    },
+    "implementation": {
+      "pattern": "try/catch with loading toast replacement",
+      "example": "const loadingToast = toast.loading('Publishing note...');\ntry {\n  const { slug, publicUrl } = await publishNote(noteId, noteTitle);\n  toast.success('Note published!', { id: loadingToast });\n  setPublicUrl(publicUrl);\n} catch (error) {\n  console.error('Publish failed:', error);\n  toast.error(error.message || 'Failed to publish note', { id: loadingToast });\n}"
+    }
+  },
+
+  "testing_checklist": [
+    "Publish button appears in NoteActionsModal (row 2, secondary actions)",
+    "Publish button shows correct state (unpublished vs published)",
+    "Clicking Publish opens modal with URL preview",
+    "Slug generation works correctly (URL-safe, unique)",
+    "Publishing creates entry in published_notes table",
+    "Public URL is accessible at /p/[slug]",
+    "Public note displays correct content without login",
+    "Copy URL button copies to clipboard",
+    "Toast appears on successful copy",
+    "Published button has accent styling",
+    "Clicking Published opens management modal",
+    "Unpublish shows confirmation dialog",
+    "Unpublishing removes entry from published_notes",
+    "Public URL returns 404 after unpublish",
+    "Publish button reverts to unpublished state after unpublish",
+    "Test with note title containing special characters",
+    "Test with very long note title (>60 chars)",
+    "Test with duplicate note titles (slug collision handling)",
+    "Test with empty/untitled note",
+    "Test error handling (network error, database error)",
+    "Test clipboard error on HTTP (non-HTTPS)",
+    "Test unauthorized access (user tries to publish someone else's note)",
+    "Verify RLS policies work (public can read, only owner can write)",
+    "Test /p/[slug] route with deleted note",
+    "Test /p/[slug] route with invalid slug"
+  ],
+
+  "phase_1_tasks": [
+    {
+      "task": "Create database migration",
+      "files": ["supabase/migrations/[timestamp]_create_published_notes.sql"],
+      "description": "Create published_notes table, indexes, RLS policies, notes table policy update"
+    },
+    {
+      "task": "Create slug generator service",
+      "files": ["services/publish/slug-generator.ts"],
+      "description": "URL-safe transformation + uniqueness validation"
+    },
+    {
+      "task": "Create publish service",
+      "files": ["services/publish/publish-service.ts"],
+      "description": "publishNote, unpublishNote, getPublishedStatus, getPublishedNoteBySlug functions"
+    },
+    {
+      "task": "Create public note route",
+      "files": ["app/p/[slug].tsx"],
+      "description": "Public view with minimal layout, markdown rendering, 404 handling"
+    },
+    {
+      "task": "Create PublishModal component",
+      "files": ["components/publish/publish-modal.tsx"],
+      "description": "Bottom sheet with unpublished/published states, copy URL, unpublish"
+    },
+    {
+      "task": "Add Publish button to NoteActionsModal",
+      "files": ["components/note-actions-modal.tsx"],
+      "description": "Fetch publish status, add button to row 2, integrate PublishModal"
+    },
+    {
+      "task": "Test publish/unpublish flow",
+      "description": "Manual QA - publish note, access public URL, copy link, unpublish"
+    },
+    {
+      "task": "Test RLS policies",
+      "description": "Verify public can read published notes, only owner can publish/unpublish"
+    },
+    {
+      "task": "Test error scenarios",
+      "description": "Network errors, slug collisions, unauthorized access, 404 handling"
+    }
+  ],
+
+  "requirements": {
+    "database": "Supabase with RLS enabled",
+    "authentication": "Supabase Auth (existing)",
+    "clipboard_api": "Expo Clipboard (requires HTTPS in production, localhost works for dev)",
+    "routing": "Expo Router (existing)",
+    "markdown_renderer": "react-native-markdown-display (existing)"
+  },
+
+  "estimated_effort": {
+    "database_migration": "1 hour (schema, indexes, RLS policies)",
+    "slug_generator": "1 hour (URL-safe logic + uniqueness)",
+    "publish_service": "2 hours (CRUD operations + error handling)",
+    "public_route": "2 hours (/p/[slug] layout, data fetching, 404)",
+    "publish_modal": "3 hours (UI, states, copy URL, unpublish confirmation)",
+    "noteactionsmodal_integration": "1 hour (button, state management, callbacks)",
+    "testing": "2 hours (manual QA, error scenarios, RLS verification)",
+    "total": "12-14 hours"
+  },
+
+  "success_criteria": [
+    "Publish button appears and works in NoteActionsModal",
+    "Published notes accessible at /p/[slug] without login",
+    "Slugs are URL-safe and unique",
+    "Copy URL button works on all platforms",
+    "Unpublish removes public access immediately",
+    "Published button has accent styling",
+    "RLS policies enforce security (public read, owner write)",
+    "404 page shown for invalid/unpublished slugs",
+    "Error handling works for all edge cases",
+    "Embed feature unblocked after Publish complete"
+  ],
+
+  "future_enhancements": {
+    "phase_2": [
+      "Custom slug editing (user can change auto-generated slug)",
+      "SEO metadata (og:title, og:description, og:image)",
+      "Public note analytics (view count, unique visitors)",
+      "Publish history (track republish dates)",
+      "Bulk publish/unpublish for multiple notes",
+      "Public note search (discover published notes from other users)"
+    ],
+    "phase_3": [
+      "Password-protected published notes",
+      "Expiration dates for time-limited sharing",
+      "Custom branding (remove Noted logo, use custom domain)",
+      "Public comments on published notes",
+      "QR code generation for easy mobile sharing",
+      "Social media auto-posting (Twitter, LinkedIn)"
+    ]
+  },
+
+  "security_considerations": {
+    "rls_critical": "RLS policies MUST be correct - public read, owner-only write",
+    "slug_validation": "Validate slug format to prevent injection attacks",
+    "rate_limiting": "Consider rate limiting publish actions (prevent spam)",
+    "content_moderation": "MVP: No moderation. Phase 2: Flag inappropriate content",
+    "deleted_notes": "CASCADE delete ensures published_notes removed when note deleted",
+    "unauthorized_access": "Service layer must verify user owns note before publish/unpublish"
+  },
+
+  "notes": [
+    "MVP = Functioning publish/unpublish + public URL access",
+    "No custom slugs, no SEO, no analytics in MVP",
+    "Focus on speed to unblock Embed feature",
+    "Slug generation must handle collisions gracefully",
+    "Public route (/p/[slug]) is minimal - just logo + content",
+    "Embed route (/embed/[slug]) will reuse same published_notes lookup",
+    "Clipboard API requires HTTPS - works in dev on localhost",
+    "RLS policies are critical - test thoroughly",
+    "Unpublish must show confirmation (destructive action)",
+    "Published button uses accent styling to indicate active state",
+    "Publish button in row 2 (secondary actions) - Export, Publish, Organization",
+    "One note can only be published once (one-to-one with published_notes)"
+  ]
+}

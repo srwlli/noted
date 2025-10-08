@@ -1,0 +1,360 @@
+{
+  "title": "Embed Action MVP - Simple Iframe Embeds",
+  "subtitle": "Copy iframe code to embed published notes on external websites",
+  "version": "0.1.0-mvp",
+  "date": "2025-10-07",
+  "status": "ready",
+
+  "mvp_scope": {
+    "goal": "Add functioning Embed button that generates iframe code for published notes",
+    "what_we_include": [
+      "Embed button in NoteActionsModal",
+      "Simple modal with iframe code",
+      "Copy-to-clipboard functionality",
+      "Basic customization (width, height, theme)",
+      "Prerequisite check (note must be published)"
+    ],
+    "what_we_exclude": [
+      "JavaScript widget (auto-height)",
+      "oEmbed protocol",
+      "Preview images",
+      "Advanced customization (borders, features)",
+      "Live preview pane",
+      "Analytics tracking",
+      "AMP/WordPress/React components"
+    ]
+  },
+
+  "modal_styling_requirements": {
+    "pattern": "Match NoteActionsModal and FolderPickerModal existing pattern",
+    "purpose": "Ensure visual consistency across all app modals",
+    "styles": {
+      "backdrop": {
+        "backgroundColor": "rgba(0, 0, 0, 0.5)",
+        "flex": 1,
+        "justifyContent": "flex-end"
+      },
+      "bottomSheet": {
+        "borderTopLeftRadius": 20,
+        "borderTopRightRadius": 20,
+        "paddingBottom": 80,
+        "maxHeight": "80%",
+        "backgroundColor": "colors.elevatedSurface"
+      },
+      "handle": {
+        "width": 40,
+        "height": 4,
+        "borderRadius": 2,
+        "backgroundColor": "colors.border",
+        "description": "Drag indicator at top of modal"
+      },
+      "scrollView": {
+        "flexShrink": 1,
+        "description": "Allow content to naturally size based on content"
+      }
+    },
+    "behavior": "FLEX - Modal height adapts to content size, capped at 80% screen height",
+    "animationType": "slide",
+    "note": "EmbedModal must follow this exact styling pattern"
+  },
+
+  "ui_behavior_standards": {
+    "purpose": "Ensure behavioral consistency across Export, Embed, and Upload actions",
+    "modal_pattern": "All modals use bottom sheet pattern with flex sizing (maxHeight 80%)",
+    "button_states": "Embed button should show 'Publish first' in sublabel when disabled (not just disabled silently)",
+    "progress_indication": "Not applicable (instant copy action <1s)",
+    "toast_pattern": "Use loading toast with ID replacement: toast.loading(msg) → toast.success/error(msg, { id })",
+    "modal_close_timing": "Modal stays open after copy (allows multiple copies). Close on user action only.",
+    "modal_close_option": "Consider adding 'Copy & Close' button alongside 'Copy Code' for convenience",
+    "reference_implementation": "Upload action follows all standards - use as reference for toast patterns"
+  },
+
+  "prerequisite": {
+    "requirement": "Note must be published (has public URL)",
+    "check": "published_note table has entry for this note_id",
+    "behavior_if_not_published": "Show modal: 'Publish your note first to enable embedding' with Publish button"
+  },
+
+  "user_flow": {
+    "step_1": "User opens NoteActionsModal for published note",
+    "step_2": "User taps 'Embed' button",
+    "step_3": "Embed modal opens with iframe code pre-generated",
+    "step_4": "User optionally adjusts width/height/theme",
+    "step_5": "User taps 'Copy Code' button",
+    "step_6": "Toast: 'Embed code copied!'",
+    "step_7": "User pastes code into their website HTML"
+  },
+
+  "ui_components": {
+    "embed_button": {
+      "location": "NoteActionsModal (existing modal)",
+      "position": "In action grid (probably Export card)",
+      "icon": "code-slash or embed icon",
+      "label": "Embed",
+      "sublabel": {
+        "enabled": "null or empty (no sublabel when enabled)",
+        "disabled": "'Publish first' (shows why button is disabled)"
+      },
+      "action": "Opens EmbedModal",
+      "disabled_if": "Note not published",
+      "implementation_note": "Use PrimaryActionRow with sublabel prop to show state, consistent with Upload button pattern"
+    },
+
+    "embed_modal": {
+      "component": "EmbedModal (new)",
+      "layout": "Bottom sheet modal (like NoteActionsModal)",
+      "sections": [
+        {
+          "section": "Header",
+          "content": "Title: 'Embed Note' + Close button"
+        },
+        {
+          "section": "Customization",
+          "fields": [
+            {
+              "label": "Width",
+              "type": "TextInput with presets",
+              "presets": ["100%", "800px", "600px"],
+              "default": "100%",
+              "validation": "MVP: Restrict to preset values only (dropdown). Phase 2: Validate CSS units (px, %, em, rem, vw, vh)"
+            },
+            {
+              "label": "Height",
+              "type": "TextInput with presets",
+              "presets": ["600px", "400px", "800px"],
+              "default": "600px",
+              "validation": "MVP: Restrict to preset values only (dropdown). Phase 2: Validate CSS units"
+            },
+            {
+              "label": "Theme",
+              "type": "Dropdown",
+              "options": ["Auto", "Light", "Dark"],
+              "default": "Auto"
+            }
+          ]
+        },
+        {
+          "section": "Code Output",
+          "content": "Code block with generated iframe code (syntax highlighted)",
+          "copyable": "Copy Code button",
+          "example": "<iframe src=\"https://noted.app/embed/my-note-slug\" width=\"100%\" height=\"600px\" frameborder=\"0\"></iframe>"
+        }
+      ]
+    }
+  },
+
+  "technical_implementation": {
+    "new_route_needed": {
+      "route": "/embed/[slug]",
+      "purpose": "Embeddable view of published note (no app chrome)",
+      "priority": "HIGH",
+      "details": "Stripped-down version of /p/[slug] with no header/footer/navigation"
+    },
+
+    "new_component": {
+      "file": "components/embeds/embed-modal.tsx",
+      "purpose": "Modal to generate and copy embed code",
+      "props": {
+        "visible": "boolean",
+        "publishedSlug": "string",
+        "noteTitle": "string",
+        "onClose": "() => void"
+      },
+      "state": {
+        "width": "string (default '100%')",
+        "height": "string (default '600px')",
+        "theme": "'auto' | 'light' | 'dark'",
+        "isGenerating": "boolean (loading state during copy)"
+      },
+      "methods": {
+        "generateIframeCode()": "Returns iframe HTML string",
+        "copyToClipboard()": "Copies code and shows toast"
+      }
+    },
+
+    "modifications_needed": [
+      {
+        "file": "components/note-actions-modal.tsx",
+        "change": "Add Embed button to action grid",
+        "disabled_logic": "Disabled if note not published"
+      },
+      {
+        "file": "app/embed/[slug].tsx (new)",
+        "purpose": "Embed page route",
+        "content": "Renders note content only (no UI chrome)"
+      }
+    ],
+
+    "code_generation_logic": {
+      "function": "generateIframeCode(slug, noteTitle, width, height, theme)",
+      "implementation": "return `<iframe src=\"https://noted.app/embed/${slug}${themeParam}\" title=\"${noteTitle}\" width=\"${width}\" height=\"${height}\" frameborder=\"0\" allowtransparency=\"true\" loading=\"lazy\"></iframe>`",
+      "theme_param": "?theme=light or ?theme=dark (omit for auto)",
+      "accessibility": "title attribute improves screen reader experience",
+      "styling": "allowtransparency enables better background styling flexibility"
+    }
+  },
+
+  "embed_page_implementation": {
+    "route": "app/embed/[slug].tsx",
+    "layout": "Minimal - no app header, no navigation, no footer",
+    "content": "Just the published note markdown content",
+    "styling": "Responsive, respects theme query param",
+    "query_params": {
+      "theme": "?theme=light or ?theme=dark (optional)"
+    },
+    "headers": {
+      "X-Frame-Options": "ALLOWALL",
+      "Content-Security-Policy": "frame-ancestors *",
+      "note": "MVP uses permissive headers for public embeds - Phase 2 can add domain allowlist"
+    }
+  },
+
+  "testing_checklist": [
+    "Embed button appears in NoteActionsModal",
+    "Embed button disabled for unpublished notes",
+    "Clicking Embed opens modal with pre-generated code",
+    "Changing width/height/theme updates code in real-time",
+    "Copy Code button copies to clipboard",
+    "Toast appears on successful copy",
+    "Test HTTPS clipboard requirement in production",
+    "Paste code into test HTML file",
+    "Open test HTML in browser - note embeds correctly",
+    "Test with deleted/unpublished note (should show 404)",
+    "Test theme=light query param",
+    "Test theme=dark query param",
+    "Test responsive width (100%)",
+    "Test fixed width (800px)",
+    "Test on mobile device (iframe scrollable)",
+    "Verify title attribute renders correctly in iframe",
+    "Verify allowtransparency works with parent site styles"
+  ],
+
+  "phase_1_tasks": [
+    {
+      "task": "Create /embed/[slug] route",
+      "files": ["app/embed/[slug].tsx"],
+      "description": "Minimal published note view (no chrome)"
+    },
+    {
+      "task": "Handle unpublished/deleted notes on embed route",
+      "files": ["app/embed/[slug].tsx"],
+      "description": "Show 404 or 'Note not available' if slug doesn't exist or note was unpublished"
+    },
+    {
+      "task": "Create EmbedModal component",
+      "files": ["components/embeds/embed-modal.tsx"],
+      "description": "Modal with width/height/theme inputs + code output"
+    },
+    {
+      "task": "Add Embed button to NoteActionsModal",
+      "files": ["components/note-actions-modal.tsx"],
+      "description": "New action button in grid"
+    },
+    {
+      "task": "Implement code generation logic",
+      "files": ["services/embed/generate-iframe-code.ts (optional helper)"],
+      "description": "Function to generate iframe HTML string"
+    },
+    {
+      "task": "Add clipboard copy functionality",
+      "files": ["components/embeds/embed-modal.tsx"],
+      "description": "Expo Clipboard API + toast feedback (requires HTTPS in production)"
+    },
+    {
+      "task": "Test embed in external HTML file",
+      "description": "Manual QA - paste code into test.html"
+    }
+  ],
+
+  "requirements": {
+    "clipboard_api": "Requires HTTPS in production (localhost works for dev)",
+    "https_note": "Expo Clipboard API requires secure context (HTTPS)",
+    "fallback": "Show 'HTTPS required' error if clipboard.setStringAsync fails"
+  },
+
+  "error_handling": {
+    "purpose": "Consistent error handling across all copy actions",
+    "error_scenarios": {
+      "clipboard_api_not_supported": {
+        "condition": "!navigator.clipboard && Platform.OS === 'web'",
+        "message": "Clipboard not supported in your browser",
+        "action": "Show error toast, suggest manual copy"
+      },
+      "https_required": {
+        "condition": "Platform.OS === 'web' && location.protocol !== 'https:'",
+        "message": "HTTPS required for clipboard access",
+        "action": "Show error toast with explanation"
+      },
+      "clipboard_permission_denied": {
+        "condition": "DOMException: NotAllowedError",
+        "message": "Clipboard permission denied",
+        "action": "Show error toast, suggest granting permission in browser settings"
+      },
+      "note_not_published": {
+        "condition": "!publishedSlug",
+        "message": "Note must be published first",
+        "action": "Disable button with sublabel 'Publish first'"
+      },
+      "network_error": {
+        "condition": "Failed to fetch published note data",
+        "message": "Failed to load note data",
+        "action": "Show error toast, suggest retrying"
+      }
+    },
+    "implementation": {
+      "file": "components/embeds/embed-modal.tsx",
+      "code": "const [isCopying, setIsCopying] = useState(false);\n\nconst handleCopyCode = async () => {\n  const loadingToast = toast.loading('Copying embed code...');\n  setIsCopying(true);\n  \n  try {\n    await Clipboard.setStringAsync(iframeCode);\n    toast.success('Embed code copied!', { id: loadingToast });\n  } catch (error: any) {\n    console.error('Clipboard copy failed:', error);\n    \n    let errorMessage = 'Failed to copy code';\n    \n    if (error.name === 'NotAllowedError') {\n      errorMessage = 'Clipboard permission denied. Check browser settings.';\n    } else if (Platform.OS === 'web' && !window.isSecureContext) {\n      errorMessage = 'HTTPS required for clipboard access';\n    } else if (!navigator.clipboard) {\n      errorMessage = 'Clipboard not supported in this browser';\n    }\n    \n    toast.error(errorMessage, { id: loadingToast });\n  } finally {\n    setIsCopying(false);\n  }\n};",
+      "note": "Use toast ID replacement pattern (consistent with Export and Upload)"
+    }
+  },
+
+  "estimated_effort": {
+    "embed_route": "30 minutes (copy /p/[slug] and strip chrome)",
+    "embed_modal_component": "1-2 hours (UI + state management)",
+    "button_integration": "15 minutes (add to NoteActionsModal)",
+    "code_generation": "30 minutes (string template function)",
+    "clipboard_copy": "15 minutes (Expo Clipboard + toast)",
+    "testing": "30 minutes (manual QA in browser)",
+    "total": "3-4 hours"
+  },
+
+  "success_criteria": [
+    "Embed button appears for published notes",
+    "Modal opens with valid iframe code",
+    "Code updates when options change",
+    "Copy to clipboard works",
+    "Pasted code embeds note successfully",
+    "Theme parameter works (light/dark/auto)",
+    "Responsive on mobile"
+  ],
+
+  "future_enhancements": {
+    "phase_2": [
+      "Live preview pane in modal",
+      "More customization (border, border-radius)",
+      "JavaScript widget with auto-height",
+      "Copy button for individual preset sizes",
+      "Domain allowlist for frame-ancestors (restrict embedding to specific sites)",
+      "Custom CSS unit validation for width/height inputs"
+    ],
+    "phase_3": [
+      "oEmbed protocol",
+      "Preview image generation",
+      "Analytics tracking (embed views)",
+      "Markdown embed format"
+    ]
+  },
+
+  "notes": [
+    "MVP = Functioning button + simple iframe code",
+    "No fancy preview, no analytics, no oEmbed",
+    "Focus on speed to launch",
+    "Can iterate with Phase 2/3 based on user feedback",
+    "Embed page is just stripped-down version of public page",
+    "Theme query param is optional (defaults to auto)",
+    "allowtransparency enables better styling flexibility for parent sites",
+    "title attribute improves accessibility (screen readers announce note title)",
+    "Clipboard API requires HTTPS - works in dev on localhost",
+    "Must handle deleted/unpublished notes gracefully on embed route (404 or error page)"
+  ]
+}

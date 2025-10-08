@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, StyleSheet, ActivityIndicator, Alert, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { SharedPageLayout } from '@/components/shared-page-layout';
 import { NoteItem } from '@/components/note-item';
@@ -53,6 +53,13 @@ export default function NotesScreen() {
     loadData();
     return () => { cancelled = true; };
   }, [selectedFolderId]);
+
+  // Refresh notes when screen regains focus (e.g., after creating/editing a note)
+  useFocusEffect(
+    React.useCallback(() => {
+      handleRefresh();
+    }, [selectedFolderId])
+  );
 
   useEffect(() => {
     const folderParam = params.folderId;

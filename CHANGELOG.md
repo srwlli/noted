@@ -8,6 +8,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Focus-Based Notes List Refresh** (2025-10-08)
+  - Notes list now automatically refreshes when returning from note editor
+  - Implemented useFocusEffect hook to detect screen focus events
+  - New notes appear immediately without manual refresh
+  - Works for creating new notes, editing existing notes, and deleting notes
+  - Eliminated confusing state where users had to pull-to-refresh to see changes
+  - Clean implementation: 4 lines of code using Expo Router's useFocusEffect
+  - No loading guard to prevent stale closure issues
+  - handleRefresh() manages state internally (refreshing indicator)
+  - Fixed root cause: router.back() doesn't trigger useEffect dependencies
+  - Documentation: improvements/state-management/state-management-review-v1.json
+
+### Added
+- **Note Title Auto-Save on Blur** (2025-10-07)
+  - Title field in NoteActionsModal now auto-saves when user taps away
+  - No explicit "Save" button needed - changes persist automatically
+  - Keyboard dismisses with "Done" button (returnKeyType)
+  - Error handling with toast notification and automatic revert on failure
+  - Natural UX pattern: tap title → edit → tap away → saved
+  - Prevents lost edits when closing modal
+- **AI Actions Accent Styling** (2025-10-07)
+  - AI Actions card now uses theme accent color for visual prominence
+  - Tint-colored icon, text, and border with subtle background tint
+  - New `accent` property in PrimaryActionRow component (similar to `destructive`)
+  - 8% opacity background tint for subtle highlighting without overwhelming UI
+  - Accent styling adapts to all 10 themes automatically
+  - Makes AI features discoverable without being intrusive
 - **AI Title Generation with Dual Access Points** (2025-10-07)
   - Moved Generate Title feature from editor header to markdown toolbar dropdown
   - Added AI Actions modal accessible from note bottom sheet (...) menu

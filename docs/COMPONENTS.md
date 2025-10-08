@@ -10,6 +10,12 @@
 
 Component library reference for the Noted Progressive Web App. All components follow a universal card-based architecture supporting **10 themes** (Monochrome, Ocean, Sepia, Nord, Crimson, Forest, Lavender, Amber, Midnight, Rose) with light/dark variants and an **18-color system**. Components are built with TypeScript, Material Design Icons, and integrated theme management with folder organization and favorites system. The app features a Dashboard landing page with favorite folders and recent notes for quick access.
 
+**Key Architectural Patterns:**
+- **Bottom Sheet Modal**: NoteActionsModal provides 3-row action grid accessible via (...) menu
+- **Action Card System**: Reusable PrimaryActionRow with 4 variants (Standard, Accent, Destructive, Disabled)
+- **Universal Card**: Single Card component powers all accordion UIs (info, settings, notes)
+- **Auto-Save Pattern**: Title fields save automatically on blur without explicit save buttons
+
 **Referenced Documentation:**
 - **README.md**: Setup, quickstart, and usage examples
 - **ARCHITECTURE.md**: System design, tech stack, and data flow patterns
@@ -26,10 +32,11 @@ Component library reference for the Noted Progressive Web App. All components fo
 5. [Info Card Components](#info-card-components)
 6. [Settings Card Components](#settings-card-components)
 7. [Note Components](#note-components)
-8. [Modal Components](#modal-components)
-9. [Hooks](#hooks)
-10. [Services Layer](#services-layer)
-11. [State Management](#state-management)
+8. [Action Components](#action-components)
+9. [Modal Components](#modal-components)
+10. [Hooks](#hooks)
+11. [Services Layer](#services-layer)
+12. [State Management](#state-management)
 
 ---
 
@@ -757,6 +764,202 @@ import { Collapsible } from '@/components/ui/collapsible';
 
 ---
 
+## Action Components
+
+### PrimaryActionRow
+
+Reusable action button row component for consistent action grids throughout the app. Used in NoteActionsModal for Export, Embed, Upload, and other actions.
+
+**Location**: `components/note-actions/primary-action-row.tsx`
+
+**Props:**
+```typescript
+interface PrimaryAction {
+  icon: keyof typeof MaterialIcons.glyphMap;  // Material icon name
+  label: string;                               // Primary label
+  sublabel?: string;                           // Optional state/status text
+  onPress: () => void;                        // Action handler
+  disabled?: boolean;                          // Disabled state
+  destructive?: boolean;                       // Red styling for dangerous actions
+  accent?: boolean;                            // Highlighted styling (tint color)
+}
+
+interface PrimaryActionRowProps {
+  actions: PrimaryAction[];  // Array of actions in this row
+  title?: string;            // Optional row title
+}
+```
+
+**Visual States:**
+```typescript
+// Default button
+{ icon: 'file-download', label: 'Export', onPress: handleExport }
+
+// With sublabel (shows state/prerequisite)
+{ icon: 'cloud-upload', label: 'Upload', sublabel: 'Connect Drive', onPress: handleUpload }
+{ icon: 'code', label: 'Embed', sublabel: 'Publish first', disabled: true, onPress: handleEmbed }
+
+// Destructive action (red)
+{ icon: 'delete', label: 'Delete', destructive: true, onPress: handleDelete }
+
+// Accent action (highlighted)
+{ icon: 'auto-awesome', label: 'AI Actions', accent: true, onPress: handleAI }
+
+// Disabled state
+{ icon: 'share', label: 'Share', disabled: true, onPress: handleShare }
+```
+
+**Styling Variants:**
+- **Default**: Surface background, border, text icon
+- **Accent**: Tint-colored background (8% opacity), tint border, tint icon/text
+- **Destructive**: Red icon and text (#dc2626)
+- **Disabled**: 50% opacity, non-interactive
+
+**Usage Example:**
+```typescript
+import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
+
+function NoteActionsModal() {
+  const [isConnected, setIsConnected] = useState(false);
+
+  const primaryActions = [
+    { icon: 'edit', label: 'Edit', onPress: handleEdit },
+    { icon: 'share', label: 'Share', onPress: handleShare },
+    { icon: 'content-copy', label: 'Duplicate', onPress: handleDuplicate },
+  ];
+
+  const secondaryActions = [
+    {
+      icon: 'auto-awesome',
+      label: 'AI Actions',
+      accent: true,
+      onPress: handleAI
+    },
+    { icon: 'file-download', label: 'Export', onPress: handleExport },
+    {
+      icon: 'cloud-upload',
+      label: 'Upload',
+      sublabel: isConnected ? 'Google Drive' : 'Connect Drive',
+      onPress: handleUpload
+    },
+  ];
+
+  const tertiaryActions = [
+    { icon: 'folder-open', label: 'Organization', onPress: handleOrganize },
+    {
+      icon: 'delete',
+      label: 'Delete',
+      destructive: true,
+      onPress: handleDelete
+    },
+  ];
+
+  return (
+    <View>
+      <PrimaryActionRow actions={primaryActions} />
+      <PrimaryActionRow actions={secondaryActions} />
+      <PrimaryActionRow actions={tertiaryActions} />
+    </View>
+  );
+}
+```
+
+**Action Button Structure:**
+```
+┌──────────────┐
+│              │
+│   [Icon 28]  │  ← Material icon, themed color
+│              │
+│   Label      │  ← 14px, medium weight
+│   Sublabel   │  ← 12px, secondary color (optional)
+│              │
+└──────────────┘
+   12px gap between buttons
+```
+
+**Styling Specifications:**
+```typescript
+// Container (row)
+{
+  flexDirection: 'row',
+  gap: 12,                    // 12px between action cards
+  marginBottom: 12,           // 12px between rows
+}
+
+// Action button
+{
+  flex: 1,                    // Equal width distribution
+  flexDirection: 'column',    // Icon above text (vertical)
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 16,        // 16px top/bottom padding
+  paddingHorizontal: 12,      // 12px left/right padding
+  borderRadius: 12,           // Rounded corners
+  borderWidth: 1,             // 1px border
+  gap: 8,                     // 8px between icon and label
+}
+
+// Icon
+{
+  size: 28,                   // Material icon 28px
+  color: colors.text          // Default (or tint/red for variants)
+}
+
+// Label
+{
+  fontSize: 14,
+  fontWeight: '500',          // Medium weight
+  textAlign: 'center',
+}
+
+// Sublabel (optional)
+{
+  fontSize: 12,
+  fontWeight: '400',          // Regular weight
+  textAlign: 'center',
+  marginTop: -4,              // Tighten spacing to label
+  color: colors.textSecondary
+}
+
+// Disabled state
+{
+  opacity: 0.5                // 50% transparency
+}
+```
+
+**Layout Math:**
+```
+3 buttons per row with 12px gaps:
+┌────────┐ 12px ┌────────┐ 12px ┌────────┐
+│  flex1 │      │  flex1 │      │  flex1 │
+└────────┘      └────────┘      └────────┘
+
+Each button: (containerWidth - 48px horizontal padding - 24px gaps) / 3
+Minimum tappable area: 44x44px (iOS/Android guideline)
+Actual height: ~88px (16px padding * 2 + 28px icon + 14px label + 8px gap)
+```
+
+**Consistency Standards:**
+All action buttons must follow these patterns (as specified in Export/Embed/Upload plans):
+1. **Sublabels for state**: Use sublabel to show prerequisites or current state
+   - Example: `sublabel: 'Connect Drive'` when not authenticated
+   - Example: `sublabel: 'Publish first'` when note not published
+2. **Accent for AI features**: Use `accent: true` for AI-powered actions
+3. **Destructive for dangerous actions**: Use `destructive: true` for delete, remove, etc.
+4. **Disabled with explanation**: When disabled, sublabel should explain why
+
+**Integration with NoteActionsModal:**
+```typescript
+// NoteActionsModal uses 3 rows in a grid pattern:
+// Row 1: Edit, Share, Duplicate, Preview
+// Row 2: AI Actions, Export, Upload
+// Row 3: Organization, Copy, Delete
+
+// Each action card uses PrimaryActionRow component
+```
+
+---
+
 ## Note Components
 
 ### NoteItem
@@ -885,6 +1088,137 @@ User access → AuthGuard → Check session
 ---
 
 ## Modal Components
+
+### NoteActionsModal
+
+Bottom sheet modal providing comprehensive note actions in a 3-row grid layout. Central hub for all note operations accessible via (...) menu or long press.
+
+**Location**: `components/note-actions-modal.tsx`
+
+**Props:**
+```typescript
+interface NoteActionsModalProps {
+  visible: boolean;
+  onClose: () => void;
+  noteId: string;
+  noteTitle: string;
+  noteContent: string;
+  folderId: string | null;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onFolderChanged?: () => void;
+  onNoteUpdated?: () => void;
+  onDelete?: () => void;
+}
+```
+
+**Features:**
+- **Editable Title Field**: Auto-saves on blur when user taps away
+- **3-Row Action Grid**: 9+ actions organized by priority and function
+- **Nested Modals**: AI Actions, Folder Picker open within bottom sheet
+- **Slide Animation**: Smooth bottom-to-top entrance
+- **Theme Integration**: Uses `elevatedSurface` for layered appearance
+- **Drag Handle**: Visual affordance for dismissal
+
+**Action Grid Structure:**
+```
+Row 1 (Primary):   Edit | Favorite | Share | Preview
+Row 2 (Secondary): Export | Organization | Download
+Row 3 (Tertiary):  Copy | AI Actions (accent) | Delete (red)
+```
+
+**Action Card Types:**
+
+1. **Standard Action Card**
+   - Default styling with surface background
+   - Border and text in theme colors
+   - Examples: Edit, Export, Organization
+
+2. **Accent Action Card**
+   - Highlighted with theme tint color
+   - Tint-colored border, icon, and text
+   - 8% opacity tint background
+   - Used for: AI Actions (special features)
+
+3. **Destructive Action Card**
+   - Red icon and text (#dc2626)
+   - Used for: Delete operations
+
+4. **Disabled Action Card**
+   - 50% opacity
+   - Optional sublabel explaining why disabled
+   - Non-interactive state
+
+**Auto-Save Title Pattern:**
+```typescript
+// Title field saves automatically when user taps away
+onBlur={() => {
+  if (title !== originalTitle) {
+    await updateNote(noteId, title, content);
+    toast.success('Title updated');
+  }
+}}
+```
+
+**Nested Modal Pattern:**
+```typescript
+// Bottom sheet contains other modals
+<NoteActionsModal>
+  {/* Editable title + actions grid */}
+  <AIActionsModal />        // AI features submenu
+  <FolderPickerModal />     // Organization submenu
+</NoteActionsModal>
+```
+
+**Usage:**
+```typescript
+import { NoteActionsModal } from '@/components/note-actions-modal';
+
+function NoteCard({ note }: { note: Note }) {
+  const [showActions, setShowActions] = useState(false);
+
+  return (
+    <>
+      <TouchableOpacity onPress={() => setShowActions(true)}>
+        <Text>(...)</Text>
+      </TouchableOpacity>
+
+      <NoteActionsModal
+        visible={showActions}
+        onClose={() => setShowActions(false)}
+        noteId={note.id}
+        noteTitle={note.title}
+        noteContent={note.content}
+        folderId={note.folder_id}
+        isFavorite={note.is_favorite}
+        onToggleFavorite={handleToggleFavorite}
+        onNoteUpdated={refreshNote}
+        onDelete={handleDelete}
+      />
+    </>
+  );
+}
+```
+
+**Visual Hierarchy:**
+- **Row 1**: Most common actions (Edit, Favorite, Share, Preview)
+- **Row 2**: Organization and export functions
+- **Row 3**: Special actions (AI) and dangerous actions (Delete)
+
+**Bottom Sheet Structure:**
+```
+┌─────────────────────────────┐
+│      ═══ (drag handle)      │  ← Dismissal affordance
+├─────────────────────────────┤
+│  [Editable Title Field]     │  ← Auto-save on blur
+├─────────────────────────────┤
+│  [Row 1: 4 primary actions] │  ← Standard cards
+│  [Row 2: 3 secondary acts]  │  ← Standard cards
+│  [Row 3: Copy|AI|Delete]    │  ← Accent + Destructive
+└─────────────────────────────┘
+```
+
+---
 
 ### ConfirmationModal
 
