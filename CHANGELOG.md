@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Bottom Sheet Modal Simplification** (2025-10-08)
+  - Refactored NoteActionsModal from 10 actions to 3 core actions
+  - Bottom sheet now shows only: Edit, Preview, Delete (in that order)
+  - Removed actions: Favorite, Share, Copy, Export, Organization, Download, AI Actions
+  - All removed actions still fully accessible via note card (...) menu
+  - Cleaner, more focused UX with single-row action layout
+  - Title field changed to read-only display (editing removed from modal)
+  - Modal now triggered exclusively by long press on note card
+  - Removed nested modals (AI Actions, Folder Picker)
+  - Code reduction: 130 lines deleted, 13 added (62% smaller file)
+  - Zero functionality loss - all features available through (...) menu
+  - Improved component separation: Bottom sheet for quick actions, (...) menu for all options
+
 ### Added
+- **Copy Button Functionality in Bottom Sheet** (2025-10-08)
+  - Copy button in NoteActionsModal now copies note content to clipboard
+  - Replaced "Coming Soon" placeholder with functional copy handler
+  - Shows success toast: "Note content copied to clipboard" (top-center position)
+  - Toast positioned above bottom sheet for visibility
+  - Includes error handling with user-friendly error messages
+  - Works on all platforms (Web, iOS, Android)
+  - Reuses existing Clipboard import (expo-clipboard)
+  - Matches implementation pattern from note card (...) menu Copy button
+  - Bottom sheet actions increased from 7/10 to 8/10 functional
+  - Implementation plan: improvements/bottom-sheet-card/copy-button-function.json
+  - NOTE: This feature was added, then immediately removed in bottom sheet simplification
 - **Focus-Based Notes List Refresh** (2025-10-08)
   - Notes list now automatically refreshes when returning from note editor
   - Implemented useFocusEffect hook to detect screen focus events
