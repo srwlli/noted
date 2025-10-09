@@ -1,15 +1,12 @@
 import React, { useState, useCallback, useEffect, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Card } from '@/components/common/card';
-import { notesService, Note } from '@/services/notes';
-import { foldersService, Folder } from '@/services/folders';
+import { Note } from '@/services/notes';
 import { USE_MARKDOWN_EDITOR } from '@/config/features';
-import { toast } from 'sonner-native';
 import { NoteActionsModal } from '@/components/note-actions-modal';
 
 interface NoteItemProps {
@@ -24,8 +21,6 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
   const { colors } = useThemeColors();
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loadingFolders, setLoadingFolders] = useState(false);
   const [showActionsModal, setShowActionsModal] = useState(false);
   const [isFavorite, setIsFavorite] = useState(note.is_favorite);
 
@@ -41,34 +36,6 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
   useEffect(() => {
     setIsFavorite(note.is_favorite);
   }, [note.is_favorite]);
-
-  // Load folders when menu opens
-  useEffect(() => {
-    if (isMenuOpen && !loadingFolders && folders.length === 0) {
-      loadFolders();
-    }
-  }, [isMenuOpen]);
-
-  const loadFolders = async () => {
-    setLoadingFolders(true);
-    try {
-      const data = await foldersService.getFolders();
-      setFolders(data);
-    } catch (err) {
-      console.error('Failed to load folders:', err);
-    } finally {
-      setLoadingFolders(false);
-    }
-  };
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await Clipboard.setStringAsync(note.content || '');
-      toast.success('Note content copied to clipboard');
-    } catch {
-      toast.error('Failed to copy content');
-    }
-  }, [note.content]);
 
   const handleMenuOpen = useCallback(() => {
     setIsMenuOpen(true);
@@ -88,6 +55,10 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
     }
   }, [note.id, onEdit]);
 
+  const handlePreview = useCallback(() => {
+    router.push(`/note-editor/${note.id}?mode=preview`);
+  }, [note.id]);
+
   const handleDelete = useCallback(() => {
     onDelete?.();
   }, [onDelete]);
@@ -96,21 +67,6 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
     setIsExpanded(prev => !prev);
   }, []);
 
-  const handleMoveToFolder = useCallback(async (folderId: string | null, folderName?: string) => {
-    try {
-      await foldersService.moveNoteToFolder(note.id, folderId);
-      toast.success(`Note moved to ${folderName || 'All Notes'}`);
-      onMoveToFolder?.();
-    } catch (err) {
-      console.error('Failed to move note:', err);
-      toast.error('Failed to move note to folder');
-    }
-  }, [note.id, onMoveToFolder]);
-
-  const handleMoveToAllNotes = useCallback(() => {
-    handleMoveToFolder(null);
-  }, [handleMoveToFolder]);
-
   const handleLongPress = useCallback(() => {
     setShowActionsModal(true);
   }, []);
@@ -118,13 +74,10 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
   const handleToggleFavorite = useCallback(async () => {
     try {
       const newFavoriteState = !isFavorite;
-      await notesService.toggleFavorite(note.id, newFavoriteState);
       setIsFavorite(newFavoriteState);
-      toast.success(newFavoriteState ? 'Added to Favorites' : 'Removed from Favorites', { position: 'top-center' });
       onFavoriteToggle?.();
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
-      toast.error('Failed to update favorite', { position: 'top-center' });
     }
   }, [note.id, isFavorite, onFavoriteToggle]);
 
@@ -181,41 +134,10 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
                       <MaterialIcons name="edit" size={20} color={colors.text} />
                       <Text style={[styles.menuText, { color: colors.text }]}>Edit</Text>
                     </MenuOption>
-                    <MenuOption onSelect={handleToggleFavorite} customStyles={{ optionWrapper: styles.menuItem }}>
-                      <MaterialIcons name={isFavorite ? 'star' : 'star-border'} size={20} color={colors.text} />
-                      <Text style={[styles.menuText, { color: colors.text }]}>
-                        {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                      </Text>
+                    <MenuOption onSelect={handlePreview} customStyles={{ optionWrapper: styles.menuItem }}>
+                      <MaterialIcons name="visibility" size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>Preview</Text>
                     </MenuOption>
-                    <MenuOption onSelect={handleCopy} customStyles={{ optionWrapper: styles.menuItem }}>
-                      <MaterialIcons name="content-copy" size={20} color={colors.text} />
-                      <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
-                    </MenuOption>
-
-                    {/* Move to Folder submenu */}
-                    <View style={[styles.divider, { borderBottomColor: colors.border }]} />
-                    <View style={[styles.menuItem, { opacity: 0.5 }]}>
-                      <MaterialIcons name="folder" size={20} color={colors.text} />
-                      <Text style={[styles.menuText, { color: colors.text }]}>Move to Folder</Text>
-                    </View>
-
-                    <MenuOption onSelect={handleMoveToAllNotes} customStyles={{ optionWrapper: styles.submenuItem }}>
-                      <MaterialIcons name="folder-open" size={18} color={colors.text} />
-                      <Text style={[styles.submenuText, { color: colors.text }]}>All Notes</Text>
-                    </MenuOption>
-
-                    {folders.map((folder) => (
-                      <MenuOption
-                        key={folder.id}
-                        onSelect={() => handleMoveToFolder(folder.id, folder.name)}
-                        customStyles={{ optionWrapper: styles.submenuItem }}
-                      >
-                        <MaterialIcons name="folder" size={18} color={colors.text} />
-                        <Text style={[styles.submenuText, { color: colors.text }]}>{folder.name}</Text>
-                      </MenuOption>
-                    ))}
-
-                    <View style={[styles.divider, { borderBottomColor: colors.border }]} />
                     <MenuOption onSelect={handleDelete} customStyles={{ optionWrapper: styles.menuItem }}>
                       <MaterialIcons name="delete" size={20} color={colors.text} />
                       <Text style={[styles.menuText, { color: colors.text }]}>Delete</Text>
