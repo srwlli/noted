@@ -1,0 +1,569 @@
+{
+  "title": "RAG (Ask Your Notes) Implementation Plan",
+  "subtitle": "Chat interface to query across all notes using AI + vector search",
+  "version": "1.0.0",
+  "date": "2025-10-09",
+  "status": "planning",
+  "priority": "high",
+  "effort": "high (12-16 hours)",
+
+  "overview": {
+    "description": "Implement RAG (Retrieval Augmented Generation) to enable natural language Q&A over user's notes. Users can ask questions like 'What did I decide about the redesign?' and get AI answers based on their actual note content, with source citations.",
+    "trigger": "New 'Chat' tab or floating chat button in main navigation",
+    "technology": "Vector embeddings (pgvector) + Claude API for generation",
+    "storage": "New tables: chat_conversations, chat_messages, note_embeddings"
+  },
+
+  "user_experience": {
+    "entry_points": [
+      "New 'Chat' tab in bottom navigation",
+      "Floating chat FAB (Floating Action Button) on notes screen",
+      "Optional: 'Ask' button in note actions modal for note-specific queries"
+    ],
+    "user_flow": {
+      "step_1": "User navigates to Chat tab",
+      "step_2": "User types question: 'What did I decide about the redesign?'",
+      "step_3": "System searches notes via vector similarity",
+      "step_4": "Top 5-10 relevant notes retrieved",
+      "step_5": "Claude receives question + relevant notes as context",
+      "step_6": "AI generates answer citing specific notes",
+      "step_7": "User sees answer with clickable source note links",
+      "step_8": "User can ask follow-up questions (conversation context maintained)"
+    },
+    "visual_design": {
+      "layout": "Full-screen chat interface (similar to ChatGPT)",
+      "message_bubbles": [
+        "User messages: Right-aligned, theme tint color",
+        "AI messages: Left-aligned, elevated surface color",
+        "Source citations: Small cards below AI messages with note title + excerpt"
+      ],
+      "input": "Bottom text input with send button, auto-grow up to 5 lines",
+      "loading_state": "Animated typing indicator while AI generates response"
+    },
+    "example_conversation": {
+      "user": "What did I decide about the redesign?",
+      "ai": "Based on your notes, you decided to go with a minimalist approach focused on improved navigation. You mentioned:\n\n- Simplify the sidebar navigation (from 'Design Meeting - March 5')\n- Use card-based layout for better mobile experience (from 'Redesign Ideas')\n- Implement dark mode as top priority (from 'Feature Requests')\n\n[Source: Design Meeting - March 5] [Source: Redesign Ideas] [Source: Feature Requests]",
+      "user_followup": "What about colors?",
+      "ai_followup": "You discussed using a blue/teal color scheme as the primary palette, with warm accent colors for CTAs. This was mentioned in 'Design Meeting - March 5' where you noted that user testing showed strong preference for cooler tones.\n\n[Source: Design Meeting - March 5]"
+    }
+  },
+
+  "benefits": {
+    "instant_knowledge_retrieval": "Find information across all notes without manual searching",
+    "natural_language": "Ask questions in plain English, not keywords",
+    "context_aware": "AI understands follow-up questions using conversation history",
+    "source_transparency": "Always shows which notes the answer came from",
+    "time_saving": "No need to read through multiple notes manually",
+    "discovery": "Uncover connections between notes you didn't remember"
+  },
+
+  "technical_architecture": {
+    "rag_workflow": {
+      "description": "RAG = Retrieval Augmented Generation",
+      "steps": [
+        "1. RETRIEVAL: Find relevant notes using vector similarity search",
+        "2. AUGMENTATION: Combine user question + retrieved notes as context",
+        "3. GENERATION: Claude generates answer based on provided context"
+      ],
+      "why_rag": [
+        "Prevents AI hallucination (answers only from your notes)",
+        "Reduces token costs (only sends relevant notes, not all notes)",
+        "Provides source attribution automatically",
+        "More accurate than semantic search alone"
+      ]
+    },
+    "vector_embeddings": {
+      "description": "Mathematical representations of note content for similarity search",
+      "provider": "Voyage AI text-embedding-3 (1536 dimensions) - best for RAG",
+      "alternative": "OpenAI text-embedding-3-small (also 1536 dimensions)",
+      "when_generated": [
+        "When note is created (async background job)",
+        "When note content changes significantly (>20%)",
+        "Batch job on first setup for existing notes"
+      ],
+      "storage": "notes table: content_embedding VECTOR(1536), embedding_generated_at TIMESTAMP",
+      "cost": "$0.00001 per note (one-time, cached forever until content changes)"
+    },
+    "similarity_search": {
+      "algorithm": "Cosine similarity using pgvector extension",
+      "query_flow": [
+        "1. Generate embedding for user's question",
+        "2. Find top K notes with highest cosine similarity",
+        "3. Filter by user_id (only search own notes)",
+        "4. Return notes ordered by relevance score"
+      ],
+      "parameters": {
+        "top_k": 10,
+        "min_similarity_threshold": 0.7,
+        "max_context_tokens": 8000
+      }
+    },
+    "claude_generation": {
+      "model": "claude-3-5-sonnet-20241022 (for complex reasoning)",
+      "fallback_model": "claude-3-5-haiku-20241022 (if cost is concern)",
+      "max_tokens": 1000,
+      "temperature": 0.3,
+      "system_prompt": "You are a helpful AI assistant that answers questions based on the user's personal notes. Always cite which notes you're referencing. If you cannot answer based on the provided notes, say so - do not make up information. Format citations as [Source: Note Title].",
+      "user_prompt_template": "Question: {user_question}\n\nRelevant notes:\n\n{retrieved_notes}\n\nPlease answer the question based only on the information in these notes. Cite your sources."
+    }
+  },
+
+  "implementation": {
+    "phase_1_database_schema": {
+      "file": "supabase/migrations/20251010000000_add_rag_infrastructure.sql",
+      "changes": [
+        "-- Enable pgvector extension",
+        "CREATE EXTENSION IF NOT EXISTS vector;",
+        "",
+        "-- Add embedding column to notes",
+        "ALTER TABLE notes ADD COLUMN content_embedding VECTOR(1536);",
+        "ALTER TABLE notes ADD COLUMN embedding_generated_at TIMESTAMP;",
+        "",
+        "-- Create index for fast similarity search",
+        "CREATE INDEX idx_notes_embedding ON notes USING ivfflat (content_embedding vector_cosine_ops) WITH (lists = 100);",
+        "",
+        "-- Chat conversations table",
+        "CREATE TABLE chat_conversations (",
+        "  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),",
+        "  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,",
+        "  title TEXT NOT NULL DEFAULT 'New Conversation',",
+        "  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),",
+        "  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()",
+        ");",
+        "",
+        "CREATE INDEX idx_conversations_user ON chat_conversations(user_id, created_at DESC);",
+        "",
+        "-- Chat messages table",
+        "CREATE TABLE chat_messages (",
+        "  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),",
+        "  conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,",
+        "  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),",
+        "  content TEXT NOT NULL,",
+        "  source_note_ids UUID[] DEFAULT '{}',",
+        "  created_at TIMESTAMPTZ NOT NULL DEFAULT now()",
+        ");",
+        "",
+        "CREATE INDEX idx_messages_conversation ON chat_messages(conversation_id, created_at ASC);",
+        "",
+        "-- RLS Policies",
+        "ALTER TABLE chat_conversations ENABLE ROW LEVEL SECURITY;",
+        "ALTER TABLE chat_messages ENABLE ROW LEVEL SECURITY;",
+        "",
+        "CREATE POLICY conversations_user_policy ON chat_conversations",
+        "  FOR ALL USING (auth.uid() = user_id);",
+        "",
+        "CREATE POLICY messages_user_policy ON chat_messages",
+        "  FOR ALL USING (",
+        "    auth.uid() IN (",
+        "      SELECT user_id FROM chat_conversations WHERE id = conversation_id",
+        "    )",
+        "  );"
+      ],
+      "notes": [
+        "IVFFlat index provides fast approximate nearest neighbor search",
+        "lists=100 is optimal for ~10K notes, increase for larger datasets",
+        "pgvector extension must be enabled on Supabase project (available by default)"
+      ]
+    },
+
+    "phase_2_edge_functions": {
+      "function_1_generate_embedding": {
+        "file": "supabase/functions/generate-embedding/index.ts",
+        "purpose": "Generate vector embedding for note content or user query",
+        "endpoint": "POST /generate-embedding",
+        "input": {
+          "text": "string (note content or user question)",
+          "type": "note | query (for logging/analytics)"
+        },
+        "output": {
+          "embedding": "number[] (1536 dimensions)",
+          "model": "string (model used)"
+        },
+        "api_integration": {
+          "provider": "Voyage AI or OpenAI",
+          "voyage_model": "voyage-large-2-instruct (optimized for RAG)",
+          "openai_model": "text-embedding-3-small",
+          "cost_voyage": "$0.00001 per request",
+          "cost_openai": "$0.00002 per request"
+        },
+        "implementation": "Similar to ai-summarize Edge Function, but calls embedding API instead of Claude"
+      },
+      "function_2_rag_query": {
+        "file": "supabase/functions/rag-query/index.ts",
+        "purpose": "Handle RAG query: retrieve relevant notes + generate AI response",
+        "endpoint": "POST /rag-query",
+        "input": {
+          "question": "string",
+          "conversation_id": "string | null (for follow-up context)",
+          "top_k": "number (default: 10)"
+        },
+        "output": {
+          "answer": "string (AI-generated response)",
+          "sources": "Array<{note_id, title, excerpt, relevance_score}>",
+          "conversation_id": "string",
+          "message_id": "string"
+        },
+        "flow": [
+          "1. Extract user from JWT",
+          "2. Get user's API keys from user_ai_keys table",
+          "3. Generate embedding for user's question (call generate-embedding)",
+          "4. Query notes table with vector similarity search",
+          "5. Retrieve top K relevant notes (filtered by user_id)",
+          "6. If conversation_id provided, load recent message history (last 5 messages)",
+          "7. Build Claude prompt with question + notes + conversation context",
+          "8. Call Claude API to generate answer",
+          "9. Save user message and AI response to chat_messages table",
+          "10. Return answer + sources to client"
+        ],
+        "similarity_query": "SELECT id, title, content, (content_embedding <=> $1) AS distance FROM notes WHERE user_id = $2 AND content_embedding IS NOT NULL ORDER BY distance ASC LIMIT $3",
+        "cost": "$0.00001 (embedding) + $0.01-0.05 (Claude Sonnet) per query"
+      }
+    },
+
+    "phase_3_client_services": {
+      "service_1_embeddings": {
+        "file": "services/ai/embeddings.ts",
+        "purpose": "Manage embedding generation and storage",
+        "methods": [
+          "generateEmbeddingForNote(noteId: string): Promise<void> - Generate and save embedding for single note",
+          "batchGenerateEmbeddings(noteIds: string[]): Promise<void> - Generate embeddings for multiple notes",
+          "updateEmbeddingIfStale(noteId: string): Promise<void> - Regenerate if content changed significantly",
+          "getEmbeddingStatus(userId: string): Promise<{total: number, embedded: number}> - Progress tracking"
+        ],
+        "background_job": "Call batchGenerateEmbeddings() on app startup for any notes missing embeddings"
+      },
+      "service_2_chat": {
+        "file": "services/chat.ts",
+        "purpose": "Handle chat conversations and RAG queries",
+        "methods": [
+          "askQuestion(question: string, conversationId?: string): Promise<ChatResponse> - Main RAG query method",
+          "createConversation(title?: string): Promise<string> - Create new conversation",
+          "getConversation(conversationId: string): Promise<Conversation> - Get conversation details",
+          "getConversationHistory(conversationId: string): Promise<ChatMessage[]> - Load message history",
+          "deleteConversation(conversationId: string): Promise<void> - Delete conversation and messages",
+          "getUserConversations(): Promise<Conversation[]> - List all user's conversations"
+        ],
+        "types": "export interface ChatResponse { answer: string; sources: Source[]; conversationId: string; messageId: string; }"
+      },
+      "service_3_search": {
+        "file": "services/ai/search.ts",
+        "purpose": "Semantic search without AI generation (lighter alternative)",
+        "methods": [
+          "semanticSearch(query: string, limit: number): Promise<Note[]> - Find similar notes by meaning",
+          "findRelatedNotes(noteId: string, limit: number): Promise<Note[]> - Find notes similar to given note"
+        ],
+        "use_case": "Quick search feature without full RAG (cheaper, faster)"
+      }
+    },
+
+    "phase_4_ui_components": {
+      "component_1_chat_interface": {
+        "file": "app/(tabs)/chat.tsx",
+        "purpose": "Main chat screen with message history and input",
+        "layout": [
+          "Header: 'Ask Your Notes' with new conversation button",
+          "Message list: ScrollView with chat bubbles",
+          "Input: Text input + send button at bottom"
+        ],
+        "state_management": [
+          "messages: ChatMessage[]",
+          "input: string",
+          "loading: boolean",
+          "currentConversationId: string | null"
+        ],
+        "features": [
+          "Auto-scroll to bottom on new message",
+          "Show typing indicator while AI responds",
+          "Pull-to-refresh to load older messages",
+          "Swipe message for options (copy, delete)"
+        ]
+      },
+      "component_2_chat_message": {
+        "file": "components/chat/chat-message.tsx",
+        "purpose": "Individual message bubble with source citations",
+        "props": "{ message: ChatMessage, onSourceClick: (noteId) => void }",
+        "rendering": [
+          "User messages: Right-aligned, compact",
+          "AI messages: Left-aligned, markdown formatted",
+          "Source cards: Horizontal scroll below AI message"
+        ],
+        "markdown_support": "Use react-native-markdown-display for AI responses"
+      },
+      "component_3_source_citation": {
+        "file": "components/chat/source-citation.tsx",
+        "purpose": "Clickable card showing note source",
+        "props": "{ noteId: string, title: string, excerpt: string, relevanceScore: number }",
+        "design": [
+          "Small card with note icon",
+          "Note title (bold)",
+          "Excerpt (2 lines, truncated)",
+          "Relevance badge (optional)"
+        ],
+        "action": "onPress navigates to note detail screen"
+      },
+      "component_4_conversation_list": {
+        "file": "components/chat/conversation-list.tsx",
+        "purpose": "Sidebar or modal to switch between conversations",
+        "features": [
+          "List all conversations",
+          "Show first message as preview",
+          "Delete conversation (swipe action)",
+          "Create new conversation button"
+        ]
+      },
+      "component_5_chat_input": {
+        "file": "components/chat/chat-input.tsx",
+        "purpose": "Text input with send button and auto-grow",
+        "features": [
+          "Multi-line support (up to 5 lines)",
+          "Send button disabled when empty",
+          "Keyboard-aware scroll",
+          "Loading state (disable during AI response)"
+        ]
+      }
+    },
+
+    "phase_5_navigation": {
+      "file": "app/(tabs)/_layout.tsx",
+      "changes": [
+        "Add new 'chat' tab with icon 'chat-bubble' or 'forum'",
+        "Label: 'Chat' or 'Ask'",
+        "Position: Between 'notes' and 'settings' tabs"
+      ],
+      "alternative": "Add floating action button (FAB) on notes screen instead of new tab"
+    },
+
+    "phase_6_background_jobs": {
+      "embedding_sync": {
+        "description": "Ensure all notes have embeddings",
+        "trigger": [
+          "On app startup (check for missing embeddings)",
+          "After note create/update (generate embedding)",
+          "Manual 'Sync Embeddings' button in settings"
+        ],
+        "implementation": "Use React useEffect on mount + Supabase real-time subscription for note changes",
+        "progress_ui": "Show progress bar in settings: 'X / Y notes embedded'"
+      },
+      "conversation_cleanup": {
+        "description": "Auto-delete old conversations after 90 days (optional)",
+        "implementation": "Supabase cron job or manual cleanup button"
+      }
+    }
+  },
+
+  "dependencies": {
+    "required_before_implementation": [
+      "User AI keys table (user_ai_keys) - already exists",
+      "Claude API integration - already working",
+      "Supabase pgvector extension - available by default"
+    ],
+    "optional_enhancements": [
+      "Semantic search UI (Feature #3) - can implement RAG first",
+      "Private notes flag - exclude from RAG if user marks note as private"
+    ]
+  },
+
+  "cost_analysis": {
+    "one_time_costs": {
+      "embedding_generation": {
+        "description": "Generate embeddings for all existing notes (one-time)",
+        "cost_per_note": "$0.00001 (Voyage AI) or $0.00002 (OpenAI)",
+        "example": "1000 notes = $0.01 - $0.02 (extremely cheap)"
+      }
+    },
+    "per_query_costs": {
+      "embedding_query": "$0.00001 (generate embedding for user's question)",
+      "claude_generation": "$0.01 - $0.05 (depends on context size)",
+      "total_per_query": "$0.01 - $0.05",
+      "example": "100 queries/month = $1 - $5/month"
+    },
+    "optimization_strategies": [
+      "Use Claude Haiku for simpler questions ($0.001 instead of $0.01)",
+      "Cache common questions (FAQ detection)",
+      "Limit top_k to 5 notes instead of 10 (reduces tokens)",
+      "Implement conversation history limit (last 5 messages only)",
+      "Show cost estimate before sending query (optional)"
+    ],
+    "user_cost_model": "Users pay directly to Anthropic/Voyage via their own API keys (BYOK)"
+  },
+
+  "testing_checklist": {
+    "functional_tests": [
+      "Generate embeddings for sample notes",
+      "Verify vector similarity search returns relevant notes",
+      "Test RAG query with simple question",
+      "Test follow-up questions with conversation context",
+      "Verify source citations are accurate",
+      "Test with notes that have no relevant match",
+      "Test edge cases (very long notes, very short notes, empty notes)",
+      "Test conversation history persistence",
+      "Test conversation deletion"
+    ],
+    "ui_tests": [
+      "Chat interface renders correctly",
+      "Message bubbles styled correctly (user vs AI)",
+      "Source citation cards clickable",
+      "Input auto-grows correctly",
+      "Loading indicator shows during AI response",
+      "Keyboard behavior correct",
+      "Dark mode support",
+      "Scroll to bottom on new message"
+    ],
+    "performance_tests": [
+      "Embedding generation speed (should be < 2s per note)",
+      "Vector search speed (should be < 500ms)",
+      "Full RAG query speed (should be < 5s)",
+      "Test with 1000+ notes"
+    ],
+    "accuracy_tests": [
+      "AI answers based on notes (not hallucinating)",
+      "Source citations match answer content",
+      "Relevance scores accurate",
+      "Follow-up context maintained correctly"
+    ]
+  },
+
+  "rollout_strategy": {
+    "phase_1_alpha": {
+      "duration": "1 week",
+      "users": "Personal testing only",
+      "features": ["Basic RAG query", "Simple chat UI", "No conversation history"],
+      "goals": ["Verify RAG accuracy", "Test cost per query", "Validate UI/UX"]
+    },
+    "phase_2_beta": {
+      "duration": "2 weeks",
+      "users": "5-10 beta testers",
+      "features": ["Full conversation history", "Multiple conversations", "Source citations"],
+      "goals": ["Gather user feedback", "Monitor costs", "Fix bugs"]
+    },
+    "phase_3_production": {
+      "duration": "Ongoing",
+      "users": "All users",
+      "features": ["All features enabled", "Optional: FAB vs tab decision", "Analytics tracking"],
+      "goals": ["Monitor adoption", "Track costs", "Iterate based on usage"]
+    }
+  },
+
+  "success_metrics": {
+    "adoption": [
+      "% of users who try chat feature within first week",
+      "Average queries per user per week",
+      "Repeat usage rate (users who return to chat)"
+    ],
+    "quality": [
+      "Answer relevance score (user feedback)",
+      "Source citation accuracy (manual review)",
+      "Follow-up question success rate"
+    ],
+    "business": [
+      "Cost per query (target: < $0.05)",
+      "User satisfaction with chat feature (survey)",
+      "Retention improvement from chat feature"
+    ]
+  },
+
+  "future_enhancements": {
+    "phase_2": [
+      "Voice input for questions (speech-to-text)",
+      "Export conversations as notes",
+      "Share conversations (generate shareable link)",
+      "Chat with specific folder (scope search to folder)",
+      "Multi-modal RAG (search across images, PDFs)",
+      "Suggested questions based on recent notes",
+      "Auto-generate conversation title from first question"
+    ],
+    "phase_3": [
+      "Collaborative chat (multiple users querying shared notes)",
+      "Integration with external knowledge bases (web search, documentation)",
+      "Custom prompt templates (e.g., 'Summarize all meeting notes')",
+      "RAG playground (tune top_k, temperature, etc.)",
+      "Analytics dashboard (most queried topics, popular questions)"
+    ]
+  },
+
+  "alternative_approaches": {
+    "option_1_perplexity_rag": {
+      "description": "Use Perplexity API which has built-in RAG capabilities",
+      "pros": ["Built-in web search + RAG", "Less implementation complexity", "Automatic citations"],
+      "cons": ["More expensive per query ($0.05-0.10)", "Less control over RAG pipeline", "Cannot use user's Claude API key"],
+      "verdict": "Not recommended - more expensive and less flexible"
+    },
+    "option_2_full_text_search": {
+      "description": "Use PostgreSQL full-text search instead of vector embeddings",
+      "pros": ["No embedding costs", "Faster for exact keyword matches", "No ML model needed"],
+      "cons": ["Poor for semantic/conceptual queries", "Cannot find related notes without exact keywords", "No similarity scoring"],
+      "verdict": "Could be useful as fallback, but vector search is superior for RAG"
+    },
+    "option_3_local_embeddings": {
+      "description": "Run embedding model locally (e.g., Sentence Transformers)",
+      "pros": ["Zero API cost", "Complete privacy", "No rate limits"],
+      "cons": ["Requires native module", "Slower on mobile", "Large model download (~500MB)", "Complex setup"],
+      "verdict": "Interesting for future, but API-based is simpler for MVP"
+    }
+  },
+
+  "security_considerations": [
+    "All RAG queries filtered by user_id (users can only search their own notes)",
+    "API keys stored securely in user_ai_keys table (encrypted or plain)",
+    "Conversation history only accessible by owner (RLS policies)",
+    "No note content sent to AI without user-initiated query",
+    "Option to mark notes as 'Private' (excluded from RAG)",
+    "Rate limiting on Edge Functions (prevent abuse)",
+    "Input validation on chat messages (prevent prompt injection)",
+    "Audit log for RAG queries (optional, for debugging/analytics)"
+  ],
+
+  "technical_notes": [
+    "pgvector supports up to 2000 dimensions, we use 1536 (standard for most embeddings)",
+    "IVFFlat index provides ~95% accuracy with 10-100x speedup vs brute force",
+    "Cosine similarity is best for text embeddings (use <=> operator in pgvector)",
+    "Conversation context limited to last 5 messages to control token costs",
+    "Source excerpts truncated to 200 characters for UI display",
+    "Markdown rendering required for AI responses (lists, bold, links)",
+    "Real-time updates not needed (chat history static once loaded)",
+    "Consider pagination for conversations (load 20 at a time)"
+  ],
+
+  "ui_mockup": {
+    "chat_screen": "+---------------------------------+\n|  Ask Your Notes       [+]       |\n+---------------------------------+\n|                                 |\n|  [User] What did I decide       |\n|  about the redesign?            |\n|                                 |\n|  [AI] Based on your notes,      |\n|  you decided to go with a       |\n|  minimalist approach...         |\n|                                 |\n|  [Source: Design Meeting]       |\n|  [Source: Redesign Ideas]       |\n|                                 |\n+---------------------------------+\n| Type your question...     [Send]|\n+---------------------------------+",
+    "source_citation_card": "+-------------------------+\n| 📄 Design Meeting       |\n| \"You mentioned that...\" |\n| Relevance: 92%          |\n+-------------------------+"
+  },
+
+  "implementation_order": {
+    "step_1": "Database migration (add pgvector, chat tables)",
+    "step_2": "Create generate-embedding Edge Function",
+    "step_3": "Create embeddings.ts service",
+    "step_4": "Implement background job to generate embeddings for existing notes",
+    "step_5": "Test embedding generation and storage",
+    "step_6": "Create rag-query Edge Function",
+    "step_7": "Create chat.ts service",
+    "step_8": "Test RAG query without UI",
+    "step_9": "Build chat UI components (message bubbles, input)",
+    "step_10": "Build chat screen (app/(tabs)/chat.tsx)",
+    "step_11": "Add navigation tab",
+    "step_12": "Implement source citation cards",
+    "step_13": "Add conversation history",
+    "step_14": "Test full flow end-to-end",
+    "step_15": "Polish UI and add loading states",
+    "step_16": "Deploy and test with real notes"
+  },
+
+  "estimated_timeline": {
+    "database_setup": "1-2 hours",
+    "edge_functions": "3-4 hours",
+    "client_services": "2-3 hours",
+    "ui_components": "4-5 hours",
+    "testing_polish": "2-3 hours",
+    "total": "12-17 hours"
+  },
+
+  "notes": [
+    "RAG is the most complex AI feature but also the most valuable",
+    "Requires vector embeddings infrastructure (one-time setup cost)",
+    "Once implemented, enables many other features (semantic search, related notes, etc.)",
+    "User feedback will be critical - iterate on prompt engineering based on real usage",
+    "Consider starting with simple single-shot Q&A before adding conversation context",
+    "Monitor costs closely during beta - might need to adjust top_k or use Haiku instead of Sonnet",
+    "Source citations are essential for user trust - always show where answers come from"
+  ]
+}

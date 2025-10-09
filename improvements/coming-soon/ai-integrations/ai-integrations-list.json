@@ -322,13 +322,14 @@
     {
       "id": 6,
       "name": "Ask Your Notes (RAG - Retrieval Augmented Generation)",
-      "status": "pending",
+      "status": "planning",
       "category": "knowledge-assistant",
       "priority": "high",
       "effort": "high",
       "value": "very-high",
-      "trigger": "Bottom sheet AI Actions card → Ask Questions",
+      "trigger": "New 'Chat' tab or floating chat button",
       "description": "Chat interface to query across all notes. Your personal AI assistant that knows everything in your notes.",
+      "detailedPlan": "See improvements/coming-soon/ai-integrations/rag-ask-your-notes-implementation.json for comprehensive implementation plan",
       "useCases": [
         "Ask: 'What did I decide about the redesign?' → pulls relevant excerpts",
         "Ask: 'Summarize all my meeting notes from March'",
@@ -352,10 +353,10 @@
           "6. Show answer with source links"
         ],
         "apiIntegration": {
-          "embeddingProvider": "OpenAI text-embedding-3-small",
-          "llmProvider": "OpenAI GPT-4o or GPT-4o-mini",
+          "embeddingProvider": "Voyage AI or OpenAI text-embedding-3-small",
+          "llmProvider": "Claude 3.5 Sonnet (Anthropic)",
           "systemPrompt": "You are a helpful assistant that answers questions based on the user's notes. Always cite which notes you're referencing. If you don't know something, say so.",
-          "estimatedCost": "$0.0001-0.0005 per query"
+          "estimatedCost": "$0.01-0.05 per query (embedding + Claude generation)"
         },
         "databaseChanges": {
           "newTables": [
