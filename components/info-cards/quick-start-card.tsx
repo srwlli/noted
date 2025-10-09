@@ -78,26 +78,16 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             </View>
           </View>
 
-          {/* Card Actions */}
+          {/* Quick Menu (...) */}
           <View style={[styles.divider, { borderBottomColor: colors.border }]} />
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Card Actions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Menu (...)</Text>
           <View style={styles.iconList}>
             <View style={styles.iconRow}>
               <Text style={[styles.icon, { color: colors.text }]}>⋮</Text>
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Quick Menu (...)</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Tap (...) on note card</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Quick actions: Edit, Preview, Copy, Delete
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.iconRow}>
-              <MaterialIcons name="touch-app" size={20} color={colors.text} style={styles.iconMaterial} />
-              <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Long Press Note Card</Text>
-                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Opens bottom sheet with 10 actions: Edit, Favorite, Share, Preview, Export, Organization, Download, Copy, AI Actions, Delete
+                  Opens dropdown menu with 4 quick actions
                 </Text>
               </View>
             </View>
@@ -105,7 +95,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="edit" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Edit (... menu)</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Edit</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Modify note content in markdown editor
                 </Text>
@@ -115,7 +105,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="visibility" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Preview (... menu)</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Preview</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   View rendered markdown preview
                 </Text>
@@ -125,7 +115,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="content-copy" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Copy (... menu)</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Copy</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Copy note content to clipboard
                 </Text>
@@ -135,9 +125,24 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="delete" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Delete (... menu)</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Delete</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Remove note permanently
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Bottom Sheet Actions */}
+          <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Bottom Sheet Actions (Long Press)</Text>
+          <View style={styles.iconList}>
+            <View style={styles.iconRow}>
+              <MaterialIcons name="touch-app" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Long press note card</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  Opens full bottom sheet modal with 10 comprehensive actions: Edit, Favorite, Share, Preview, Export, Organization, Download, Copy, AI Actions, Delete
                 </Text>
               </View>
             </View>
