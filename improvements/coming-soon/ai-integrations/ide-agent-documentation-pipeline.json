@@ -504,28 +504,13 @@
     }
   },
 
-  "marketplace_distribution": {
-    "vs_code_marketplace": {
-      "extension_name": "Noted Sync",
-      "display_name": "Noted - AI Documentation Hub",
-      "description": "Sync your project documentation to Noted and enable AI agents to read/write living docs",
-      "publisher": "noted-app",
-      "categories": ["Documentation", "AI", "Productivity"],
-      "keywords": ["noted", "documentation", "ai", "rag", "sync", "markdown"],
-      "rating_goal": "4.5+ stars",
-      "installation_goal": "1000+ installs in first 3 months"
-    },
-    "marketing_positioning": {
-      "tagline": "Turn your IDE into an AI-powered documentation hub",
-      "value_props": [
-        "✅ Write docs in your editor, sync to Noted automatically",
-        "🤖 AI agents can read your project docs via RAG",
-        "📝 Agents document their work, you review in IDE",
-        "🔄 Living documentation maintained by human + AI",
-        "💾 Persistent agent memory across sessions"
-      ],
-      "target_audience": "Developers using AI coding assistants (Claude Code, Cursor, Copilot)"
-    }
+  "extension_metadata": {
+    "extension_name": "Noted Sync",
+    "display_name": "Noted - AI Documentation Hub",
+    "description": "Sync your project documentation to Noted and enable AI agents to read/write living docs",
+    "publisher": "noted-app",
+    "categories": ["Documentation", "AI", "Productivity"],
+    "keywords": ["noted", "documentation", "ai", "rag", "sync", "markdown"]
   },
 
   "cost_analysis": {
@@ -548,44 +533,44 @@
   },
 
   "success_metrics": {
-    "adoption": [
-      "% of Noted users who install VS Code extension",
-      "Average notes synced per user",
-      "Daily active users of extension",
-      "Extension marketplace rating"
+    "technical_performance": [
+      "Sync reliability (% successful syncs)",
+      "Average sync latency (target: < 1s)",
+      "Conflict rate (% of syncs with conflicts)",
+      "API response time (target: < 500ms)"
     ],
-    "usage": [
-      "Number of sync operations per day",
+    "functionality": [
+      "Number of sync operations per day (personal usage)",
       "Number of agent queries to synced notes",
       "Number of notes created by agents",
-      "Average session time with extension active"
+      "Two-way sync working correctly"
     ],
     "quality": [
-      "Sync reliability (% successful syncs)",
-      "Conflict rate (% of syncs with conflicts)",
-      "User satisfaction survey score",
-      "GitHub stars on extension repo"
+      "Zero data loss during sync",
+      "Error handling covers edge cases",
+      "File watcher detects all changes",
+      "Conflict resolution works as expected"
     ]
   },
 
-  "rollout_strategy": {
-    "phase_1_alpha": {
-      "duration": "2 weeks",
-      "users": "Personal testing + 5 beta users",
-      "features": ["One-way sync only", "Basic file watching", "Simple API"],
-      "goals": ["Validate core sync functionality", "Test API reliability", "Gather feedback"]
+  "implementation_approach": {
+    "phase_1_foundation": {
+      "duration": "1-2 weeks",
+      "scope": "Personal use only",
+      "features": ["One-way sync (IDE → Noted)", "Basic file watching", "Simple API"],
+      "goals": ["Validate core sync functionality", "Test API reliability", "Ensure data integrity"]
     },
-    "phase_2_beta": {
-      "duration": "4 weeks",
-      "users": "50 beta users via waitlist",
-      "features": ["Two-way sync", "Conflict resolution", "Agent integration"],
-      "goals": ["Test at scale", "Identify edge cases", "Refine UX"]
+    "phase_2_bidirectional": {
+      "duration": "2-3 weeks",
+      "scope": "Personal use with agent integration",
+      "features": ["Two-way sync", "Conflict resolution", "Agent RAG queries"],
+      "goals": ["Enable agent to read/write notes", "Test real-world workflow", "Refine sync logic"]
     },
-    "phase_3_public": {
-      "duration": "Ongoing",
-      "users": "All Noted users + VS Code marketplace",
-      "features": ["All features", "Real-time sync", "Sidebar panel"],
-      "goals": ["Public launch", "Marketing campaign", "Community feedback"]
+    "phase_3_polish": {
+      "duration": "1-2 weeks",
+      "scope": "Production-ready for personal use",
+      "features": ["Real-time sync", "Sidebar panel", "Error recovery"],
+      "goals": ["Stable daily driver", "Complete agent workflow", "Documentation"]
     }
   },
 
