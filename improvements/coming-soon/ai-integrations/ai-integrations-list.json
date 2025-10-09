@@ -70,31 +70,34 @@
     {
       "id": 2,
       "name": "Auto-Summarization",
-      "status": "pending",
+      "status": "implemented",
       "category": "content-understanding",
       "priority": "high",
       "effort": "medium",
       "value": "high",
       "trigger": "Bottom sheet AI Actions card → Summarize",
-      "description": "Automatically generate concise summaries of long notes for quick preview in collapsed note cards",
+      "description": "Automatically generate concise summaries of long notes displayed in bottom sheet modal",
       "useCases": [
-        "Show AI summary instead of raw content truncation in note preview",
-        "Quickly scan through many notes without expanding each one",
-        "Generate summaries on-demand or in background"
+        "Generate concise 100-character summary from note content",
+        "Display summary in bottom sheet modal between title and action cards",
+        "Regenerate summary if not satisfied or content updated",
+        "Visual feedback with check icon when summary exists"
       ],
       "implementation": {
         "uiChanges": [
-          "Replace raw content preview with AI summary in NoteItem component",
-          "Add '⚡ AI Summary' badge to indicate AI-generated content",
-          "Option to toggle between raw content and AI summary",
-          "Generate button in note card menu"
+          "Summarize button in AI Actions modal",
+          "Display AI summary in bottom sheet modal between title and actions",
+          "Add '✨ AI Summary' badge with regenerate button",
+          "Stale summary detection with warning icon",
+          "Preview workflow: Generate → Preview → Cancel/Regenerate/Save",
+          "Dynamic button: 'Summarized' with check icon when summary exists"
         ],
         "apiIntegration": {
-          "provider": "OpenAI GPT-4o-mini",
-          "endpoint": "chat completions",
-          "prompt": "Summarize this note in 1-2 sentences (max 100 characters):\n\n{content}",
+          "provider": "Claude 3.5 Haiku (Anthropic)",
+          "endpoint": "Supabase Edge Function: ai-summarize",
+          "prompt": "Summarize this note in exactly 100 characters or less. Be concise and focus on the main topic:\n\n{content}",
           "maxTokens": 50,
-          "estimatedCost": "$0.00001 per note"
+          "estimatedCost": "$0.0012 per summary (5000 chars input)"
         },
         "databaseChanges": {
           "table": "notes",
@@ -102,22 +105,26 @@
             "ai_summary TEXT - cached summary to avoid regenerating",
             "summary_generated_at TIMESTAMP - track when summary was created"
           ],
-          "migration": "20251002_add_ai_summary.sql"
+          "migration": "20251009000000_add_ai_summary.sql"
         },
-        "caching": "Store summaries in database, regenerate only when content changes significantly",
-        "backgroundProcessing": "Consider generating summaries for all notes on user's first login"
+        "caching": "Store summaries in database, only regenerate on user request",
+        "staleSummaryDetection": "Compare note.updated_at > note.summary_generated_at, show warning badge"
       },
       "technicalDetails": {
+        "newFiles": [
+          "supabase/functions/ai-summarize/index.ts - Edge Function for Claude API",
+          "services/ai/summarize.ts - Client service"
+        ],
         "modifiedFiles": [
-          "components/note-item.tsx - Display AI summary instead of raw preview",
-          "services/notes.ts - Add getSummary() method",
-          "services/ai.ts - Add summarizeNote() method",
-          "supabase/migrations/20251002_add_ai_summary.sql"
+          "components/note-actions-modal.tsx - Display summary in bottom sheet",
+          "components/ai-actions-modal.tsx - Summarize button with preview workflow",
+          "services/notes.ts - Add updateNoteSummary() method",
+          "supabase/migrations/20251009000000_add_ai_summary.sql"
         ],
         "performanceConsiderations": [
           "Cache summaries aggressively",
-          "Only regenerate if content_length changes by >20%",
-          "Consider batch processing for multiple notes"
+          "Preview workflow prevents accidental regeneration",
+          "Stale detection with visual warning (non-intrusive)"
         ]
       },
       "estimatedTimeline": "4-6 hours"
