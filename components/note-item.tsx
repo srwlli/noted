@@ -1,12 +1,14 @@
 import React, { useState, useCallback, useEffect, memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { Card } from '@/components/common/card';
 import { Note } from '@/services/notes';
 import { USE_MARKDOWN_EDITOR } from '@/config/features';
+import { toast } from 'sonner-native';
 import { NoteActionsModal } from '@/components/note-actions-modal';
 
 interface NoteItemProps {
@@ -58,6 +60,15 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
   const handlePreview = useCallback(() => {
     router.push(`/note-editor/${note.id}?mode=preview`);
   }, [note.id]);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await Clipboard.setStringAsync(note.content || '');
+      toast.success('Note content copied to clipboard');
+    } catch {
+      toast.error('Failed to copy content');
+    }
+  }, [note.content]);
 
   const handleDelete = useCallback(() => {
     onDelete?.();
@@ -137,6 +148,10 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
                     <MenuOption onSelect={handlePreview} customStyles={{ optionWrapper: styles.menuItem }}>
                       <MaterialIcons name="visibility" size={20} color={colors.text} />
                       <Text style={[styles.menuText, { color: colors.text }]}>Preview</Text>
+                    </MenuOption>
+                    <MenuOption onSelect={handleCopy} customStyles={{ optionWrapper: styles.menuItem }}>
+                      <MaterialIcons name="content-copy" size={20} color={colors.text} />
+                      <Text style={[styles.menuText, { color: colors.text }]}>Copy</Text>
                     </MenuOption>
                     <MenuOption onSelect={handleDelete} customStyles={{ optionWrapper: styles.menuItem }}>
                       <MaterialIcons name="delete" size={20} color={colors.text} />
