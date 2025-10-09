@@ -24,10 +24,12 @@
     {
       "id": 1,
       "name": "Smart Note Titles",
+      "status": "implemented",
       "category": "content-generation",
       "priority": "high",
       "effort": "low",
       "value": "high",
+      "trigger": "Bottom sheet AI Actions card → Generate Title",
       "description": "Auto-generate descriptive titles from note content when user creates untitled notes or wants to improve existing titles",
       "useCases": [
         "User creates note without title - AI suggests one",
@@ -68,10 +70,12 @@
     {
       "id": 2,
       "name": "Auto-Summarization",
+      "status": "pending",
       "category": "content-understanding",
       "priority": "high",
       "effort": "medium",
       "value": "high",
+      "trigger": "Bottom sheet AI Actions card → Summarize",
       "description": "Automatically generate concise summaries of long notes for quick preview in collapsed note cards",
       "useCases": [
         "Show AI summary instead of raw content truncation in note preview",
@@ -121,10 +125,12 @@
     {
       "id": 3,
       "name": "Intelligent Semantic Search",
+      "status": "pending",
       "category": "search-discovery",
       "priority": "high",
       "effort": "high",
       "value": "very-high",
+      "trigger": "Bottom sheet AI Actions card → Semantic Search",
       "description": "Search notes by meaning and intent, not just keywords. Understand natural language queries like 'meeting notes from last week about budget'",
       "useCases": [
         "Find notes by concept, not exact words",
@@ -194,10 +200,12 @@
     {
       "id": 4,
       "name": "Auto-Tagging & Smart Categorization",
+      "status": "pending",
       "category": "organization",
       "priority": "medium",
       "effort": "medium",
       "value": "high",
+      "trigger": "Bottom sheet AI Actions card → Auto-Tag",
       "description": "Automatically suggest tags, labels, and folder locations based on note content. Reduce manual organization effort.",
       "useCases": [
         "Auto-detect note type: meeting, idea, todo, journal, reference",
@@ -258,10 +266,12 @@
     {
       "id": 5,
       "name": "Content Enhancement Tools",
+      "status": "pending",
       "category": "writing-assistance",
       "priority": "medium",
       "effort": "medium",
       "value": "medium",
+      "trigger": "Bottom sheet AI Actions card → Enhance",
       "description": "AI-powered tools to improve note quality: grammar correction, tone adjustment, expansion, simplification",
       "useCases": [
         "Quick grammar and spelling check",
@@ -305,10 +315,12 @@
     {
       "id": 6,
       "name": "Ask Your Notes (RAG - Retrieval Augmented Generation)",
+      "status": "pending",
       "category": "knowledge-assistant",
       "priority": "high",
       "effort": "high",
       "value": "very-high",
+      "trigger": "Bottom sheet AI Actions card → Ask Questions",
       "description": "Chat interface to query across all notes. Your personal AI assistant that knows everything in your notes.",
       "useCases": [
         "Ask: 'What did I decide about the redesign?' → pulls relevant excerpts",
@@ -400,10 +412,12 @@
     {
       "id": 7,
       "name": "Cross-Note Intelligence",
+      "status": "pending",
       "category": "insights-discovery",
       "priority": "low",
       "effort": "high",
       "value": "medium",
+      "trigger": "Bottom sheet AI Actions card → Find Related",
       "description": "Find duplicate notes, suggest merging related content, detect conflicts, show related notes",
       "useCases": [
         "Alert: 'You have 3 notes about Q4 planning - merge them?'",
@@ -428,10 +442,12 @@
     {
       "id": 8,
       "name": "Voice-to-Note with AI Processing",
+      "status": "pending",
       "category": "input-method",
       "priority": "low",
       "effort": "high",
       "value": "high",
+      "trigger": "Bottom sheet AI Actions card → Voice to Text",
       "description": "Transcribe voice memos to notes with AI cleanup and structuring",
       "useCases": [
         "Record voice memo on the go",
@@ -471,10 +487,12 @@
     {
       "id": 9,
       "name": "Smart Reminders & Follow-ups",
+      "status": "pending",
       "category": "productivity",
       "priority": "low",
       "effort": "medium",
       "value": "medium",
+      "trigger": "Bottom sheet AI Actions card → Extract Reminders",
       "description": "AI detects action items and deadlines in notes, suggests reminders automatically",
       "useCases": [
         "Note mentions 'meeting on Friday' → suggest calendar reminder",
