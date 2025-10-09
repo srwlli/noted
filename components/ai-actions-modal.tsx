@@ -68,7 +68,7 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
         newContent = `# ${generatedTitle}\n\n${noteContent}`;
       }
 
-      await notesService.updateNote(noteId, generatedTitle, newContent);
+      await notesService.updateNoteWithAITitle(noteId, generatedTitle, newContent);
       toast.success('Title saved successfully', { position: 'top-center' });
 
       // Trigger parent refresh
@@ -150,12 +150,16 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
     onClose();
   };
 
+  // Dynamic title button based on AI title generation
+  const titleIcon = (note.ai_title_generated_at ? 'check-circle' : 'title') as const;
+  const titleLabel = note.ai_title_generated_at ? 'Title Generated' : 'Generate Title';
+
   // Dynamic summarize button based on summary existence
   const summarizeIcon = (note.ai_summary ? 'check-circle' : 'summarize') as const;
   const summarizeLabel = note.ai_summary ? 'Summarized' : 'Summarize';
 
   const aiActions = [
-    { icon: 'title' as const, label: 'Generate Title', onPress: handleGenerateTitle, disabled: false },
+    { icon: titleIcon, label: titleLabel, onPress: handleGenerateTitle, disabled: loading },
     { icon: summarizeIcon, label: summarizeLabel, onPress: handleSummarize, disabled: isGeneratingSummary },
     { icon: 'search' as const, label: 'Extract Tags', onPress: () => {}, disabled: true },
   ];

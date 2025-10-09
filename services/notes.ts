@@ -11,6 +11,7 @@ export interface Note {
   updated_at: string;
   ai_summary?: string | null;
   summary_generated_at?: string | null;
+  ai_title_generated_at?: string | null;
 }
 
 export const notesService = {
@@ -159,6 +160,24 @@ export const notesService = {
     if (error) {
       console.error('Supabase error details:', error);
       throw new Error(`Failed to save summary: ${error.message || error.code || 'Unknown error'}`);
+    }
+  },
+
+  // Update note with AI-generated title
+  async updateNoteWithAITitle(noteId: string, title: string, content: string): Promise<void> {
+    const { error } = await supabase
+      .from('notes')
+      .update({
+        title,
+        content,
+        ai_title_generated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', noteId);
+
+    if (error) {
+      console.error('Supabase error details:', error);
+      throw new Error(`Failed to save title: ${error.message || error.code || 'Unknown error'}`);
     }
   }
 };
