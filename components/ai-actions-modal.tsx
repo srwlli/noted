@@ -150,9 +150,13 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
     onClose();
   };
 
+  // Dynamic summarize button based on summary existence
+  const summarizeIcon = (note.ai_summary ? 'check-circle' : 'summarize') as const;
+  const summarizeLabel = note.ai_summary ? 'Summarized' : 'Summarize';
+
   const aiActions = [
     { icon: 'title' as const, label: 'Generate Title', onPress: handleGenerateTitle, disabled: false },
-    { icon: 'summarize' as const, label: 'Summarize', onPress: handleSummarize, disabled: isGeneratingSummary },
+    { icon: summarizeIcon, label: summarizeLabel, onPress: handleSummarize, disabled: isGeneratingSummary },
     { icon: 'search' as const, label: 'Extract Tags', onPress: () => {}, disabled: true },
   ];
 
