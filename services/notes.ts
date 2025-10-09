@@ -157,7 +157,8 @@ export const notesService = {
       .eq('id', noteId);
 
     if (error) {
-      throw new Error('Failed to save summary');
+      console.error('Supabase error details:', error);
+      throw new Error(`Failed to save summary: ${error.message || error.code || 'Unknown error'}`);
     }
   }
 };

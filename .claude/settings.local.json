@@ -16,7 +16,9 @@
       "Bash(supabase:*)",
       "Bash(rm:*)",
       "Bash(npm run type-check:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(curl -s \"https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/notes?select=id,ai_summary,summary_generated_at&limit=1\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlrb3Z6ZWdpdXpqa3VieW13dmp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mjc4MzE5MTQsImV4cCI6MjA0MzQwNzkxNH0.gFWswqBMZK4YZVWGfGHXiZ5qpGK8cCKLK3o6rAslHWU\")",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
