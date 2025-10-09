@@ -59,17 +59,16 @@
       "purpose": "Server-side function to generate note summaries using Claude API",
       "flow": [
         "1. Extract user from JWT Authorization header",
-        "2. Query user_ai_keys table for user's encrypted Claude API key",
-        "3. Decrypt key server-side",
-        "4. Call Claude Haiku API with summarization prompt",
-        "5. Return summary (1-2 sentences, max 100 chars)"
+        "2. Query user_ai_keys table for user's Claude API key",
+        "3. Call Claude Haiku API with summarization prompt",
+        "4. Return summary (max 100 chars)"
       ],
       "api_call": {
         "model": "claude-3-5-haiku-20241022",
         "max_tokens": 50,
         "temperature": 0.3,
         "prompt": "Summarize this note in exactly 100 characters or less. Be concise and focus on the main topic:\n\n{content}",
-        "cost": "$0.0001 per request"
+        "cost": "$0.0012 per request (5000 chars input)"
       },
       "error_handling": [
         "No API key configured -> 400 Bad Request",
@@ -104,7 +103,7 @@
         "Add regenerate button",
         "Style with theme colors"
       ],
-      "jsx_code": "{/* AI Summary Section */}\n{note.ai_summary && (\n  <View style={[styles.summaryContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>\n    <View style={styles.summaryHeader}>\n      <MaterialIcons name=\"auto-awesome\" size={16} color={colors.tint} />\n      <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>AI Summary</Text>\n      <TouchableOpacity onPress={handleRegenerateSummary} style={styles.regenerateButton}>\n        <MaterialIcons name=\"refresh\" size={16} color={colors.textSecondary} />\n      </TouchableOpacity>\n    </View>\n    <Text style={[styles.summaryText, { color: colors.text }]}>\n      {note.ai_summary}\n    </Text>\n  </View>\n)}",
+      "jsx_code": "{/* AI Summary Section */}\n{note.ai_summary && (\n  <View style={[styles.summaryContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>\n    <View style={styles.summaryHeader}>\n      <MaterialIcons name=\"auto-awesome\" size={16} color={colors.tint} />\n      <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>AI Summary</Text>\n      {isSummaryStale && (\n        <MaterialIcons name=\"warning\" size={14} color=\"#F59E0B\" style={{ marginLeft: 4 }} />\n      )}\n      <TouchableOpacity onPress={handleSummarize} style={styles.regenerateButton}>\n        <MaterialIcons name=\"refresh\" size={16} color={colors.textSecondary} />\n      </TouchableOpacity>\n    </View>\n    <Text style={[styles.summaryText, { color: colors.text }]}>\n      {note.ai_summary}\n    </Text>\n  </View>\n)}",
       "styles": "summaryContainer: {\n  marginHorizontal: 16,\n  marginBottom: 16,\n  padding: 12,\n  borderRadius: 8,\n  borderWidth: 1,\n},\nsummaryHeader: {\n  flexDirection: 'row',\n  alignItems: 'center',\n  gap: 6,\n  marginBottom: 8,\n},\nsummaryLabel: {\n  fontSize: 12,\n  fontWeight: '600',\n  flex: 1,\n},\nregenerateButton: {\n  padding: 4,\n},\nsummaryText: {\n  fontSize: 14,\n  lineHeight: 20,\n}",
     },
 
@@ -138,10 +137,10 @@
 
   "technical_details": {
     "new_files": [
-      "supabase/functions/ai-summarize/index.ts"
+      "supabase/functions/ai-summarize/index.ts",
+      "services/ai/summarize.ts"
     ],
     "modified_files": [
-      "services/ai/claude.ts",
       "services/notes.ts",
       "components/note-actions-modal.tsx"
     ],
@@ -159,37 +158,42 @@
   "stale_summary_detection": {
     "description": "Detect when summary is outdated due to note edits",
     "detection_logic": "Compare note.updated_at > note.summary_generated_at",
-    "implementation": "const isSummaryStale = note.updated_at && note.summary_generated_at && new Date(note.updated_at) > new Date(note.summary_generated_at);",
+    "implementation_code": "const isSummaryStale = note.updated_at && note.summary_generated_at && new Date(note.updated_at) > new Date(note.summary_generated_at);",
     "ui_behavior": {
       "strategy": "Visual indicator only (non-intrusive)",
       "indicator": {
-        "type": "Warning badge",
+        "type": "Warning badge icon",
         "icon": "warning",
-        "color": "yellow/amber",
-        "text": "Summary may be outdated",
-        "placement": "Next to AI Summary badge"
+        "color": "#F59E0B (amber-500)",
+        "size": 14,
+        "placement": "Next to AI Summary label in summary section header"
       },
-      "regenerate_action": "User manually clicks Regenerate button when ready",
+      "jsx_code": "{isSummaryStale && (\n  <MaterialIcons name=\"warning\" size={14} color=\"#F59E0B\" style={{ marginLeft: 4 }} />\n)}",
+      "regenerate_action": "User manually clicks Regenerate (refresh) button when ready",
       "no_auto_regenerate": "Do not auto-regenerate to preserve user control and avoid unexpected API costs"
     }
   },
 
   "summarize_button_behavior": {
-    "description": "Visual indicator in AI Actions card showing summary status",
-    "has_summary": {
-      "condition": "note.ai_summary IS NOT NULL",
-      "icon": "check-circle",
-      "label": "Summarized",
-      "color": "success/green indicator",
-      "action": "Opens modal showing existing summary (user can regenerate)"
+    "description": "Summarize button lives in main bottom sheet modal (note-actions-modal.tsx), NOT in AI Actions modal",
+    "location": "Bottom sheet action cards grid alongside Edit, Share, etc.",
+    "button_states": {
+      "has_summary": {
+        "condition": "note.ai_summary IS NOT NULL",
+        "icon": "check-circle",
+        "label": "Summarized",
+        "color": "success/green indicator",
+        "action": "Triggers handleSummarize (regenerates summary)"
+      },
+      "no_summary": {
+        "condition": "note.ai_summary IS NULL",
+        "icon": "summarize",
+        "label": "Summarize",
+        "color": "default theme color",
+        "action": "Triggers handleSummarize (generates new summary)"
+      }
     },
-    "no_summary": {
-      "condition": "note.ai_summary IS NULL",
-      "icon": "summarize",
-      "label": "Summarize",
-      "color": "default theme color",
-      "action": "Generates new summary"
-    },
+    "implementation": "const summarizeIcon = note.ai_summary ? 'check-circle' : 'summarize';\nconst summarizeLabel = note.ai_summary ? 'Summarized' : 'Summarize';",
     "rationale": "Provides visual feedback showing which notes have been summarized without needing separate view/filter"
   },
 
@@ -290,20 +294,13 @@
     "buttons": {
       "regenerate": {
         "icon": "refresh",
-        "text": "Regenerate"
-      },
-      "cancel": {
-        "icon": "close",
-        "text": "Cancel"
-      },
-      "save": {
-        "icon": "check",
-        "text": "Save"
+        "accessible_label": "Regenerate summary"
       }
     },
-    "header": {
-      "initial": "AI Actions",
-      "after_generation": "Generated Summary"
+    "labels": {
+      "summary_section_header": "AI Summary",
+      "summarize_button_has_summary": "Summarized",
+      "summarize_button_no_summary": "Summarize"
     }
   },
 
@@ -345,13 +342,13 @@
   },
 
   "cost_analysis": {
-    "per_summary": "$0.0001 (Claude Haiku, 50 tokens)",
+    "per_summary": "$0.0012 (1250 tokens input + 25 tokens output)",
     "caching_strategy": "Store in database, only regenerate on user request",
     "optimization": "Truncate content to 5000 chars before sending to API",
     "estimated_monthly_cost": {
-      "light_user_10_notes": "$0.001/month (10 summaries)",
-      "medium_user_100_notes": "$0.01/month (100 summaries)",
-      "heavy_user_500_notes": "$0.05/month (500 summaries)"
+      "light_user_10_notes": "$0.012/month (10 summaries)",
+      "medium_user_100_notes": "$0.12/month (100 summaries)",
+      "heavy_user_500_notes": "$0.60/month (500 summaries)"
     },
     "note": "User pays directly to Anthropic, not you"
   },
@@ -393,7 +390,7 @@
       "70%+ of summaries accepted (not regenerated immediately)",
       "Average summary length: 60-90 chars",
       "Summary generation < 5% error rate",
-      "Cost per summary < $0.0002"
+      "Cost per summary: $0.0012 (within budget)"
     ]
   },
 
