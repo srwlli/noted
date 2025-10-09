@@ -106,6 +106,46 @@ export function TechStackCard({ isExpanded, onToggle }: TechStackCardProps) {
             </View>
           </View>
 
+          {/* Content & AI */}
+          <View style={[styles.divider, { borderBottomColor: colors.border }]} />
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Content & AI</Text>
+          <View style={styles.techList}>
+            <View style={styles.techRow}>
+              <Text style={[styles.techName, { color: colors.text }]}>React Markdown</Text>
+              <Text style={[styles.techDescription, { color: colors.textSecondary }]}>
+                Rich markdown rendering and preview
+              </Text>
+            </View>
+
+            <View style={styles.techRow}>
+              <Text style={[styles.techName, { color: colors.text }]}>Syntax Highlighter</Text>
+              <Text style={[styles.techDescription, { color: colors.textSecondary }]}>
+                Code blocks with language support
+              </Text>
+            </View>
+
+            <View style={styles.techRow}>
+              <Text style={[styles.techName, { color: colors.text }]}>Anthropic Claude</Text>
+              <Text style={[styles.techDescription, { color: colors.textSecondary }]}>
+                AI-powered features and assistance
+              </Text>
+            </View>
+
+            <View style={styles.techRow}>
+              <Text style={[styles.techName, { color: colors.text }]}>Perplexity API</Text>
+              <Text style={[styles.techDescription, { color: colors.textSecondary }]}>
+                Web research with citations
+              </Text>
+            </View>
+
+            <View style={styles.techRow}>
+              <Text style={[styles.techName, { color: colors.text }]}>Supabase Storage</Text>
+              <Text style={[styles.techDescription, { color: colors.textSecondary }]}>
+                Image and file uploads
+              </Text>
+            </View>
+          </View>
+
           {/* PWA Features */}
           <View style={[styles.divider, { borderBottomColor: colors.border }]} />
           <Text style={[styles.sectionTitle, { color: colors.text }]}>PWA Features</Text>

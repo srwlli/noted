@@ -85,9 +85,19 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <Text style={[styles.icon, { color: colors.text }]}>⋮</Text>
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>More</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Quick Menu (...)</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Access note and folder options
+                  Quick actions: Edit, Preview, Copy, Delete
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.iconRow}>
+              <MaterialIcons name="touch-app" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Long Press</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  Opens full actions sheet with all 10 options
                 </Text>
               </View>
             </View>
@@ -97,7 +107,27 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
               <View style={styles.iconInfo}>
                 <Text style={[styles.iconTitle, { color: colors.text }]}>Edit</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Modify note or folder
+                  Modify note content in markdown editor
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.iconRow}>
+              <MaterialIcons name="visibility" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Preview</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  View rendered markdown preview
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.iconRow}>
+              <MaterialIcons name="content-copy" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Copy</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  Copy note content to clipboard
                 </Text>
               </View>
             </View>
@@ -107,7 +137,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
               <View style={styles.iconInfo}>
                 <Text style={[styles.iconTitle, { color: colors.text }]}>Delete</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Remove note or folder
+                  Remove note permanently
                 </Text>
               </View>
             </View>
@@ -118,21 +148,31 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Tab Bar Navigation</Text>
           <View style={styles.iconList}>
             <View style={styles.iconRow}>
-              <MaterialIcons name="info" size={20} color={colors.text} style={styles.iconMaterial} />
+              <MaterialIcons name="description" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Info</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>All Notes</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  App information and guides
+                  View all your notes in one place
                 </Text>
               </View>
             </View>
 
             <View style={styles.iconRow}>
-              <MaterialIcons name="description" size={20} color={colors.text} style={styles.iconMaterial} />
+              <MaterialIcons name="star" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Notes</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Favorites</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  View and manage your notes
+                  Quick access to starred notes
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.iconRow}>
+              <MaterialIcons name="folder" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Folders</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  Organize notes by folder
                 </Text>
               </View>
             </View>
@@ -143,6 +183,16 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
                 <Text style={[styles.iconTitle, { color: colors.text }]}>Settings</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Customize app preferences
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.iconRow}>
+              <MaterialIcons name="info" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Info</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  App information and guides
                 </Text>
               </View>
             </View>
