@@ -4,7 +4,7 @@
   "date": "2025-01-09",
   "status": "planning",
   "priority": "high",
-  "effort": "medium (4-6 hours Phase 1, 2-3 hours Phase 2)",
+  "effort": "medium (10-15 hours Phase 1, 2-3 hours Phase 2)",
 
   "overview": {
     "description": "AI Edits is a comprehensive editing suite that allows users to apply multiple AI-powered transformations to their note content in a single workflow. Users can format markdown, fix grammar, adjust length, improve structure, and change tone - all through a multi-select interface with live preview.",
@@ -56,6 +56,10 @@
       "ErrorCode": {
         "purpose": "Standard error codes",
         "definition": "type ErrorCode = 'API_FAILURE' | 'NETWORK_ERROR' | 'CONTENT_TOO_SHORT' | 'CONTENT_TOO_LONG' | 'NO_OPTIONS_SELECTED' | 'NO_CHANGES_MADE' | 'USER_CANCELLED' | 'MARKDOWN_VALIDATION_FAILED';"
+      },
+      "ProgressCallback": {
+        "purpose": "Callback for realtime progress updates to UI",
+        "definition": "type ProgressCallback = (edit: EditType, status: 'pending' | 'in_progress' | 'completed' | 'failed', durationMs?: number) => void;"
       }
     }
   },
@@ -321,10 +325,13 @@
         "abort_controller": "Full AbortController chain across all API calls"
       },
       "comparison_logic": {
-        "algorithm": "Normalized string comparison",
+        "algorithm": "Levenshtein distance ratio",
+        "calculation": "similarity = 1 - (levenshtein_distance / max(original.length, edited.length))",
+        "library": "fastest-levenshtein (npm) or js-levenshtein",
         "threshold": 0.98,
         "description": "If edited content is 98%+ similar to original (case/whitespace normalized), show 'No changes needed' message",
-        "normalization": "Lowercase, trim whitespace, remove extra spaces"
+        "normalization": "Lowercase, trim whitespace, collapse multiple spaces to single space",
+        "example": "If similarity >= 0.98, show 'No changes needed' message and don't update database"
       },
       "footer_buttons": [
         {
@@ -478,6 +485,11 @@
         "sequential": "5 edits × 2s each = 10s total",
         "parallel_batched": "Batch1(2s) + Batch2(2s) + Batch3(2s) + Batch4(2s) = 8s total (20% improvement)",
         "typical_reduction": "30-50% for 4+ edits"
+      },
+      "progress_callback_pattern": {
+        "description": "Orchestrator calls onProgress for realtime UI updates",
+        "usage": "Pass ProgressCallback as 4th parameter to applyAIEdits",
+        "example": "// UI Component\nconst handleProgress = (edit: EditType, status: 'pending' | 'in_progress' | 'completed' | 'failed', durationMs?: number) => {\n  setEditProgress(prev => ({ ...prev, [edit]: { status, durationMs } }));\n};\n\nawait applyAIEdits(content, options, signal, handleProgress);\n\n// Orchestrator Implementation\nonProgress?.('formatMarkdown', 'in_progress');\nconst result = await formatMarkdown(content, signal);\nonProgress?.('formatMarkdown', 'completed', result.durationMs);"
       }
     },
     "abort_controller": {
@@ -591,7 +603,7 @@
         },
         {
           "file": "index.ts",
-          "exports": "async function applyAIEdits(content: string, options: EditOptions, signal?: AbortSignal): Promise<EditResult>",
+          "exports": "async function applyAIEdits(content: string, options: EditOptions, signal?: AbortSignal, onProgress?: ProgressCallback): Promise<EditResult>",
           "purpose": "Orchestrator that applies selected edits with parallel batching",
           "responsibilities": [
             "Validate input content (client + server)",
@@ -599,6 +611,7 @@
             "Execute batches in parallel where possible",
             "Handle AbortSignal for cancellation",
             "Handle partial failures (continue on error)",
+            "Call onProgress callback for each edit state change",
             "Track progress for UI updates",
             "Compare final result with original (normalized diff)",
             "Return comprehensive EditResult with metadata"
