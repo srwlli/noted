@@ -95,9 +95,9 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="touch-app" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Long Press</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Long Press Note Card</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Opens full actions sheet with all 10 options
+                  Opens bottom sheet with 10 actions: Edit, Favorite, Share, Preview, Export, Organization, Download, Copy, AI Actions, Delete
                 </Text>
               </View>
             </View>
@@ -105,7 +105,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="edit" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Edit</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Edit (... menu)</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Modify note content in markdown editor
                 </Text>
@@ -115,7 +115,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="visibility" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Preview</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Preview (... menu)</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   View rendered markdown preview
                 </Text>
@@ -125,7 +125,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="content-copy" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Copy</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Copy (... menu)</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Copy note content to clipboard
                 </Text>
@@ -135,7 +135,7 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             <View style={styles.iconRow}>
               <MaterialIcons name="delete" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Delete</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Delete (... menu)</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Remove note permanently
                 </Text>
