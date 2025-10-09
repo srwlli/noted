@@ -236,13 +236,18 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
         )}
       </Card>
 
-      {/* Actions Modal - triggered by long press on mobile */}
+      {/* Actions Modal - triggered by (...) button or long press on mobile */}
       <NoteActionsModal
         visible={showActionsModal}
         onClose={() => setShowActionsModal(false)}
         noteId={note.id}
         noteTitle={note.title}
         noteContent={note.content || ''}
+        folderId={note.folder_id}
+        isFavorite={isFavorite}
+        onToggleFavorite={handleToggleFavorite}
+        onFolderChanged={onMoveToFolder}
+        onNoteUpdated={onEdit}
         onDelete={handleDelete}
       />
     </>

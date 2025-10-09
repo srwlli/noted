@@ -1,8 +1,13 @@
-import React from 'react';
-import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput, Share, Platform } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
+import { AIActionsModal } from '@/components/ai-actions-modal';
+import { FolderPickerModal } from '@/components/folder-picker-modal';
+import { notesService } from '@/services/notes';
+import { toast } from 'sonner-native';
 
 interface NoteActionsModalProps {
   visible: boolean;
@@ -10,11 +15,36 @@ interface NoteActionsModalProps {
   noteId: string;
   noteTitle: string;
   noteContent: string;
+  folderId: string | null;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onFolderChanged?: () => void;
+  onNoteUpdated?: () => void;
   onDelete?: () => void;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, onDelete }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, folderId, isFavorite, onToggleFavorite, onFolderChanged, onNoteUpdated, onDelete }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
+  const [title, setTitle] = useState(noteTitle);
+  const [showAIActionsModal, setShowAIActionsModal] = useState(false);
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
+
+  const showComingSoon = () => {
+    toast.info('Coming Soon', { position: 'top-center' });
+  };
+
+  const handleTitleBlur = async () => {
+    if (title.trim() !== noteTitle.trim()) {
+      try {
+        await notesService.updateNote(noteId, title.trim(), noteContent);
+        onNoteUpdated?.();
+      } catch (error) {
+        console.error('Failed to update title:', error);
+        toast.error('Failed to update title', { position: 'top-center' });
+        setTitle(noteTitle); // Revert on error
+      }
+    }
+  };
 
   const handleEdit = () => {
     onClose();
@@ -26,15 +56,83 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     router.push(`/note-editor/${noteId}?mode=preview`);
   };
 
+  const handleShare = async () => {
+    try {
+      const title = noteTitle || 'Note';
+      const message = noteContent || '';
+
+      if (Platform.OS === 'web') {
+        // Web: Try Web Share API first (supports email, SMS, etc.)
+        if (navigator.share) {
+          await navigator.share({
+            title: title,
+            text: message,
+          });
+        } else {
+          // Fallback: Copy to clipboard if Web Share API not available
+          await Clipboard.setStringAsync(message);
+          toast.success('Note content copied to clipboard', { position: 'top-center' });
+        }
+      } else {
+        // Mobile: Native share sheet
+        await Share.share({
+          title: title,
+          message: message,
+        });
+        // Note: Share.share resolves on dismiss, no success toast needed
+      }
+    } catch (error) {
+      // User cancelled share or error occurred
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.error('Share failed:', error);
+        toast.error('Failed to share note', { position: 'top-center' });
+      }
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await Clipboard.setStringAsync(noteContent);
+      toast.success('Note content copied to clipboard', { position: 'top-center' });
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Failed to copy content', { position: 'top-center' });
+    }
+  };
+
+  // Primary actions
+  const favoriteIcon = (isFavorite ? 'star' : 'star-border') as 'star' | 'star-border';
+  const primaryActions = [
+    { icon: 'edit' as const, label: 'Edit', onPress: handleEdit, disabled: false },
+    { icon: favoriteIcon, label: isFavorite ? 'Unfavorite' : 'Favorite', onPress: onToggleFavorite, disabled: false },
+    { icon: 'share' as const, label: 'Share', onPress: handleShare, disabled: false },
+    { icon: 'visibility' as const, label: 'Preview', onPress: handlePreview, disabled: false },
+  ];
+
+  const handleAIActions = () => {
+    setShowAIActionsModal(true);
+  };
+
+  const handleOrganization = () => {
+    setShowFolderPicker(true);
+  };
+
+  // Secondary actions
+  const secondaryActions = [
+    { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
+    { icon: 'folder-open' as const, label: 'Organization', onPress: handleOrganization, disabled: false },
+    { icon: 'download' as const, label: 'Download', onPress: showComingSoon, disabled: false },
+  ];
+
   const handleDelete = () => {
     onClose();
     onDelete?.();
   };
 
-  // Actions
-  const actions = [
-    { icon: 'edit' as const, label: 'Edit', onPress: handleEdit, disabled: false },
-    { icon: 'visibility' as const, label: 'Preview', onPress: handlePreview, disabled: false },
+  // Tertiary actions
+  const tertiaryActions = [
+    { icon: 'content-copy' as const, label: 'Copy', onPress: handleCopy, disabled: false, destructive: false },
+    { icon: 'auto-awesome' as const, label: 'AI Actions', onPress: handleAIActions, disabled: false, accent: true },
     { icon: 'delete' as const, label: 'Delete', onPress: handleDelete, disabled: false, destructive: true },
   ];
 
@@ -62,12 +160,15 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
           </View>
 
-          {/* Header with Title */}
+          {/* Header with Title Input */}
           <View style={styles.header}>
             <TextInput
               style={[styles.titleInput, { color: colors.text, borderColor: colors.border }]}
-              value={noteTitle}
-              editable={false}
+              value={title}
+              onChangeText={setTitle}
+              onBlur={handleTitleBlur}
+              returnKeyType="done"
+              blurOnSubmit
               placeholder="Note title"
               placeholderTextColor={colors.textSecondary}
             />
@@ -80,12 +181,36 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
               contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
             >
-            {/* Actions Row */}
-            <PrimaryActionRow actions={actions} />
+            {/* Section 1: Primary Actions Row */}
+            <PrimaryActionRow actions={primaryActions} />
+
+            {/* Section 2: Secondary Actions Row */}
+            <PrimaryActionRow actions={secondaryActions} />
+
+            {/* Section 3: Tertiary Actions Row */}
+            <PrimaryActionRow actions={tertiaryActions} />
           </ScrollView>
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+
+      {/* AI Actions Modal */}
+      <AIActionsModal
+        visible={showAIActionsModal}
+        onClose={() => setShowAIActionsModal(false)}
+        noteId={noteId}
+        noteContent={noteContent}
+        onTitleUpdated={onNoteUpdated}
+      />
+
+      {/* Folder Picker Modal */}
+      <FolderPickerModal
+        visible={showFolderPicker}
+        onClose={() => setShowFolderPicker(false)}
+        noteId={noteId}
+        currentFolderId={folderId}
+        onFolderChanged={onFolderChanged}
+      />
     </Modal>
   );
 }
