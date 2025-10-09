@@ -4,6 +4,8 @@
 **APIs**: Claude (Anthropic) + Perplexity AI
 **Version**: 1.0.0
 
+**⚠️ IMPORTANT**: This is an agentic coding environment. Do NOT include time estimates in implementation plans. Focus on clear, actionable steps and deliverables.
+
 ---
 
 ## Overview
