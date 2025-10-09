@@ -1,17 +1,17 @@
 {
   "expo": {
-    "name": "mobile-tailwind-portal",
-    "slug": "mobile-tailwind-portal",
+    "name": "Noted",
+    "slug": "noted",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/noted-white.png",
-    "scheme": "mobiletailwindportal",
+    "scheme": "noted",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "platforms": ["ios", "android", "web"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.srwlli.mobiletailwindportal",
+      "bundleIdentifier": "com.srwlli.noted",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -25,14 +25,14 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.srwlli.mobiletailwindportal"
+      "package": "com.srwlli.noted"
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/noted-white.png",
       "name": "Noted",
       "shortName": "Noted",
-      "description": "Simple notes app with authentication",
+      "description": "AI-powered markdown notes with smart organization, folders, and intelligent features like auto-generated titles and summaries",
       "display": "standalone",
       "startUrl": "/",
       "orientation": "portrait",
