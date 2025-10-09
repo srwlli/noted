@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput, Share, Platform, Text } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
@@ -32,6 +32,11 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   const [showAIActionsModal, setShowAIActionsModal] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
+  // Sync local title state with prop when it changes (e.g., after AI title generation)
+  useEffect(() => {
+    setTitle(noteTitle);
+  }, [noteTitle]);
 
   const showComingSoon = () => {
     toast.info('Coming Soon', { position: 'top-center' });
