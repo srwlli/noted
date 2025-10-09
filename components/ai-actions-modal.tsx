@@ -3,10 +3,13 @@ import { View, Modal, TouchableOpacity, StyleSheet, Text, ActivityIndicator } fr
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
+import { AIEditsModal } from '@/components/ai-edits-modal';
+import { AIEditsPreviewModal } from '@/components/ai-edits-preview-modal';
 import { generateTitle } from '@/services/ai/generate-title';
 import { summarizeNote } from '@/services/ai/summarize';
 import { notesService, Note } from '@/services/notes';
 import { toast } from 'sonner-native';
+import type { EditOptions, EditResult, EditType } from '@/services/ai/edits/types';
 
 interface AIActionsModalProps {
   visible: boolean;
@@ -29,6 +32,14 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
   const [showResult, setShowResult] = useState(false);
   const [showSummaryResult, setShowSummaryResult] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+
+  // AI Edits state
+  const [showAIEditsModal, setShowAIEditsModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [editOptions, setEditOptions] = useState<EditOptions | null>(null);
+  const [editResult, setEditResult] = useState<EditResult | null>(null);
+  const [isProcessingEdits, setIsProcessingEdits] = useState(false);
+  const [editProgress, setEditProgress] = useState<Record<EditType, { status: 'pending' | 'in_progress' | 'completed' | 'failed'; durationMs?: number }>>({} as any);
 
   const handleGenerateTitle = async () => {
     setLoading(true);
@@ -141,6 +152,80 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
     handleSummarize();
   };
 
+  // AI Edits handlers
+  const handleAIEdits = () => {
+    setShowAIEditsModal(true);
+  };
+
+  const handleEditsPreview = async (options: EditOptions) => {
+    setEditOptions(options);
+    setShowAIEditsModal(false);
+    setShowPreviewModal(true);
+    setIsProcessingEdits(true);
+
+    try {
+      // Call AI Edits edge function
+      const response = await fetch('/api/ai-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: noteContent,
+          options,
+        }),
+      });
+
+      const result: EditResult = await response.json();
+      setEditResult(result);
+
+      if (!result.success && result.error) {
+        toast.error(result.error.userMessage, { position: 'top-center' });
+      }
+    } catch (error) {
+      console.error('AI Edits error:', error);
+      toast.error('Failed to apply AI edits. Please try again.', { position: 'top-center' });
+    } finally {
+      setIsProcessingEdits(false);
+    }
+  };
+
+  const handleApplyEdits = async () => {
+    if (!editResult || !editResult.success) return;
+
+    try {
+      // Update note with edited content
+      await notesService.updateNoteWithAIEdits(
+        noteId,
+        editResult.content,
+        editResult.appliedEdits.map(e => e.type)
+      );
+
+      toast.success('AI edits applied successfully', { position: 'top-center' });
+
+      // Trigger parent refresh
+      onTitleUpdated?.();
+
+      // Reset and close
+      setShowPreviewModal(false);
+      setEditResult(null);
+      setEditOptions(null);
+      onClose();
+    } catch (error) {
+      console.error('Failed to apply edits:', error);
+      toast.error('Failed to save edited content', { position: 'top-center' });
+    }
+  };
+
+  const handleRegenerateEdits = () => {
+    if (editOptions) {
+      handleEditsPreview(editOptions);
+    }
+  };
+
+  const handleCancelEditsProcessing = () => {
+    // TODO: Implement AbortController cancellation
+    setIsProcessingEdits(false);
+  };
+
   const handleModalClose = () => {
     setGeneratedTitle(null);
     setGeneratedSummary(null);
@@ -158,10 +243,14 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
   const summarizeIcon = (note.ai_summary ? 'check-circle' : 'summarize') as const;
   const summarizeLabel = note.ai_summary ? 'Summarized' : 'Summarize';
 
+  // Dynamic AI Edits button based on last edits applied
+  const editIcon = (note.last_ai_edits_applied?.length ? 'check-circle' : 'edit') as const;
+  const editLabel = note.last_ai_edits_applied?.length ? 'Edited' : 'AI Edits';
+
   const aiActions = [
     { icon: titleIcon, label: titleLabel, onPress: handleGenerateTitle, disabled: loading },
     { icon: summarizeIcon, label: summarizeLabel, onPress: handleSummarize, disabled: isGeneratingSummary },
-    { icon: 'search' as const, label: 'Extract Tags', onPress: () => {}, disabled: true },
+    { icon: editIcon, label: editLabel, onPress: handleAIEdits, disabled: false },
   ];
 
   return (
@@ -303,6 +392,28 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+
+      {/* AI Edits Modal */}
+      <AIEditsModal
+        visible={showAIEditsModal}
+        onClose={() => setShowAIEditsModal(false)}
+        onPreview={handleEditsPreview}
+        noteContent={noteContent}
+      />
+
+      {/* AI Edits Preview Modal */}
+      <AIEditsPreviewModal
+        visible={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        originalContent={noteContent}
+        editedContent={editResult?.content || noteContent}
+        editResult={editResult}
+        isProcessing={isProcessingEdits}
+        onRegenerate={handleRegenerateEdits}
+        onApply={handleApplyEdits}
+        onCancelProcessing={handleCancelEditsProcessing}
+        editProgress={editProgress}
+      />
     </Modal>
   );
 }

@@ -12,6 +12,8 @@ export interface Note {
   ai_summary?: string | null;
   summary_generated_at?: string | null;
   ai_title_generated_at?: string | null;
+  last_ai_edits_applied?: string[] | null;
+  last_ai_edit_at?: string | null;
 }
 
 export const notesService = {
@@ -179,5 +181,27 @@ export const notesService = {
       console.error('Supabase error details:', error);
       throw new Error(`Failed to save title: ${error.message || error.code || 'Unknown error'}`);
     }
+  },
+
+  // Update note with AI edits
+  async updateNoteWithAIEdits(noteId: string, editedContent: string, appliedEdits: string[]): Promise<Note> {
+    const { data, error } = await supabase
+      .from('notes')
+      .update({
+        content: editedContent,
+        last_ai_edits_applied: appliedEdits,
+        last_ai_edit_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', noteId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error details:', error);
+      throw new Error(`Failed to save AI edits: ${error.message || error.code || 'Unknown error'}`);
+    }
+
+    return data as Note;
   }
 };
