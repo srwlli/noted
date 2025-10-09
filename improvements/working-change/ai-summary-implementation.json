@@ -1,0 +1,420 @@
+{
+  "title": "AI Summary Implementation Plan",
+  "subtitle": "Add AI-generated summaries to bottom sheet modal",
+  "version": "1.0.0",
+  "date": "2025-10-09",
+  "status": "ready-to-implement",
+  "priority": "high",
+  "effort": "N/A - Agentic implementation",
+
+  "overview": {
+    "description": "Add AI-powered note summarization accessible from the bottom sheet AI Actions card. Summary displays in modal between title and action cards, providing context before user chooses an action.",
+    "trigger": "Bottom sheet AI Actions card -> Summarize button",
+    "placement": "Bottom sheet modal: below editable title, above action cards grid",
+    "storage": "Database columns: ai_summary (TEXT), summary_generated_at (TIMESTAMP)"
+  },
+
+  "user_experience": {
+    "display_location": "Bottom sheet modal only (not in note cards)",
+    "visual_hierarchy": [
+      "1. Drag handle",
+      "2. Editable note title",
+      "3. AI Summary section <- NEW",
+      "   - AI Summary badge (sparkle icon)",
+      "   - Summary text (1-2 sentences, max 100 chars)",
+      "   - Regenerate button",
+      "4. Action cards grid (Edit, Favorite, Share, etc.)"
+    ],
+    "user_flow": {
+      "step_1": "User long-presses note card -> bottom sheet opens",
+      "step_2": "User sees AI summary (if already generated) below title",
+      "step_3": "User taps 'Summarize' action card -> generates/updates summary",
+      "step_4": "Summary appears immediately in modal",
+      "step_5": "User can regenerate if not satisfied"
+    },
+    "fallback": "If no AI summary exists, section is hidden (no empty state shown)"
+  },
+
+  "benefits": {
+    "context_at_glance": "See what note is about before choosing action",
+    "preserves_preview": "Note cards keep raw content preview when expanded",
+    "perfect_placement": "Summary helps decide which action to take",
+    "on_demand": "Only shows in bottom sheet, not cluttering main view",
+    "regenerate_option": "User can regenerate if summary isn't good"
+  },
+
+  "implementation": {
+    "phase_1_database": {
+      "file": "supabase/migrations/20251009000000_add_ai_summary.sql",
+      "changes": [
+        "ALTER TABLE notes ADD COLUMN ai_summary TEXT;",
+        "ALTER TABLE notes ADD COLUMN summary_generated_at TIMESTAMP;",
+        "CREATE INDEX idx_notes_ai_summary ON notes(user_id) WHERE ai_summary IS NOT NULL;"
+      ],
+      "note": "Partial index sufficient - notes without summaries identified via AI Actions modal button state"
+    },
+
+    "phase_2_edge_function": {
+      "file": "supabase/functions/ai-summarize/index.ts",
+      "purpose": "Server-side function to generate note summaries using Claude API",
+      "flow": [
+        "1. Extract user from JWT Authorization header",
+        "2. Query user_ai_keys table for user's encrypted Claude API key",
+        "3. Decrypt key server-side",
+        "4. Call Claude Haiku API with summarization prompt",
+        "5. Return summary (1-2 sentences, max 100 chars)"
+      ],
+      "api_call": {
+        "model": "claude-3-5-haiku-20241022",
+        "max_tokens": 50,
+        "temperature": 0.3,
+        "prompt": "Summarize this note in exactly 100 characters or less. Be concise and focus on the main topic:\n\n{content}",
+        "cost": "$0.0001 per request"
+      },
+      "error_handling": [
+        "No API key configured -> 400 Bad Request",
+        "Invalid API key -> 401 Unauthorized",
+        "Rate limit exceeded -> 429 Too Many Requests",
+        "Network timeout -> 504 Gateway Timeout"
+      ],
+      "example_code": "Follow ai-generate-title/index.ts pattern exactly. Key differences: Use 'anthropic_key' (not encrypted), add CORS headers, use 5000 char limit, prompt for 100-char summary",
+      "implementation_notes": [
+        "Copy ai-generate-title Edge Function as template",
+        "Update prompt to summary-specific wording",
+        "Change content.slice(0, 2000) to content.slice(0, 5000)",
+        "Use same CORS, auth, error handling patterns"
+      ]
+    },
+
+    "phase_3_client_service": {
+      "file": "services/ai/claude.ts",
+      "changes": [
+        "Add summarizeNote() function",
+        "Add error handling with user-friendly messages",
+        "Add loading state management"
+      ],
+      "new_function": "export async function summarizeNote(content: string): Promise<string> {\n  try {\n    const { data, error } = await supabase.functions.invoke('ai-summarize', {\n      body: { content }\n    });\n\n    if (error) {\n      console.error('Summarize error:', error);\n      throw new Error(error.message || 'Failed to generate summary');\n    }\n\n    if (!data?.summary) {\n      throw new Error('No summary returned');\n    }\n\n    return data.summary;\n  } catch (error) {\n    console.error('Summarize failed:', error);\n    throw error;\n  }\n}",
+    },
+
+    "phase_4_ui_summary_display": {
+      "file": "components/note-actions-modal.tsx",
+      "location": "After title input, before action cards grid",
+      "changes": [
+        "Add summary display section",
+        "Add regenerate button",
+        "Style with theme colors"
+      ],
+      "jsx_code": "{/* AI Summary Section */}\n{note.ai_summary && (\n  <View style={[styles.summaryContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>\n    <View style={styles.summaryHeader}>\n      <MaterialIcons name=\"auto-awesome\" size={16} color={colors.tint} />\n      <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>AI Summary</Text>\n      <TouchableOpacity onPress={handleRegenerateSummary} style={styles.regenerateButton}>\n        <MaterialIcons name=\"refresh\" size={16} color={colors.textSecondary} />\n      </TouchableOpacity>\n    </View>\n    <Text style={[styles.summaryText, { color: colors.text }]}>\n      {note.ai_summary}\n    </Text>\n  </View>\n)}",
+      "styles": "summaryContainer: {\n  marginHorizontal: 16,\n  marginBottom: 16,\n  padding: 12,\n  borderRadius: 8,\n  borderWidth: 1,\n},\nsummaryHeader: {\n  flexDirection: 'row',\n  alignItems: 'center',\n  gap: 6,\n  marginBottom: 8,\n},\nsummaryLabel: {\n  fontSize: 12,\n  fontWeight: '600',\n  flex: 1,\n},\nregenerateButton: {\n  padding: 4,\n},\nsummaryText: {\n  fontSize: 14,\n  lineHeight: 20,\n}",
+    },
+
+    "phase_5_ui_summarize_action": {
+      "file": "components/note-actions-modal.tsx",
+      "changes": [
+        "Add Summarize action card to AI Actions section",
+        "Add handleSummarize function",
+        "Add loading state",
+        "Save summary to database after generation"
+      ],
+      "handler_function": "const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);\n\nconst handleSummarize = async () => {\n  if (isGeneratingSummary) return;\n  \n  setIsGeneratingSummary(true);\n  const loadingToast = toast.loading('Generating summary...', { position: 'top-center' });\n  \n  try {\n    const summary = await summarizeNote(noteContent);\n    \n    // Save to database\n    await notesService.updateNoteSummary(noteId, summary);\n    \n    // Update local state (trigger re-render)\n    onNoteUpdated?.();\n    \n    toast.success('Summary generated!', { id: loadingToast, position: 'top-center' });\n  } catch (error) {\n    console.error('Summary failed:', error);\n    const message = error instanceof Error ? error.message : 'Failed to generate summary';\n    toast.error(message, { id: loadingToast, position: 'top-center' });\n  } finally {\n    setIsGeneratingSummary(false);\n  }\n};",
+      "action_card_update": "Dynamic icon/label based on note.ai_summary - see summarize_button_behavior section for checkmark vs summarize icon logic"
+    },
+
+    "phase_6_notes_service": {
+      "file": "services/notes.ts",
+      "changes": [
+        "Add updateNoteSummary() method"
+      ],
+      "new_method": "async updateNoteSummary(noteId: string, summary: string): Promise<void> {\n  const { error } = await supabase\n    .from('notes')\n    .update({ \n      ai_summary: summary,\n      summary_generated_at: new Date().toISOString()\n    })\n    .eq('id', noteId);\n\n  if (error) {\n    throw new Error('Failed to save summary');\n  }\n}",
+    },
+
+    "phase_7_regenerate_handler": {
+      "file": "components/note-actions-modal.tsx",
+      "purpose": "Allow user to regenerate summary if not satisfied",
+      "handler": "Use handleSummarize directly - no separate function needed",
+      "implementation": "onPress={handleSummarize} on regenerate button"
+    }
+  },
+
+  "technical_details": {
+    "new_files": [
+      "supabase/functions/ai-summarize/index.ts"
+    ],
+    "modified_files": [
+      "services/ai/claude.ts",
+      "services/notes.ts",
+      "components/note-actions-modal.tsx"
+    ],
+    "database_changes": [
+      "ALTER TABLE notes ADD COLUMN ai_summary TEXT",
+      "ALTER TABLE notes ADD COLUMN summary_generated_at TIMESTAMP",
+      "CREATE INDEX on ai_summary for faster queries"
+    ],
+    "dependencies": [
+      "User must have Anthropic API key configured",
+      "Requires existing ai-generate-title Edge Function pattern (copy & modify)"
+    ]
+  },
+
+  "stale_summary_detection": {
+    "description": "Detect when summary is outdated due to note edits",
+    "detection_logic": "Compare note.updated_at > note.summary_generated_at",
+    "implementation": "const isSummaryStale = note.updated_at && note.summary_generated_at && new Date(note.updated_at) > new Date(note.summary_generated_at);",
+    "ui_behavior": {
+      "strategy": "Visual indicator only (non-intrusive)",
+      "indicator": {
+        "type": "Warning badge",
+        "icon": "warning",
+        "color": "yellow/amber",
+        "text": "Summary may be outdated",
+        "placement": "Next to AI Summary badge"
+      },
+      "regenerate_action": "User manually clicks Regenerate button when ready",
+      "no_auto_regenerate": "Do not auto-regenerate to preserve user control and avoid unexpected API costs"
+    }
+  },
+
+  "summarize_button_behavior": {
+    "description": "Visual indicator in AI Actions card showing summary status",
+    "has_summary": {
+      "condition": "note.ai_summary IS NOT NULL",
+      "icon": "check-circle",
+      "label": "Summarized",
+      "color": "success/green indicator",
+      "action": "Opens modal showing existing summary (user can regenerate)"
+    },
+    "no_summary": {
+      "condition": "note.ai_summary IS NULL",
+      "icon": "summarize",
+      "label": "Summarize",
+      "color": "default theme color",
+      "action": "Generates new summary"
+    },
+    "rationale": "Provides visual feedback showing which notes have been summarized without needing separate view/filter"
+  },
+
+  "input_truncation_strategy": {
+    "description": "Limit note content sent to Claude API to control costs and stay within context",
+    "character_limit": 5000,
+    "implementation": "content.slice(0, 5000)",
+    "rationale": [
+      "5000 chars = ~1250 tokens input",
+      "Cost: $0.0012 per summary (2x title generation at 2000 chars)",
+      "Provides sufficient context for accurate summarization",
+      "Prevents excessive API costs for very long notes"
+    ],
+    "cost_comparison": {
+      "2000_chars": "$0.0006 per summary (500 tokens input)",
+      "5000_chars": "$0.0012 per summary (1250 tokens input)",
+      "10000_chars": "$0.0024 per summary (2500 tokens input)"
+    },
+    "edge_cases": {
+      "notes_under_5000": "Full content sent, no truncation",
+      "notes_over_5000": "Truncated to first 5000 chars, rest ignored",
+      "very_short_notes": "Min 10 chars validated in Edge Function (error if shorter)"
+    },
+    "no_sanitization": "Content passed as-is, no trimming of whitespace or cleaning",
+    "truncation_location": "Edge Function (server-side) before API call"
+  },
+
+  "prompt_escape_strategy": {
+    "description": "Handle newlines and special characters in note content when sending to Claude API",
+    "strategy": "No manual escaping required",
+    "rationale": [
+      "Anthropic SDK handles JSON serialization automatically",
+      "Template literals preserve newlines and special characters correctly",
+      "Content is passed as string value in messages array, not as raw JSON"
+    ],
+    "implementation": "Use template literals with ${content} - see ai-generate-title/index.ts:94",
+    "example": "content: `Summarize this note in exactly 100 characters or less. Be concise and focus on the main topic:\\n\\n${content.slice(0, 5000)}`",
+    "edge_cases_handled": [
+      "Newlines (\\n) - preserved in template literal",
+      "Quotes (single/double) - handled by SDK",
+      "Special chars (@#$%^&*) - passed through safely",
+      "Emoji and Unicode - supported by Claude API",
+      "Markdown syntax (**, ##, [], etc.) - preserved"
+    ],
+    "no_sanitization_needed": "Claude API is designed to handle raw text input safely"
+  },
+
+  "loading_state_behavior": {
+    "description": "Loading state UI pattern following ai-actions-modal.tsx lines 141-148",
+    "state_management": {
+      "variable": "isGeneratingSummary",
+      "initial": false,
+      "during_generation": true,
+      "after_completion": false
+    },
+    "ui_display": {
+      "spinner": {
+        "component": "ActivityIndicator",
+        "size": "large",
+        "color": "colors.tint",
+        "placement": "Centered in content area"
+      },
+      "text": {
+        "message": "Generating summary...",
+        "placement": "Below spinner",
+        "style": "textSecondary color, 16px"
+      },
+      "container": {
+        "alignment": "center, justified",
+        "padding": "40px vertical, 16px gap between spinner and text"
+      }
+    },
+    "button_behavior": {
+      "summarize_button": "disabled={isGeneratingSummary}",
+      "regenerate_button": "disabled={isGeneratingSummary}",
+      "modal_backdrop": "Remains dismissible (user can cancel by tapping outside)"
+    }
+  },
+
+  "ui_copy_specification": {
+    "description": "Exact UI text following ai-actions-modal.tsx pattern",
+    "loading_state": {
+      "text": "Generating summary...",
+      "display": "ActivityIndicator with text below"
+    },
+    "success_toast": {
+      "message": "Summary generated!",
+      "position": "top-center"
+    },
+    "error_toasts": {
+      "generic": "Failed to generate summary",
+      "no_api_key": "No API key configured. Add one in Settings -> AI Features",
+      "invalid_key": "Invalid API key. Please check your settings",
+      "rate_limit": "Rate limit exceeded. Try again in a few minutes",
+      "network": "Network error. Check your connection",
+      "position": "top-center"
+    },
+    "buttons": {
+      "regenerate": {
+        "icon": "refresh",
+        "text": "Regenerate"
+      },
+      "cancel": {
+        "icon": "close",
+        "text": "Cancel"
+      },
+      "save": {
+        "icon": "check",
+        "text": "Save"
+      }
+    },
+    "header": {
+      "initial": "AI Actions",
+      "after_generation": "Generated Summary"
+    }
+  },
+
+  "ui_mockup": {
+    "bottom_sheet_with_summary": "+-------------------------------------+\n|         [Drag Handle]               |\n+-------------------------------------+\n|  Meeting Notes - Q4 Planning        | <- Title (editable)\n+-------------------------------------+\n|  +-------------------------------+  |\n|  | AI Summary        [Refresh]   |  | <- NEW SECTION\n|  | Discussed Q4 budget and       |  |\n|  | marketing strategy with Sarah |  |\n|  +-------------------------------+  |\n+-------------------------------------+\n|  [Edit]  [Favorite]  [Share]  [...] | <- Action Cards\n|  [AI]    [Export]    [Organize] ... |\n|  [Copy]  [Delete]    [Download]     |\n+-------------------------------------+",
+    "summary_section_collapsed": "Hidden if note.ai_summary is null/undefined",
+    "summary_section_expanded": "Shows badge, summary text, and regenerate button"
+  },
+
+  "testing_checklist": {
+    "functional_tests": [
+      "[x] Generate summary from Summarize action card",
+      "[x] Summary appears in modal after generation",
+      "[x] Summary saves to database",
+      "[x] Regenerate button updates summary",
+      "[x] Summary persists after closing modal",
+      "[x] No summary section shown if ai_summary is null",
+      "[x] Error handling for failed API calls",
+      "[x] Loading states work correctly",
+      "[x] Toast notifications appear (top-center)"
+    ],
+    "edge_cases": [
+      "[x] Very short notes (< 10 words)",
+      "[x] Very long notes (> 5000 chars, should truncate)",
+      "[x] Empty notes (should show error)",
+      "[x] No API key configured (should show error)",
+      "[x] Invalid API key (should show error)",
+      "[x] Rate limit exceeded (should show retry message)",
+      "[x] Network offline (should show error)"
+    ],
+    "ui_tests": [
+      "[x] Summary section styled correctly",
+      "[x] Regenerate button visible and clickable",
+      "[x] Theme colors applied",
+      "[x] Summary text wraps properly",
+      "[x] Modal height adjusts for summary section",
+      "[x] Summary doesn't overflow container"
+    ]
+  },
+
+  "cost_analysis": {
+    "per_summary": "$0.0001 (Claude Haiku, 50 tokens)",
+    "caching_strategy": "Store in database, only regenerate on user request",
+    "optimization": "Truncate content to 5000 chars before sending to API",
+    "estimated_monthly_cost": {
+      "light_user_10_notes": "$0.001/month (10 summaries)",
+      "medium_user_100_notes": "$0.01/month (100 summaries)",
+      "heavy_user_500_notes": "$0.05/month (500 summaries)"
+    },
+    "note": "User pays directly to Anthropic, not you"
+  },
+
+  "future_enhancements": {
+    "phase_2": [
+      "Auto-generate summary when note is created (optional setting)",
+      "Re-generate summary automatically if note content changes significantly (>20%)",
+      "Multiple summary styles (brief, detailed, bullet points)",
+      "Summary quality feedback (thumbs up/down)",
+      "Show summary in note card preview (optional toggle)"
+    ],
+    "phase_3": [
+      "Summary tone options (formal, casual, technical)",
+      "Multi-language summaries",
+      "Export summaries separately",
+      "Batch summarize all notes"
+    ]
+  },
+
+  "rollout_strategy": {
+    "step_1": "Implement and test with own notes",
+    "step_2": "Verify costs match estimates",
+    "step_3": "Add to AI Actions modal as new action",
+    "step_4": "Update ai-integrations-list.json status to 'implemented'",
+    "step_5": "Monitor usage and API costs",
+    "step_6": "Gather user feedback on summary quality"
+  },
+
+  "success_criteria": {
+    "functional": [
+      "Users can generate summaries in < 3 seconds",
+      "Summaries are concise (100 chars max)",
+      "Summaries accurately capture main topics",
+      "Error states handled gracefully",
+      "Summary persists across sessions"
+    ],
+    "business": [
+      "70%+ of summaries accepted (not regenerated immediately)",
+      "Average summary length: 60-90 chars",
+      "Summary generation < 5% error rate",
+      "Cost per summary < $0.0002"
+    ]
+  },
+
+  "implementation_order": {
+    "step_1": "Database migration",
+    "step_2": "Update Note interface (TypeScript types)",
+    "step_3": "Add updateNoteSummary method (notes.ts)",
+    "step_4": "Create Edge Function (ai-summarize with CORS)",
+    "step_5": "Create client service (services/ai/summarize.ts)",
+    "step_6": "Update modal UI (summary display section)",
+    "step_7": "Add summarize action (button with checkmark/summarize icon logic)",
+    "step_8": "Add stale summary detection (warning badge)",
+    "step_9": "Testing all flows"
+  },
+
+  "notes": [
+    "Summary placement in modal provides perfect context before action",
+    "Preserves existing note card preview functionality",
+    "Regenerate option gives user control over quality",
+    "Caching in database prevents repeated API costs",
+    "Top-center toast positioning ensures visibility above modal",
+    "Pattern matches existing AI title generation implementation"
+  ]
+}
