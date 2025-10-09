@@ -153,9 +153,19 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Tab Bar Navigation</Text>
           <View style={styles.iconList}>
             <View style={styles.iconRow}>
+              <MaterialIcons name="info" size={20} color={colors.text} style={styles.iconMaterial} />
+              <View style={styles.iconInfo}>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Info</Text>
+                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
+                  App information and guides
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.iconRow}>
               <MaterialIcons name="description" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>All Notes</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Notes</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   View all your notes in one place
                 </Text>
@@ -163,11 +173,11 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
             </View>
 
             <View style={styles.iconRow}>
-              <MaterialIcons name="star" size={20} color={colors.text} style={styles.iconMaterial} />
+              <MaterialIcons name="home" size={20} color={colors.text} style={styles.iconMaterial} />
               <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Favorites</Text>
+                <Text style={[styles.iconTitle, { color: colors.text }]}>Dashboard</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  Quick access to starred notes
+                  Quick access to favorites and recent notes
                 </Text>
               </View>
             </View>
@@ -188,16 +198,6 @@ export function QuickStartCard({ isExpanded, onToggle }: QuickStartCardProps) {
                 <Text style={[styles.iconTitle, { color: colors.text }]}>Settings</Text>
                 <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
                   Customize app preferences
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.iconRow}>
-              <MaterialIcons name="info" size={20} color={colors.text} style={styles.iconMaterial} />
-              <View style={styles.iconInfo}>
-                <Text style={[styles.iconTitle, { color: colors.text }]}>Info</Text>
-                <Text style={[styles.iconDescription, { color: colors.textSecondary }]}>
-                  App information and guides
                 </Text>
               </View>
             </View>
