@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput, Share, Platform } from 'react-native';
+import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, TextInput, Share, Platform, Text } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
 import { AIActionsModal } from '@/components/ai-actions-modal';
 import { FolderPickerModal } from '@/components/folder-picker-modal';
-import { notesService } from '@/services/notes';
+import { notesService, Note } from '@/services/notes';
+import { summarizeNote } from '@/services/ai/summarize';
 import { toast } from 'sonner-native';
 
 interface NoteActionsModalProps {
@@ -21,13 +23,15 @@ interface NoteActionsModalProps {
   onFolderChanged?: () => void;
   onNoteUpdated?: () => void;
   onDelete?: () => void;
+  note: Note;
 }
 
-export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, folderId, isFavorite, onToggleFavorite, onFolderChanged, onNoteUpdated, onDelete }: NoteActionsModalProps) {
+export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteContent, folderId, isFavorite, onToggleFavorite, onFolderChanged, onNoteUpdated, onDelete, note }: NoteActionsModalProps) {
   const { colors } = useThemeColors();
   const [title, setTitle] = useState(noteTitle);
   const [showAIActionsModal, setShowAIActionsModal] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   const showComingSoon = () => {
     toast.info('Coming Soon', { position: 'top-center' });
@@ -117,6 +121,39 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     setShowFolderPicker(true);
   };
 
+  const handleSummarize = async () => {
+    if (isGeneratingSummary) return;
+
+    setIsGeneratingSummary(true);
+    const loadingToast = toast.loading('Generating summary...', { position: 'top-center' });
+
+    try {
+      const result = await summarizeNote(noteContent);
+
+      if (!result.success) {
+        toast.error(result.error, { id: loadingToast, position: 'top-center' });
+        return;
+      }
+
+      // Save to database
+      await notesService.updateNoteSummary(noteId, result.summary);
+
+      // Update local state (trigger re-render)
+      onNoteUpdated?.();
+
+      toast.success('Summary generated!', { id: loadingToast, position: 'top-center' });
+    } catch (error) {
+      console.error('Summary failed:', error);
+      const message = error instanceof Error ? error.message : 'Failed to generate summary';
+      toast.error(message, { id: loadingToast, position: 'top-center' });
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  // Stale summary detection
+  const isSummaryStale = note.updated_at && note.summary_generated_at && new Date(note.updated_at) > new Date(note.summary_generated_at);
+
   // Secondary actions
   const secondaryActions = [
     { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
@@ -174,6 +211,25 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
             />
           </View>
 
+          {/* AI Summary Section */}
+          {note.ai_summary && (
+            <View style={[styles.summaryContainer, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <View style={styles.summaryHeader}>
+                <MaterialIcons name="auto-awesome" size={16} color={colors.tint} />
+                <Text style={[styles.summaryLabel, { color: colors.textSecondary }]}>AI Summary</Text>
+                {isSummaryStale && (
+                  <MaterialIcons name="warning" size={14} color="#F59E0B" style={{ marginLeft: 4 }} />
+                )}
+                <TouchableOpacity onPress={handleSummarize} style={styles.regenerateButton} disabled={isGeneratingSummary}>
+                  <MaterialIcons name="refresh" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={[styles.summaryText, { color: colors.text }]}>
+                {note.ai_summary}
+              </Text>
+            </View>
+          )}
+
           {/* Content */}
           <View style={styles.content}>
             <ScrollView
@@ -200,6 +256,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
         onClose={() => setShowAIActionsModal(false)}
         noteId={noteId}
         noteContent={noteContent}
+        note={note}
         onTitleUpdated={onNoteUpdated}
       />
 
@@ -250,6 +307,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderWidth: 1,
     borderRadius: 8,
+  },
+  summaryContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  summaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  summaryLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    flex: 1,
+  },
+  regenerateButton: {
+    padding: 4,
+  },
+  summaryText: {
+    fontSize: 14,
+    lineHeight: 20,
   },
   content: {
     maxHeight: 600,

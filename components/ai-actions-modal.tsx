@@ -4,7 +4,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
 import { generateTitle } from '@/services/ai/generate-title';
-import { notesService } from '@/services/notes';
+import { summarizeNote } from '@/services/ai/summarize';
+import { notesService, Note } from '@/services/notes';
 import { toast } from 'sonner-native';
 
 interface AIActionsModalProps {
@@ -12,18 +13,22 @@ interface AIActionsModalProps {
   onClose: () => void;
   noteId: string;
   noteContent: string;
+  note: Note;
   onTitleUpdated?: () => void;
 }
 
 /**
  * Bottom sheet modal for AI-powered actions
- * Handles title generation in-place without navigation
+ * Handles title generation and summarization in-place without navigation
  */
-export function AIActionsModal({ visible, onClose, noteId, noteContent, onTitleUpdated }: AIActionsModalProps) {
+export function AIActionsModal({ visible, onClose, noteId, noteContent, note, onTitleUpdated }: AIActionsModalProps) {
   const { colors } = useThemeColors();
   const [loading, setLoading] = useState(false);
   const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
+  const [generatedSummary, setGeneratedSummary] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [showSummaryResult, setShowSummaryResult] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   const handleGenerateTitle = async () => {
     setLoading(true);
@@ -85,19 +90,69 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, onTitleU
 
   const handleCancel = () => {
     setGeneratedTitle(null);
+    setGeneratedSummary(null);
     setShowResult(false);
+    setShowSummaryResult(false);
+  };
+
+  const handleSummarize = async () => {
+    setIsGeneratingSummary(true);
+    setShowSummaryResult(true);
+
+    try {
+      const result = await summarizeNote(noteContent);
+
+      if (result.success) {
+        setGeneratedSummary(result.summary);
+      } else {
+        toast.error(result.error, { position: 'top-center' });
+        setShowSummaryResult(false);
+      }
+    } catch (error) {
+      console.error('Generate summary error:', error);
+      toast.error('Failed to generate summary', { position: 'top-center' });
+      setShowSummaryResult(false);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  const handleSaveSummary = async () => {
+    if (!generatedSummary) return;
+
+    try {
+      await notesService.updateNoteSummary(noteId, generatedSummary);
+      toast.success('Summary saved successfully', { position: 'top-center' });
+
+      // Trigger parent refresh
+      onTitleUpdated?.();
+
+      // Reset and close
+      setGeneratedSummary(null);
+      setShowSummaryResult(false);
+      onClose();
+    } catch (error) {
+      console.error('Failed to save summary:', error);
+      toast.error('Failed to save summary', { position: 'top-center' });
+    }
+  };
+
+  const handleRegenerateSummary = () => {
+    handleSummarize();
   };
 
   const handleModalClose = () => {
     setGeneratedTitle(null);
+    setGeneratedSummary(null);
     setShowResult(false);
+    setShowSummaryResult(false);
     setLoading(false);
     onClose();
   };
 
   const aiActions = [
     { icon: 'title' as const, label: 'Generate Title', onPress: handleGenerateTitle, disabled: false },
-    { icon: 'summarize' as const, label: 'Summarize', onPress: () => {}, disabled: true },
+    { icon: 'summarize' as const, label: 'Summarize', onPress: handleSummarize, disabled: isGeneratingSummary },
     { icon: 'search' as const, label: 'Extract Tags', onPress: () => {}, disabled: true },
   ];
 
@@ -129,63 +184,114 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, onTitleU
           <View style={styles.header}>
             <MaterialIcons name="auto-awesome" size={24} color={colors.tint} />
             <Text style={[styles.title, { color: colors.text }]}>
-              {showResult ? 'Generated Title' : 'AI Actions'}
+              {showResult ? 'Generated Title' : showSummaryResult ? 'Generated Summary' : 'AI Actions'}
             </Text>
           </View>
 
           {/* Content */}
           <View style={styles.content}>
-            {!showResult ? (
+            {!showResult && !showSummaryResult ? (
               /* Initial Action Buttons */
               <PrimaryActionRow actions={aiActions} />
-            ) : loading ? (
-              /* Loading State */
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color={colors.tint} />
-                <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
-                  Generating title...
-                </Text>
-              </View>
-            ) : (
-              /* Result State */
-              <>
-                <View style={[styles.titlePreview, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-                  <Text style={[styles.titleText, { color: colors.text }]}>
-                    {generatedTitle}
+            ) : showResult ? (
+              loading ? (
+                /* Title Loading State */
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.tint} />
+                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                    Generating title...
                   </Text>
                 </View>
+              ) : (
+                /* Title Result State */
+                <>
+                  <View style={[styles.titlePreview, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Text style={[styles.titleText, { color: colors.text }]}>
+                      {generatedTitle}
+                    </Text>
+                  </View>
 
-                {/* Action Buttons */}
-                <View style={styles.buttonRow}>
-                  <TouchableOpacity
-                    style={[styles.actionButton, { borderColor: colors.border }]}
-                    onPress={handleCancel}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialIcons name="close" size={20} color={colors.text} />
-                    <Text style={[styles.buttonText, { color: colors.text }]}>Cancel</Text>
-                  </TouchableOpacity>
+                  {/* Action Buttons */}
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { borderColor: colors.border }]}
+                      onPress={handleCancel}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="close" size={20} color={colors.text} />
+                      <Text style={[styles.buttonText, { color: colors.text }]}>Cancel</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, { borderColor: colors.border }]}
-                    onPress={handleRegenerate}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialIcons name="refresh" size={20} color={colors.text} />
-                    <Text style={[styles.buttonText, { color: colors.text }]}>Regenerate</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { borderColor: colors.border }]}
+                      onPress={handleRegenerate}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="refresh" size={20} color={colors.text} />
+                      <Text style={[styles.buttonText, { color: colors.text }]}>Regenerate</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.actionButton, styles.saveButton, { backgroundColor: colors.tint }]}
-                    onPress={handleSave}
-                    activeOpacity={0.7}
-                  >
-                    <MaterialIcons name="check" size={20} color="#ffffff" />
-                    <Text style={[styles.buttonText, { color: '#ffffff' }]}>Save</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.saveButton, { backgroundColor: colors.tint }]}
+                      onPress={handleSave}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="check" size={20} color="#ffffff" />
+                      <Text style={[styles.buttonText, { color: '#ffffff' }]}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )
+            ) : showSummaryResult ? (
+              isGeneratingSummary ? (
+                /* Summary Loading State */
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color={colors.tint} />
+                  <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
+                    Generating summary...
+                  </Text>
                 </View>
-              </>
-            )}
+              ) : (
+                /* Summary Result State */
+                <>
+                  <View style={[styles.titlePreview, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+                    <Text style={[styles.titleText, { color: colors.text }]}>
+                      {generatedSummary}
+                    </Text>
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, { borderColor: colors.border }]}
+                      onPress={handleCancel}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="close" size={20} color={colors.text} />
+                      <Text style={[styles.buttonText, { color: colors.text }]}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, { borderColor: colors.border }]}
+                      onPress={handleRegenerateSummary}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="refresh" size={20} color={colors.text} />
+                      <Text style={[styles.buttonText, { color: colors.text }]}>Regenerate</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.actionButton, styles.saveButton, { backgroundColor: colors.tint }]}
+                      onPress={handleSaveSummary}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="check" size={20} color="#ffffff" />
+                      <Text style={[styles.buttonText, { color: '#ffffff' }]}>Save</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )
+            ) : null}
           </View>
         </TouchableOpacity>
       </TouchableOpacity>

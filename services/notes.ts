@@ -9,6 +9,8 @@ export interface Note {
   is_favorite: boolean;
   created_at: string;
   updated_at: string;
+  ai_summary?: string | null;
+  summary_generated_at?: string | null;
 }
 
 export const notesService = {
@@ -142,5 +144,20 @@ export const notesService = {
 
     if (error) throw error;
     return data as Note[];
+  },
+
+  // Update AI summary for a note
+  async updateNoteSummary(noteId: string, summary: string): Promise<void> {
+    const { error } = await supabase
+      .from('notes')
+      .update({
+        ai_summary: summary,
+        summary_generated_at: new Date().toISOString()
+      })
+      .eq('id', noteId);
+
+    if (error) {
+      throw new Error('Failed to save summary');
+    }
   }
 };

@@ -186,6 +186,7 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
         onFolderChanged={onMoveToFolder}
         onNoteUpdated={onEdit}
         onDelete={handleDelete}
+        note={note}
       />
     </>
   );
