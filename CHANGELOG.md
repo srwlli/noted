@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **AI Note Summarization** (2025-10-09)
+  - Generate concise 100-character summaries of notes using Claude Haiku AI
+  - Accessible via AI Actions modal (long press note → AI Actions → Summarize)
+  - Preview workflow: Generate → Preview → Cancel/Regenerate/Save (matches title generation UX)
+  - Summary displays in bottom sheet modal between title and action cards
+  - Stale summary detection with amber warning icon when note edited after summary
+  - Regenerate button (refresh icon) to update outdated summaries
+  - Database storage: ai_summary (TEXT) and summary_generated_at (TIMESTAMP) columns
+  - Edge Function: ai-summarize using Claude 3.5 Haiku model
+  - Cost: $0.0012 per summary (5000 character input limit, 100 character output)
+  - User pays Anthropic directly (BYOK model via Settings → AI Features)
+  - Service layer: summarizeNote() client function with full error handling
+  - Preview before save prevents unwanted AI-generated content
+  - Auto-refresh parent component after save to display summary immediately
+  - Migration: 20251009000000_add_ai_summary.sql with partial index for performance
+  - Components: AI Actions Modal updated with summary preview UI
+  - Toast notifications for generation success/failure (top-center position)
+
 ### Changed
 - **Bottom Sheet Modal Simplification** (2025-10-08)
   - Refactored NoteActionsModal from 10 actions to 3 core actions
