@@ -44,3 +44,6 @@ app-example
 /android
 
 .vercel
+
+# improvements folder
+improvements/
