@@ -53,7 +53,7 @@ serve(async (req) => {
 
     if (!rateLimitResult.success) {
       console.log('❌ Rate limit exceeded');
-      const headers = { ...corsHeaders };
+      const headers: Record<string, string> = { ...corsHeaders };
       if (rateLimitResult.retryAfter) {
         headers['Retry-After'] = rateLimitResult.retryAfter.toString();
       }
