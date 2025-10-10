@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, Text, TextInput, Platform, Share, ActivityIndicator } from 'react-native';
+import { View, Modal, TouchableOpacity, ScrollView, StyleSheet, Text, TextInput, Platform, Share, ActivityIndicator, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -111,7 +111,7 @@ export function PublishModal({
     }
   };
 
-  const handleUnpublish = async () => {
+  const handleUnpublishConfirm = async () => {
     if (unpublishing) return;
 
     setUnpublishing(true);
@@ -129,6 +129,19 @@ export function PublishModal({
     } finally {
       setUnpublishing(false);
     }
+  };
+
+  const handleUnpublish = () => {
+    if (unpublishing) return;
+
+    Alert.alert(
+      'Unpublish note?',
+      'The public link will stop working. You can publish again later.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Unpublish', style: 'destructive', onPress: handleUnpublishConfirm }
+      ]
+    );
   };
 
   const getPublicUrl = () => {

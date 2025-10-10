@@ -71,6 +71,23 @@ export const publishService = {
 
       if (error) {
         console.error('Edge Function error:', error);
+
+        // Map HTTP status codes to specific error codes
+        const status = error.context?.status || error.status;
+        if (status === 400) {
+          // Could be NOTE_EMPTY or NOTE_TOO_LARGE - check error message
+          if (error.message?.includes('empty')) {
+            return { success: false, error: 'NOTE_EMPTY' };
+          }
+          if (error.message?.includes('too large')) {
+            return { success: false, error: 'NOTE_TOO_LARGE' };
+          }
+          return { success: false, error: 'NOTE_EMPTY' };
+        }
+        if (status === 401) return { success: false, error: 'UNAUTHORIZED' };
+        if (status === 404) return { success: false, error: 'NOTE_NOT_FOUND' };
+        if (status === 429) return { success: false, error: 'RATE_LIMIT_EXCEEDED' };
+
         return {
           success: false,
           error: 'DATABASE_ERROR'
