@@ -2,11 +2,9 @@
  * AI Edits Orchestrator (Deno/Edge Function version)
  *
  * Coordinates the application of multiple AI edits with:
- * - Smart dependency batching for 30-50% latency reduction
- * - Parallel execution of independent edits
+ * - Sequential execution for reliable results
  * - AbortController support for cancellation
  * - Partial failure handling (continue on error)
- * - Normalized diff comparison to detect trivial changes
  */
 
 import type { EditOptions, EditResult, AppliedEdit, FailedEdit } from './types.ts';
@@ -15,63 +13,6 @@ import { fixGrammar } from './edits/fixGrammar.ts';
 import { addHeadings } from './edits/addHeadings.ts';
 import { improveStructure } from './edits/improveStructure.ts';
 import { makeConcise, expandContent } from './edits/adjustLength.ts';
-
-/**
- * Calculate Levenshtein distance between two strings
- * Used for normalized diff comparison
- */
-function levenshteinDistance(str1: string, str2: string): number {
-  const len1 = str1.length;
-  const len2 = str2.length;
-  const matrix: number[][] = [];
-
-  // Initialize matrix
-  for (let i = 0; i <= len1; i++) {
-    matrix[i] = [i];
-  }
-  for (let j = 0; j <= len2; j++) {
-    matrix[0][j] = j;
-  }
-
-  // Fill matrix
-  for (let i = 1; i <= len1; i++) {
-    for (let j = 1; j <= len2; j++) {
-      if (str1[i - 1] === str2[j - 1]) {
-        matrix[i][j] = matrix[i - 1][j - 1];
-      } else {
-        matrix[i][j] = Math.min(
-          matrix[i - 1][j - 1] + 1, // substitution
-          matrix[i][j - 1] + 1, // insertion
-          matrix[i - 1][j] + 1 // deletion
-        );
-      }
-    }
-  }
-
-  return matrix[len1][len2];
-}
-
-/**
- * Normalize string for comparison
- */
-function normalizeForComparison(str: string): string {
-  return str.toLowerCase().trim().replace(/\s+/g, ' ');
-}
-
-/**
- * Calculate similarity between original and edited content
- */
-function calculateSimilarity(original: string, edited: string): number {
-  const norm1 = normalizeForComparison(original);
-  const norm2 = normalizeForComparison(edited);
-
-  if (norm1 === norm2) return 1.0;
-
-  const distance = levenshteinDistance(norm1, norm2);
-  const maxLength = Math.max(norm1.length, norm2.length);
-
-  return 1 - distance / maxLength;
-}
 
 /**
  * Apply AI edits to note content
@@ -88,12 +29,17 @@ export async function applyAIEdits(
   anthropic: any,
   signal?: AbortSignal
 ): Promise<EditResult> {
+  console.log('[orchestrator] applyAIEdits called');
+  console.log('[orchestrator] options:', JSON.stringify(options));
+  console.log('[orchestrator] content length:', content.length);
+
   const startTime = Date.now();
   const originalContent = content;
   const appliedEdits: AppliedEdit[] = [];
   const failedEdits: FailedEdit[] = [];
 
   try {
+    console.log('[orchestrator] Starting validation...');
     // Validate input
     if (!content || content.trim().length < 10) {
       return {
@@ -161,14 +107,21 @@ export async function applyAIEdits(
 
     // BATCH 1: Format Markdown (sequential for now)
     if (options.formatMarkdown) {
-      const result = await formatMarkdown(currentContent, anthropic, signal);
-      if (result.success) {
-        currentContent = result.content;
-        appliedEdits.push(...result.appliedEdits);
-      } else {
-        if (result.failedEdits) {
-          failedEdits.push(...result.failedEdits);
+      console.log('[orchestrator] Starting formatMarkdown...');
+      try {
+        const result = await formatMarkdown(currentContent, anthropic, signal);
+        console.log('[orchestrator] formatMarkdown result:', { success: result.success, editsCount: result.appliedEdits.length });
+        if (result.success) {
+          currentContent = result.content;
+          appliedEdits.push(...result.appliedEdits);
+        } else {
+          if (result.failedEdits) {
+            failedEdits.push(...result.failedEdits);
+          }
         }
+      } catch (error) {
+        console.error('[orchestrator] formatMarkdown error:', error);
+        throw error;
       }
     }
 
@@ -238,27 +191,6 @@ export async function applyAIEdits(
 
     // Calculate final metrics
     const processingTimeMs = Date.now() - startTime;
-    const similarity = calculateSimilarity(originalContent, currentContent);
-
-    // Check if changes are trivial (98%+ similar)
-    if (similarity >= 0.98) {
-      return {
-        success: true,
-        content: originalContent,
-        appliedEdits,
-        failedEdits: failedEdits.length > 0 ? failedEdits : undefined,
-        originalContent,
-        changePercentage: 0,
-        processingTimeMs,
-        error: {
-          code: 'NO_CHANGES_MADE',
-          message: 'Content is 98%+ similar to original',
-          userMessage: 'No changes needed! Your note looks good.',
-          retryable: false,
-        },
-      };
-    }
-
     const characterDelta = currentContent.length - originalContent.length;
     const changePercentage = Math.abs(characterDelta / originalContent.length) * 100;
 

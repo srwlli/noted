@@ -131,6 +131,10 @@ Deno.serve(async (req) => {
     const anthropic = new Anthropic({ apiKey: keysData.anthropic_key });
 
     // 6. Apply AI edits using orchestrator
+    console.log('[index] Starting AI edits with options:', options);
+    console.log('[index] Content length:', content.length);
+    console.log('[index] Anthropic client initialized:', !!anthropic);
+
     const editOptions: EditOptions = {
       formatMarkdown: options.formatMarkdown,
       fixGrammar: options.fixGrammar,
@@ -145,7 +149,9 @@ Deno.serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
+      console.log('[index] Calling applyAIEdits...');
       const result = await applyAIEdits(content, editOptions, anthropic, controller.signal);
+      console.log('[index] applyAIEdits completed:', { success: result.success });
 
       clearTimeout(timeoutId);
 
@@ -156,6 +162,7 @@ Deno.serve(async (req) => {
       });
     } catch (error: any) {
       clearTimeout(timeoutId);
+      console.error('[index] Error in applyAIEdits:', error);
 
       if (error.name === 'AbortError') {
         return new Response(
