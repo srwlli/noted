@@ -1,0 +1,1395 @@
+{
+  "title": "AI Edits - Comprehensive Content Transformation Suite",
+  "version": "2.0.0",
+  "date": "2025-01-09",
+  "status": "planning",
+  "priority": "high",
+  "effort": "medium (10-15 hours Phase 1, 2-3 hours Phase 2)",
+
+  "overview": {
+    "description": "AI Edits is a comprehensive editing suite that allows users to apply multiple AI-powered transformations to their note content in a single workflow. Users can format markdown, fix grammar, adjust length, improve structure, and change tone - all through a multi-select interface with live preview.",
+    "key_innovation": "Multi-select batch editor with parallel processing that applies transformations intelligently, replacing the need for multiple individual editing actions",
+    "replaces": "Generic 'Content Enhancement' concept with focused, modular 'AI Edits' feature",
+    "integration_point": "Replaces disabled 'Extract Tags' button in AI Actions Modal"
+  },
+
+  "user_problem": {
+    "pain_points": [
+      "Notes are messy text dumps without proper structure",
+      "Typos and grammar errors make notes unprofessional",
+      "Notes lack proper markdown formatting (headings, lists)",
+      "Content is too verbose or too brief",
+      "Tone doesn't match intended audience (casual vs professional)"
+    ],
+    "current_workflow": "User must manually format, proofread, and restructure notes - time-consuming and error-prone",
+    "solution": "One-click multi-edit: Select desired transformations → Preview → Apply all at once"
+  },
+
+  "typescript_types": {
+    "description": "Rich type definitions for AI Edits with metadata and error handling",
+    "file": "services/ai/edits/types.ts",
+    "interfaces": {
+      "EditOptions": {
+        "purpose": "User's selected edit options",
+        "definition": "interface EditOptions {\n  formatMarkdown?: boolean;\n  fixGrammar?: boolean;\n  addHeadings?: boolean;\n  improveStructure?: boolean;\n  lengthAdjustment?: 'keep' | 'concise' | 'expand';\n  tone?: 'professional' | 'technical' | 'clear' | null;\n}"
+      },
+      "EditResult": {
+        "purpose": "Result from applyAIEdits orchestrator",
+        "definition": "interface EditResult {\n  success: boolean;\n  content: string;\n  appliedEdits: AppliedEdit[];\n  failedEdits?: FailedEdit[];\n  originalContent: string;\n  changePercentage: number;\n  processingTimeMs: number;\n  error?: EditError;\n}"
+      },
+      "AppliedEdit": {
+        "purpose": "Metadata about successfully applied edit",
+        "definition": "interface AppliedEdit {\n  type: EditType;\n  status: 'success';\n  durationMs: number;\n  changesMade: boolean;\n  characterDelta: number;\n}"
+      },
+      "FailedEdit": {
+        "purpose": "Metadata about failed edit (for partial failure handling)",
+        "definition": "interface FailedEdit {\n  type: EditType;\n  status: 'failed';\n  error: string;\n  recoverable: boolean;\n}"
+      },
+      "EditType": {
+        "purpose": "All possible edit types",
+        "definition": "type EditType = 'formatMarkdown' | 'fixGrammar' | 'addHeadings' | 'improveStructure' | 'makeConcise' | 'expandContent' | 'changeTone';"
+      },
+      "EditError": {
+        "purpose": "Structured error information",
+        "definition": "interface EditError {\n  code: ErrorCode;\n  message: string;\n  userMessage: string;\n  retryable: boolean;\n  context?: Record<string, any>;\n}"
+      },
+      "ErrorCode": {
+        "purpose": "Standard error codes",
+        "definition": "type ErrorCode = 'API_FAILURE' | 'NETWORK_ERROR' | 'CONTENT_TOO_SHORT' | 'CONTENT_TOO_LONG' | 'NO_OPTIONS_SELECTED' | 'NO_CHANGES_MADE' | 'USER_CANCELLED' | 'MARKDOWN_VALIDATION_FAILED';"
+      },
+      "ProgressCallback": {
+        "purpose": "Callback for realtime progress updates to UI",
+        "definition": "type ProgressCallback = (edit: EditType, status: 'pending' | 'in_progress' | 'completed' | 'failed', durationMs?: number) => void;"
+      }
+    }
+  },
+
+  "phases": {
+    "phase_1_mvp": {
+      "name": "Format & Polish",
+      "duration": "4-6 hours",
+      "priority": "high",
+      "features": {
+        "format_markdown": {
+          "name": "Format Markdown Properly",
+          "icon": "format_align_left",
+          "description": "Scan existing markdown and add proper structure: headings (#), bullet lists (-), numbered lists (1.), code blocks, spacing",
+          "input_type": "checkbox",
+          "temperature": 0.1,
+          "example_before": "meeting notes\n\ntopics:\nbudget\ntimeline\n\naction items\n- send report\nschedule followup",
+          "example_after": "# Meeting Notes\n\n## Topics\n- Budget\n- Timeline\n\n## Action Items\n- Send report\n- Schedule followup call",
+          "prompt": "Format this markdown content properly. Add appropriate heading levels (#, ##, ###), fix list syntax, ensure proper spacing, and structure the content logically. Preserve all original content but improve formatting:\n\n{content}"
+        },
+        "fix_grammar": {
+          "name": "Fix Grammar & Spelling",
+          "icon": "spellcheck",
+          "description": "Correct spelling errors, grammar mistakes, and punctuation issues while preserving original meaning and tone",
+          "input_type": "checkbox",
+          "temperature": 0.1,
+          "example_before": "We discussed the quaterly budjet and decieded to increase spendign by 10%.",
+          "example_after": "We discussed the quarterly budget and decided to increase spending by 10%.",
+          "prompt": "Fix all grammar, spelling, and punctuation errors in this text. Preserve the original meaning, tone, and style. Only correct errors, do not rewrite:\n\n{content}"
+        },
+        "add_headings": {
+          "name": "Add Section Headings",
+          "icon": "title",
+          "description": "Analyze content and add appropriate section headings to organize information hierarchically",
+          "input_type": "checkbox",
+          "temperature": 0.3,
+          "example_before": "First we reviewed the budget. Then we talked about hiring. Finally we set deadlines.",
+          "example_after": "## Budget Review\nFirst we reviewed the budget.\n\n## Hiring Discussion\nThen we talked about hiring.\n\n## Deadline Planning\nFinally we set deadlines.",
+          "prompt": "Analyze this content and add appropriate section headings (##) to organize the information. Create logical sections based on topic changes. Preserve all original content:\n\n{content}"
+        },
+        "improve_structure": {
+          "name": "Improve Structure/Flow",
+          "icon": "account_tree",
+          "description": "Reorganize content for better logical flow, group related ideas, improve transitions between sections",
+          "input_type": "checkbox",
+          "temperature": 0.4,
+          "example": "Reorders paragraphs, groups related bullet points, adds transitions",
+          "prompt": "Improve the structure and flow of this content. Reorganize for better logical progression, group related ideas together, and ensure smooth transitions. Preserve all information:\n\n{content}"
+        },
+        "length_options": {
+          "name": "Length Adjustments",
+          "description": "Mutually exclusive options for adjusting content length",
+          "input_type": "radio",
+          "options": [
+            {
+              "value": "keep",
+              "label": "Keep as-is",
+              "description": "No length changes",
+              "temperature": null
+            },
+            {
+              "value": "concise",
+              "label": "Make More Concise",
+              "icon": "compress",
+              "description": "Condense content while preserving key information. Remove redundancy, tighten prose, keep essential points",
+              "temperature": 0.2,
+              "example_before": "During our meeting, we had a very lengthy discussion about the quarterly budget allocation and we ultimately came to the conclusion that we should increase our spending in the marketing department by approximately 10 percent.",
+              "example_after": "We decided to increase marketing spending by 10% this quarter.",
+              "prompt": "Make this content more concise. Remove redundancy, tighten prose, and eliminate unnecessary words while preserving all key information and meaning:\n\n{content}"
+            },
+            {
+              "value": "expand",
+              "label": "Expand with Details",
+              "icon": "unfold_more",
+              "description": "Add detail and context. Expand bullet points into full paragraphs, elaborate on key points",
+              "temperature": 0.5,
+              "example_before": "- Budget approved\n- Timeline extended\n- New hires needed",
+              "example_after": "## Budget Approval\nThe quarterly budget was reviewed and approved by the team. We agreed to allocate additional resources to the marketing department to support our Q2 campaigns.\n\n## Timeline Extension\nDue to unforeseen challenges, we've extended the project timeline by two weeks to ensure quality deliverables.\n\n## Staffing Needs\nWe've identified the need for two new hires: a senior developer and a product designer to join the team next month.",
+              "prompt": "Expand this content with more detail and context. Turn bullet points into full paragraphs, elaborate on key points, and provide additional explanation while staying on topic:\n\n{content}"
+            }
+          ]
+        }
+      },
+      "deliverables": [
+        "AI Edits button in AI Actions Modal (replaces Extract Tags)",
+        "AI Edits Modal component with multi-select checkboxes",
+        "Preview modal with Original/Edited tabs and diff comparison",
+        "5 modular edit functions (formatMarkdown, fixGrammar, addHeadings, improveStructure, adjustLength)",
+        "Parallel processing orchestrator with intelligent batching",
+        "Database migration for last_ai_edits_applied tracking",
+        "Checkmark behavior on button (matches Title/Summarize pattern)",
+        "AbortController implementation for cancellation",
+        "Step-by-step progress indicators",
+        "Markdown validation with revert option"
+      ]
+    },
+    "phase_2_tone_adjustments": {
+      "name": "Tone & Style",
+      "duration": "2-3 hours",
+      "priority": "medium",
+      "features": {
+        "tone_options": {
+          "name": "Tone Transformation",
+          "description": "Mutually exclusive tone options",
+          "input_type": "radio",
+          "note": "Only one tone can be selected at a time",
+          "options": [
+            {
+              "value": "none",
+              "label": "Keep Current Tone",
+              "description": "No tone changes"
+            },
+            {
+              "value": "professional",
+              "name": "Make Professional",
+              "icon": "business_center",
+              "description": "Transform casual language into professional business tone suitable for work environments",
+              "temperature": 0.3,
+              "input_type": "radio",
+              "example_before": "Hey team, we gotta talk about the budget thing. It's kinda important lol",
+              "example_after": "Team, we need to discuss the budget allocation. This is a high-priority matter that requires our attention.",
+              "prompt": "Rewrite this content in a professional business tone. Make it suitable for a work environment, formal communications, or business documentation. Maintain all key information:\n\n{content}"
+            },
+            {
+              "value": "technical",
+              "name": "Make Technical",
+              "icon": "code",
+              "description": "Increase technical precision and specificity. Use precise terminology and structured explanations",
+              "temperature": 0.2,
+              "input_type": "radio",
+              "example_before": "The system is slow because stuff isn't working right",
+              "example_after": "Performance degradation observed due to inefficient database query execution and lack of proper indexing on frequently accessed tables.",
+              "prompt": "Rewrite this content in a technical tone. Use precise terminology, structured explanations, and technical accuracy. Make it suitable for technical documentation or engineering discussions:\n\n{content}"
+            },
+            {
+              "value": "clear",
+              "name": "Make Clear",
+              "icon": "lightbulb",
+              "description": "Simplify complex language, improve clarity, make content more accessible and direct",
+              "temperature": 0.3,
+              "input_type": "radio",
+              "example_before": "The aforementioned fiscal allocation necessitates a comprehensive evaluation of our budgetary constraints vis-à-vis projected expenditures.",
+              "example_after": "We need to review our budget carefully to ensure we have enough money for planned expenses.",
+              "prompt": "Rewrite this content to be clearer and more direct. Simplify complex language, remove jargon where possible, and make the content more accessible. Preserve all key information:\n\n{content}"
+            }
+          ]
+        }
+      },
+      "deliverables": [
+        "Tone transformation function with 3 modes",
+        "Updated AI Edits Modal with Phase 2 radio buttons",
+        "Tone option applied last in processing sequence"
+      ]
+    }
+  },
+
+  "ui_ux_design": {
+    "button_location": {
+      "component": "components/ai-actions-modal.tsx",
+      "line": 164,
+      "current_button": "{ icon: 'search' as const, label: 'Extract Tags', onPress: () => {}, disabled: true }",
+      "replacement": "{ icon: editIcon, label: editLabel, onPress: handleAIEdits, disabled: false }",
+      "checkmark_logic": {
+        "icon": "note.last_ai_edits_applied?.length ? 'check-circle' : 'edit'",
+        "label": "note.last_ai_edits_applied?.length ? 'Edited' : 'AI Edits'",
+        "pattern": "Matches existing Title (ai_title_generated_at) and Summarize (ai_summary) button behavior"
+      }
+    },
+    "ai_edits_modal": {
+      "trigger": "User clicks 'AI Edits' button in AI Actions Modal",
+      "layout": "Bottom sheet modal with multi-select options - matches existing action items UI/UX",
+      "mobile_first": true,
+      "sections": [
+        {
+          "title": "Format & Structure",
+          "type": "checkboxes",
+          "options": [
+            "Format Markdown Properly",
+            "Fix Grammar & Spelling",
+            "Add Section Headings",
+            "Improve Structure/Flow"
+          ]
+        },
+        {
+          "title": "Length",
+          "type": "radio",
+          "options": [
+            "Keep as-is (default)",
+            "Make More Concise",
+            "Expand with Details"
+          ]
+        },
+        {
+          "title": "Tone (Phase 2)",
+          "type": "radio",
+          "options": [
+            "Keep Current Tone (default)",
+            "Make Professional",
+            "Make Technical",
+            "Make Clear"
+          ]
+        }
+      ],
+      "footer_buttons": [
+        {
+          "label": "Cancel",
+          "style": "secondary",
+          "action": "Close modal without changes",
+          "accessibilityLabel": "Cancel AI edits and close"
+        },
+        {
+          "label": "Preview Changes",
+          "style": "primary",
+          "action": "Generate edited version and show preview modal with progress indicators",
+          "disabled_if": "No options selected",
+          "accessibilityLabel": "Generate preview of selected edits",
+          "accessibilityHint": "Processing may take several seconds"
+        }
+      ],
+      "state_persistence": {
+        "storage": "AsyncStorage",
+        "key": "ai_edits_last_options",
+        "purpose": "Remember user's last selected options for next use",
+        "data": "EditOptions object serialized to JSON"
+      }
+    },
+    "preview_modal": {
+      "trigger": "User clicks 'Preview Changes' button",
+      "layout": "Full-screen modal with tab view",
+      "tabs": [
+        {
+          "label": "Original",
+          "content": "Display original note content (read-only)",
+          "accessibilityLabel": "Original note content before edits"
+        },
+        {
+          "label": "Edited",
+          "content": "Display AI-edited content (read-only)",
+          "default_active": true,
+          "accessibilityLabel": "AI-edited note content"
+        },
+        {
+          "label": "Comparison",
+          "content": "Display diff view showing changes (Phase 2 enhancement)",
+          "accessibilityLabel": "Side-by-side comparison of changes"
+        }
+      ],
+      "progress_ui": {
+        "type": "step-by-step with checkmarks",
+        "display": "Vertical list of edit types with status icons",
+        "states": {
+          "pending": "Gray circle outline",
+          "in_progress": "Blue spinner",
+          "completed": "Green checkmark",
+          "failed": "Red X with error message"
+        },
+        "example": "✓ Format Markdown (0.8s)\n⟳ Fix Grammar...\n○ Add Headings\n○ Improve Structure"
+      },
+      "loading_state": {
+        "display": "Progress list with individual edit status",
+        "message": "Applying AI edits...",
+        "cancellable": true,
+        "abort_controller": "Full AbortController chain across all API calls"
+      },
+      "comparison_logic": {
+        "algorithm": "Levenshtein distance ratio",
+        "calculation": "similarity = 1 - (levenshtein_distance / max(original.length, edited.length))",
+        "library": "fastest-levenshtein (npm) or js-levenshtein",
+        "threshold": 0.98,
+        "description": "If edited content is 98%+ similar to original (case/whitespace normalized), show 'No changes needed' message",
+        "normalization": "Lowercase, trim whitespace, collapse multiple spaces to single space",
+        "example": "If similarity >= 0.98, show 'No changes needed' message and don't update database"
+      },
+      "footer_buttons": [
+        {
+          "label": "Cancel",
+          "style": "secondary",
+          "action": "Discard edits and close modal",
+          "accessibilityLabel": "Discard changes and close"
+        },
+        {
+          "label": "Regenerate",
+          "style": "secondary",
+          "action": "Run AI edits again with same options",
+          "icon": "refresh",
+          "accessibilityLabel": "Regenerate edits with same options"
+        },
+        {
+          "label": "Apply Changes",
+          "style": "primary",
+          "action": "Save edited content to note, update last_ai_edits_applied, close modals",
+          "icon": "check",
+          "disabled_if": "No changes detected or processing in progress",
+          "accessibilityLabel": "Save edited content to note"
+        }
+      ],
+      "markdown_validation": {
+        "library": "unified + remark-parse + remark-stringify",
+        "when": "Before showing preview and before saving",
+        "validation_checks": [
+          "Valid markdown syntax",
+          "No broken links or references",
+          "Proper heading hierarchy",
+          "Valid code block syntax"
+        ],
+        "on_failure": {
+          "action": "Show warning with 'Revert to Original' option",
+          "message": "AI edits produced invalid markdown. You can revert or continue anyway.",
+          "buttons": ["Revert to Original", "Continue Anyway"]
+        }
+      }
+    },
+    "validation_rules": {
+      "client_side": {
+        "min_content_length": {
+          "value": 10,
+          "error": "Note must have at least 10 characters to edit",
+          "behavior": "Disable 'AI Edits' button if content too short"
+        },
+        "max_content_length": {
+          "value": 50000,
+          "error": "Note too long for AI editing (max 50,000 characters)",
+          "behavior": "Show toast error if exceeded"
+        },
+        "no_options_selected": {
+          "error": "Please select at least one edit option",
+          "behavior": "Disable 'Preview Changes' button, show toast on click"
+        }
+      },
+      "server_side": {
+        "content_validation": "Verify content length and format before processing",
+        "options_validation": "Verify EditOptions matches expected schema",
+        "auth_validation": "Verify user owns the note being edited",
+        "rate_limiting": "No hard rate limit, but track usage for analytics"
+      }
+    },
+    "accessibility": {
+      "standard": "WCAG 2.1 AA",
+      "features": {
+        "screen_reader": {
+          "all_buttons": "Proper accessibilityLabel and accessibilityHint",
+          "checkboxes": "Announce selection state (checked/unchecked)",
+          "progress": "Announce each edit completion",
+          "errors": "Announce error messages with severity"
+        },
+        "keyboard_navigation": {
+          "tab_order": "Logical tab order through all interactive elements",
+          "shortcuts": "Enter to confirm, Escape to cancel",
+          "focus_indicators": "Clear visual focus indicators on all elements"
+        },
+        "visual": {
+          "color_contrast": "4.5:1 minimum for text, 3:1 for large text",
+          "focus_visible": "2px border on focused elements",
+          "error_states": "Not just color - also icons and text"
+        },
+        "touch_targets": {
+          "minimum_size": "44x44pt (Apple HIG standard)",
+          "spacing": "8pt minimum between adjacent targets",
+          "feedback": "Visual and haptic feedback on tap"
+        }
+      }
+    },
+    "mobile_optimization": {
+      "description": "Mobile-first design matching existing action items UI/UX patterns",
+      "touch_optimization": {
+        "button_size": "Match existing action items (44x44pt minimum)",
+        "spacing": "Match existing modal spacing and padding",
+        "gestures": "Swipe down to dismiss modals, tap outside to close"
+      },
+      "performance": {
+        "lazy_loading": "Load preview only when 'Preview Changes' clicked",
+        "debouncing": "Prevent duplicate API calls during rapid clicks",
+        "memory": "Clear large content strings after modal close"
+      },
+      "offline_handling": {
+        "detection": "Check network state before API call",
+        "message": "You're offline. AI Edits requires internet connection.",
+        "retry": "Auto-retry when connection restored"
+      },
+      "pattern_consistency": [
+        "Bottom sheet modal matches AI Actions Modal design",
+        "Button styles match existing action items",
+        "Loading states match Title/Summarize animations",
+        "Toast notifications match app-wide pattern"
+      ]
+    }
+  },
+
+  "technical_architecture": {
+    "parallel_processing": {
+      "description": "Smart dependency batching for 30-50% latency reduction",
+      "batches": [
+        {
+          "batch": 1,
+          "edits": ["formatMarkdown", "fixGrammar"],
+          "parallel": true,
+          "reason": "Both are independent formatting operations"
+        },
+        {
+          "batch": 2,
+          "edits": ["addHeadings", "improveStructure"],
+          "parallel": true,
+          "reason": "Both require formatted/corrected input from batch 1",
+          "depends_on": "batch 1"
+        },
+        {
+          "batch": 3,
+          "edits": ["adjustLength"],
+          "parallel": false,
+          "reason": "Requires structured content from batch 2",
+          "depends_on": "batch 2"
+        },
+        {
+          "batch": 4,
+          "edits": ["changeTone"],
+          "parallel": false,
+          "reason": "Tone transformation should be final step",
+          "depends_on": "batch 3"
+        }
+      ],
+      "fallback": "If any edit in a batch fails, continue with remaining edits (partial failure handling)",
+      "example_timeline": {
+        "sequential": "5 edits × 2s each = 10s total",
+        "parallel_batched": "Batch1(2s) + Batch2(2s) + Batch3(2s) + Batch4(2s) = 8s total (20% improvement)",
+        "typical_reduction": "30-50% for 4+ edits"
+      },
+      "progress_callback_pattern": {
+        "description": "Orchestrator calls onProgress for realtime UI updates",
+        "usage": "Pass ProgressCallback as 4th parameter to applyAIEdits",
+        "example": "// UI Component\nconst handleProgress = (edit: EditType, status: 'pending' | 'in_progress' | 'completed' | 'failed', durationMs?: number) => {\n  setEditProgress(prev => ({ ...prev, [edit]: { status, durationMs } }));\n};\n\nawait applyAIEdits(content, options, signal, handleProgress);\n\n// Orchestrator Implementation\nonProgress?.('formatMarkdown', 'in_progress');\nconst result = await formatMarkdown(content, signal);\nonProgress?.('formatMarkdown', 'completed', result.durationMs);"
+      }
+    },
+    "abort_controller": {
+      "description": "Full AbortController chain for cancellation support",
+      "implementation": {
+        "orchestrator_level": "Create AbortController in applyAIEdits, pass signal to all edit functions",
+        "edit_function_level": "Each edit function accepts AbortSignal and passes to fetch()",
+        "ui_level": "Cancel button in preview modal calls abort()",
+        "cleanup": "Cleanup incomplete state on abort"
+      },
+      "code_pattern": "const controller = new AbortController();\nconst result = await applyAIEdits(content, options, controller.signal);\n// Cancel button: controller.abort();",
+      "error_handling": "AbortError caught and handled gracefully (no error toast, just close modal)"
+    },
+    "partial_failure_handling": {
+      "strategy": "Continue processing remaining edits if one fails",
+      "behavior": {
+        "on_edit_failure": "Mark edit as failed in EditResult.failedEdits[], continue with next edit",
+        "final_result": "Return success=true if at least one edit succeeded",
+        "ui_display": "Show warning: '2 of 5 edits applied successfully. Click details for errors.'"
+      },
+      "example": "If 'Add Headings' fails due to API error, still apply 'Fix Grammar' and 'Make Concise'"
+    },
+    "temperature_configuration": {
+      "description": "Per-edit temperature optimization for quality and determinism",
+      "configuration": {
+        "formatMarkdown": {
+          "temperature": 0.1,
+          "reason": "Highly deterministic formatting rules"
+        },
+        "fixGrammar": {
+          "temperature": 0.1,
+          "reason": "Grammar corrections should be consistent"
+        },
+        "addHeadings": {
+          "temperature": 0.3,
+          "reason": "Requires some creativity for heading names"
+        },
+        "improveStructure": {
+          "temperature": 0.4,
+          "reason": "Moderate creativity for reorganization"
+        },
+        "makeConcise": {
+          "temperature": 0.2,
+          "reason": "Focused condensation with minimal creativity"
+        },
+        "expandContent": {
+          "temperature": 0.5,
+          "reason": "Higher creativity for elaboration"
+        },
+        "changeTone": {
+          "temperature": 0.3,
+          "reason": "Consistent tone transformation"
+        }
+      },
+      "rationale": "Lower temperature (0.1-0.2) for deterministic tasks, higher (0.4-0.5) for creative tasks"
+    },
+    "modular_architecture": {
+      "directory": "services/ai/edits/",
+      "files": [
+        {
+          "file": "formatMarkdown.ts",
+          "exports": "async function formatMarkdown(content: string, signal?: AbortSignal): Promise<EditResult>",
+          "purpose": "Add proper markdown structure (headings, lists, spacing)",
+          "prompt_template": "Format this markdown content properly...",
+          "temperature": 0.1
+        },
+        {
+          "file": "fixGrammar.ts",
+          "exports": "async function fixGrammar(content: string, signal?: AbortSignal): Promise<EditResult>",
+          "purpose": "Correct grammar, spelling, punctuation",
+          "prompt_template": "Fix all grammar, spelling, and punctuation errors...",
+          "temperature": 0.1
+        },
+        {
+          "file": "addHeadings.ts",
+          "exports": "async function addHeadings(content: string, signal?: AbortSignal): Promise<EditResult>",
+          "purpose": "Add section headings based on content analysis",
+          "prompt_template": "Analyze this content and add appropriate section headings...",
+          "temperature": 0.3
+        },
+        {
+          "file": "improveStructure.ts",
+          "exports": "async function improveStructure(content: string, signal?: AbortSignal): Promise<EditResult>",
+          "purpose": "Reorganize for better logical flow",
+          "prompt_template": "Improve the structure and flow of this content...",
+          "temperature": 0.4
+        },
+        {
+          "file": "adjustLength.ts",
+          "exports": "async function makeConcise(content: string, signal?: AbortSignal): Promise<EditResult> | async function expandContent(content: string, signal?: AbortSignal): Promise<EditResult>",
+          "purpose": "Condense or expand content",
+          "prompt_templates": {
+            "concise": "Make this content more concise...",
+            "expand": "Expand this content with more detail..."
+          },
+          "temperature": {
+            "concise": 0.2,
+            "expand": 0.5
+          }
+        },
+        {
+          "file": "changeTone.ts",
+          "exports": "async function changeTone(content: string, tone: 'professional' | 'technical' | 'clear', signal?: AbortSignal): Promise<EditResult>",
+          "purpose": "Transform tone/style",
+          "prompt_templates": {
+            "professional": "Rewrite this content in a professional business tone...",
+            "technical": "Rewrite this content in a technical tone...",
+            "clear": "Rewrite this content to be clearer and more direct..."
+          },
+          "temperature": 0.3
+        },
+        {
+          "file": "index.ts",
+          "exports": "async function applyAIEdits(content: string, options: EditOptions, signal?: AbortSignal, onProgress?: ProgressCallback): Promise<EditResult>",
+          "purpose": "Orchestrator that applies selected edits with parallel batching",
+          "responsibilities": [
+            "Validate input content (client + server)",
+            "Determine batch groups based on dependencies",
+            "Execute batches in parallel where possible",
+            "Handle AbortSignal for cancellation",
+            "Handle partial failures (continue on error)",
+            "Call onProgress callback for each edit state change",
+            "Track progress for UI updates",
+            "Compare final result with original (normalized diff)",
+            "Return comprehensive EditResult with metadata"
+          ]
+        },
+        {
+          "file": "types.ts",
+          "exports": "All TypeScript interfaces (EditOptions, EditResult, AppliedEdit, FailedEdit, etc.)",
+          "purpose": "Centralized type definitions"
+        }
+      ]
+    },
+    "enhanced_prompts": {
+      "description": "Few-shot prompts with context preservation rules",
+      "pattern": {
+        "structure": "System instruction + Few-shot examples (2-3) + Context rules + User content",
+        "example": "You are a markdown formatting expert.\n\nExample 1:\nInput: meeting notes topics budget timeline\nOutput: # Meeting Notes\\n\\n## Topics\\n- Budget\\n- Timeline\n\nRules:\n- Preserve ALL original content\n- Only fix formatting, never rewrite\n- Use ## for main sections, ### for subsections\n- Ensure proper list syntax\n\nNow format this content:\n{content}"
+      },
+      "context_preservation_rules": [
+        "NEVER remove or omit any information from the original",
+        "Preserve technical terms, names, dates, numbers exactly",
+        "Maintain original language and voice unless tone change requested",
+        "Keep code blocks, links, and special formatting intact",
+        "If unsure, bias toward preserving original"
+      ],
+      "few_shot_examples": {
+        "formatMarkdown": [
+          {
+            "input": "project planning\n\ngoals\nincrease revenue\nimprove ux\n\ntimeline\nq1 research\nq2 design",
+            "output": "# Project Planning\n\n## Goals\n- Increase revenue\n- Improve UX\n\n## Timeline\n- Q1: Research\n- Q2: Design"
+          },
+          {
+            "input": "meeting notes discussed budget approved 50k timeline extended 2 weeks",
+            "output": "# Meeting Notes\n\n## Budget\n- Approved: $50k\n\n## Timeline\n- Extended by 2 weeks"
+          }
+        ],
+        "fixGrammar": [
+          {
+            "input": "We decieded to increse the budjet by 10% becuase of market conditons.",
+            "output": "We decided to increase the budget by 10% because of market conditions."
+          }
+        ]
+      }
+    },
+    "ai_provider": {
+      "provider": "Anthropic Claude",
+      "model": "claude-3-5-haiku-20241022",
+      "rationale": "Matches existing Summarize feature implementation, already integrated in codebase",
+      "integration_point": "Supabase Edge Function: ai-edit",
+      "byok_integration": {
+        "description": "Integrate with existing BYOK (Bring Your Own Key) implementation",
+        "user_flow": "Users add their own Anthropic API key in Settings → AI Features",
+        "key_storage": "Encrypted in user's profile (existing implementation)",
+        "fallback": "If no user key configured, show 'Add API Key' prompt",
+        "cost_benefit": "Zero cost to app developer, unlimited usage for users"
+      },
+      "api_call_pattern": {
+        "endpoint": "https://api.anthropic.com/v1/messages",
+        "method": "POST",
+        "headers": {
+          "x-api-key": "getUserApiKey() || process.env.ANTHROPIC_API_KEY",
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json"
+        },
+        "body": {
+          "model": "claude-3-5-haiku-20241022",
+          "max_tokens": 4096,
+          "temperature": "{dynamic per edit type}",
+          "messages": [
+            {
+              "role": "user",
+              "content": "{enhanced_prompt with few-shot examples}"
+            }
+          ]
+        }
+      },
+      "cost_per_edit": {
+        "format_markdown": "$0.0001 (simple structural changes)",
+        "fix_grammar": "$0.0001 (focused corrections)",
+        "add_headings": "$0.00015 (analysis + generation)",
+        "improve_structure": "$0.0002 (complex reorganization)",
+        "adjust_length": "$0.0002 (content rewriting)",
+        "change_tone": "$0.00025 (style transformation)",
+        "typical_multi_edit": "$0.0003-0.0005 (3-4 edits combined)"
+      }
+    },
+    "error_handling": {
+      "strategy": "Comprehensive error catching with user-friendly messages and retry options",
+      "error_types": [
+        {
+          "type": "API_FAILURE",
+          "code": "API_FAILURE",
+          "causes": ["Claude API returns error", "Authentication failure", "Invalid API response"],
+          "user_message": "AI service unavailable. Please try again.",
+          "actions": ["Show toast with retry button", "Log error to console", "Abort edit workflow"],
+          "retry_behavior": "Allow manual retry via button",
+          "retryable": true
+        },
+        {
+          "type": "NETWORK_ERROR",
+          "code": "NETWORK_ERROR",
+          "causes": ["Connection lost", "Request timeout (>30s)", "DNS failure"],
+          "user_message": "Connection lost. Check your internet and retry.",
+          "actions": ["Show toast with retry button", "Preserve selected options", "Don't charge user"],
+          "retry_behavior": "Retry with exponential backoff (1s, 2s, 4s)",
+          "retryable": true
+        },
+        {
+          "type": "CONTENT_TOO_SHORT",
+          "code": "CONTENT_TOO_SHORT",
+          "causes": ["content.length < 10"],
+          "user_message": "Note must have at least 10 characters to edit",
+          "actions": ["Disable AI Edits button", "Show tooltip on hover"],
+          "prevention": "Validate before showing modal",
+          "retryable": false
+        },
+        {
+          "type": "CONTENT_TOO_LONG",
+          "code": "CONTENT_TOO_LONG",
+          "causes": ["content.length > 50000"],
+          "user_message": "Note too long for AI editing (max 50,000 characters)",
+          "actions": ["Show toast error", "Suggest breaking into smaller notes"],
+          "prevention": "Validate before API call",
+          "retryable": false
+        },
+        {
+          "type": "NO_OPTIONS_SELECTED",
+          "code": "NO_OPTIONS_SELECTED",
+          "causes": ["User clicks Preview without selecting any checkboxes/radios"],
+          "user_message": "Please select at least one edit option",
+          "actions": ["Show toast", "Disable Preview button when no options selected"],
+          "prevention": "Validate before proceeding",
+          "retryable": false
+        },
+        {
+          "type": "NO_CHANGES_MADE",
+          "code": "NO_CHANGES_MADE",
+          "causes": ["AI returns identical content (no edits needed)", "Normalized similarity > 98%"],
+          "user_message": "No changes needed! Your note looks good.",
+          "actions": ["Show success toast", "Close modal", "Don't update last_ai_edits_applied"],
+          "is_success": true,
+          "retryable": false
+        },
+        {
+          "type": "USER_CANCELLED",
+          "code": "USER_CANCELLED",
+          "causes": ["User closes modal during AI processing", "AbortController.abort() called"],
+          "user_message": null,
+          "actions": ["Abort API request", "Clean up state", "Don't save partial results"],
+          "graceful_exit": true,
+          "retryable": false
+        },
+        {
+          "type": "MARKDOWN_VALIDATION_FAILED",
+          "code": "MARKDOWN_VALIDATION_FAILED",
+          "causes": ["AI produces invalid markdown syntax", "Broken heading hierarchy", "Invalid code blocks"],
+          "user_message": "AI edits produced invalid markdown. You can revert or continue anyway.",
+          "actions": ["Show warning with 'Revert to Original' and 'Continue Anyway' buttons", "Log validation errors"],
+          "retry_behavior": "Allow regeneration or manual revert",
+          "retryable": true
+        }
+      ],
+      "error_ui_pattern": {
+        "toast_position": "top-center",
+        "toast_duration": 5000,
+        "retry_button": true,
+        "error_logging": "console.error with full stack trace",
+        "accessibility": "Announce errors to screen readers with severity"
+      }
+    },
+    "analytics_tracking": {
+      "description": "Comprehensive event tracking for product insights",
+      "events": [
+        {
+          "event": "ai_edits_opened",
+          "when": "User clicks AI Edits button in AI Actions Modal",
+          "properties": {
+            "note_length": "number",
+            "has_previous_edits": "boolean"
+          }
+        },
+        {
+          "event": "ai_edits_options_selected",
+          "when": "User clicks Preview Changes button",
+          "properties": {
+            "selected_edits": "string[]",
+            "length_adjustment": "'keep' | 'concise' | 'expand'",
+            "tone": "'none' | 'professional' | 'technical' | 'clear'",
+            "total_options": "number"
+          }
+        },
+        {
+          "event": "ai_edits_processing_started",
+          "when": "API call initiated",
+          "properties": {
+            "edit_count": "number",
+            "estimated_duration": "number (ms)"
+          }
+        },
+        {
+          "event": "ai_edits_processing_completed",
+          "when": "All edits completed (success or partial failure)",
+          "properties": {
+            "duration_ms": "number",
+            "successful_edits": "number",
+            "failed_edits": "number",
+            "character_delta": "number",
+            "change_percentage": "number"
+          }
+        },
+        {
+          "event": "ai_edits_applied",
+          "when": "User clicks Apply Changes button",
+          "properties": {
+            "edits_applied": "string[]",
+            "final_length": "number",
+            "user_viewed_comparison": "boolean"
+          }
+        },
+        {
+          "event": "ai_edits_cancelled",
+          "when": "User cancels at any stage",
+          "properties": {
+            "stage": "'selection' | 'processing' | 'preview'",
+            "edits_selected": "string[]"
+          }
+        },
+        {
+          "event": "ai_edits_regenerated",
+          "when": "User clicks Regenerate button",
+          "properties": {
+            "same_options": "boolean",
+            "previous_duration_ms": "number"
+          }
+        },
+        {
+          "event": "ai_edits_error",
+          "when": "Error occurs at any stage",
+          "properties": {
+            "error_code": "ErrorCode",
+            "error_message": "string",
+            "stage": "'validation' | 'processing' | 'saving'",
+            "retryable": "boolean"
+          }
+        }
+      ],
+      "analytics_service": "Use existing analytics implementation (e.g., Amplitude, Mixpanel, or PostHog)",
+      "privacy": "Track feature usage, not note content"
+    },
+    "database_changes": {
+      "migration_file": "supabase/migrations/XXXXXX_add_ai_edits_tracking.sql",
+      "changes": [
+        {
+          "table": "notes",
+          "operation": "ADD COLUMN",
+          "column": "last_ai_edits_applied",
+          "type": "TEXT[]",
+          "nullable": true,
+          "default": null,
+          "index": false,
+          "purpose": "Track which edits were last applied (e.g., ['formatMarkdown', 'fixGrammar', 'makeConcise']) for checkmark behavior and analytics"
+        },
+        {
+          "table": "notes",
+          "operation": "ADD COLUMN",
+          "column": "last_ai_edit_at",
+          "type": "TIMESTAMP",
+          "nullable": true,
+          "default": null,
+          "index": false,
+          "purpose": "Track when user last applied AI edits (for chronological sorting)"
+        }
+      ],
+      "sql": "ALTER TABLE notes ADD COLUMN last_ai_edits_applied TEXT[] DEFAULT NULL;\nALTER TABLE notes ADD COLUMN last_ai_edit_at TIMESTAMP DEFAULT NULL;",
+      "rollback": "ALTER TABLE notes DROP COLUMN last_ai_edits_applied;\nALTER TABLE notes DROP COLUMN last_ai_edit_at;",
+      "rls_policy": "No new RLS policies needed (inherits from notes table)"
+    }
+  },
+
+  "implementation_steps": {
+    "phase_1_steps": [
+      {
+        "step": 1,
+        "task": "Create TypeScript types",
+        "duration": "0.5h",
+        "files": ["services/ai/edits/types.ts"],
+        "acceptance_criteria": [
+          "All interfaces defined (EditOptions, EditResult, AppliedEdit, FailedEdit, EditType, EditError, ErrorCode)",
+          "Proper JSDoc comments for each type",
+          "Export all types for use across codebase"
+        ]
+      },
+      {
+        "step": 2,
+        "task": "Create modular edit services with AbortController support",
+        "duration": "2-2.5h",
+        "files": [
+          "services/ai/edits/formatMarkdown.ts",
+          "services/ai/edits/fixGrammar.ts",
+          "services/ai/edits/addHeadings.ts",
+          "services/ai/edits/improveStructure.ts",
+          "services/ai/edits/adjustLength.ts"
+        ],
+        "acceptance_criteria": [
+          "Each function accepts content string and optional AbortSignal",
+          "Each returns Promise<EditResult> with rich metadata",
+          "Enhanced prompts with few-shot examples implemented",
+          "Per-edit temperature configuration applied",
+          "Error handling in each function",
+          "AbortController integration working"
+        ]
+      },
+      {
+        "step": 3,
+        "task": "Create parallel processing orchestrator",
+        "duration": "1.5-2h",
+        "files": ["services/ai/edits/index.ts"],
+        "acceptance_criteria": [
+          "Implements smart dependency batching (4 batches)",
+          "Parallel execution of independent edits",
+          "AbortSignal propagated to all edit functions",
+          "Partial failure handling (continue on error)",
+          "Progress tracking for UI updates",
+          "Normalized diff comparison (98% threshold)",
+          "Returns comprehensive EditResult"
+        ]
+      },
+      {
+        "step": 4,
+        "task": "Add markdown validation",
+        "duration": "0.5-1h",
+        "files": ["services/ai/edits/validation.ts"],
+        "dependencies": ["npm install unified remark-parse remark-stringify"],
+        "acceptance_criteria": [
+          "Validates markdown syntax before preview",
+          "Validates again before saving",
+          "Returns validation errors with context",
+          "Revert option implemented in UI"
+        ]
+      },
+      {
+        "step": 5,
+        "task": "Create Supabase Edge Function for AI edits",
+        "duration": "0.5-1h",
+        "files": ["supabase/functions/ai-edit/index.ts"],
+        "acceptance_criteria": [
+          "Accepts edit options and content in request body",
+          "Integrates with BYOK (getUserApiKey())",
+          "Calls orchestrator with AbortSignal",
+          "Server-side validation (content length, auth)",
+          "Returns EditResult or error",
+          "Secure (validates auth token)"
+        ]
+      },
+      {
+        "step": 6,
+        "task": "Build AI Edits Modal component",
+        "duration": "1-1.5h",
+        "files": ["components/ai-edits-modal.tsx"],
+        "acceptance_criteria": [
+          "Multi-select UI with checkboxes and radio buttons",
+          "Matches existing action items UI/UX",
+          "Mobile-first design with 44x44pt touch targets",
+          "State persistence via AsyncStorage",
+          "Client-side validation (at least one option selected)",
+          "Loading state while generating",
+          "Full accessibility (WCAG 2.1 AA)",
+          "Cancel button works"
+        ]
+      },
+      {
+        "step": 7,
+        "task": "Build Preview Modal component",
+        "duration": "1-1.5h",
+        "files": ["components/ai-edits-preview-modal.tsx"],
+        "acceptance_criteria": [
+          "Tab view: Original | Edited | Comparison",
+          "Read-only text display",
+          "Step-by-step progress UI with checkmarks",
+          "Cancellable via AbortController",
+          "Normalized diff comparison (98% threshold)",
+          "Markdown validation warnings with revert option",
+          "Cancel, Regenerate, Apply buttons functional",
+          "Full accessibility support",
+          "Smooth transitions between tabs"
+        ]
+      },
+      {
+        "step": 8,
+        "task": "Integrate with AI Actions Modal",
+        "duration": "0.5h",
+        "files": ["components/ai-actions-modal.tsx"],
+        "changes": [
+          "Replace Extract Tags button (line 164)",
+          "Add handleAIEdits handler",
+          "Add checkmark logic (editIcon, editLabel based on last_ai_edits_applied)",
+          "Import and render AI Edits Modal"
+        ],
+        "acceptance_criteria": [
+          "Button shows 'AI Edits' initially",
+          "Button shows 'Edited' with checkmark after first use",
+          "Clicking button opens AI Edits Modal",
+          "Button remains clickable (not disabled after use)"
+        ]
+      },
+      {
+        "step": 9,
+        "task": "Update notes service",
+        "duration": "0.5h",
+        "files": ["services/notes.ts"],
+        "changes": [
+          "Add updateNoteWithAIEdits(noteId, editedContent, appliedEdits: string[]) method",
+          "Update note content in database",
+          "Set last_ai_edits_applied to appliedEdits array",
+          "Set last_ai_edit_at to NOW()",
+          "Return updated note object"
+        ]
+      },
+      {
+        "step": 10,
+        "task": "Add analytics tracking",
+        "duration": "0.5-1h",
+        "files": ["services/analytics.ts (or existing analytics service)"],
+        "acceptance_criteria": [
+          "All 8 analytics events implemented",
+          "Properties tracked correctly",
+          "Privacy-preserving (no note content tracked)",
+          "Integrates with existing analytics service"
+        ]
+      },
+      {
+        "step": 11,
+        "task": "Database migration",
+        "duration": "0.5h",
+        "files": ["supabase/migrations/XXXXXX_add_ai_edits_tracking.sql"],
+        "sql": "ALTER TABLE notes ADD COLUMN last_ai_edits_applied TEXT[] DEFAULT NULL;\nALTER TABLE notes ADD COLUMN last_ai_edit_at TIMESTAMP DEFAULT NULL;",
+        "testing": [
+          "Run migration locally",
+          "Verify columns exist: SELECT * FROM notes LIMIT 1",
+          "Test update: UPDATE notes SET last_ai_edits_applied = ARRAY['formatMarkdown', 'fixGrammar'], last_ai_edit_at = NOW() WHERE id = 'test-id'",
+          "Verify RLS policies still work"
+        ]
+      },
+      {
+        "step": 12,
+        "task": "End-to-end testing",
+        "duration": "1.5-2h",
+        "test_cases": [
+          "Open AI Actions Modal → Click 'AI Edits'",
+          "Select multiple edit options → Preview",
+          "View Original and Edited tabs",
+          "View step-by-step progress indicators",
+          "Test cancellation mid-processing (AbortController)",
+          "Test partial failure (simulate one edit failing)",
+          "Test markdown validation (invalid syntax)",
+          "Test normalized comparison (98% threshold)",
+          "Click Regenerate → Verify new result",
+          "Click Apply → Verify note updated",
+          "Re-open AI Actions Modal → Verify checkmark shows",
+          "Test error cases (empty note, too long, network error)",
+          "Test cancel at each step",
+          "Test accessibility with screen reader",
+          "Test mobile touch targets and gestures",
+          "Test state persistence (reload and check saved options)",
+          "Test BYOK integration (with and without user API key)"
+        ]
+      }
+    ],
+    "phase_2_steps": [
+      {
+        "step": 1,
+        "task": "Add tone transformation service",
+        "duration": "0.5-1h",
+        "files": ["services/ai/edits/changeTone.ts"],
+        "acceptance_criteria": [
+          "Accepts content, tone parameter, and optional AbortSignal",
+          "Handles 3 tones: professional, technical, clear",
+          "Enhanced prompts with few-shot examples",
+          "Temperature 0.3 for all tones",
+          "Returns EditResult with metadata"
+        ]
+      },
+      {
+        "step": 2,
+        "task": "Update AI Edits Modal with Phase 2 options",
+        "duration": "0.5h",
+        "files": ["components/ai-edits-modal.tsx"],
+        "changes": [
+          "Add 'Tone' section with radio buttons (4 options: none, professional, technical, clear)",
+          "Update orchestrator to include tone transformations in batch 4",
+          "Tone edits applied last in sequence"
+        ]
+      },
+      {
+        "step": 3,
+        "task": "Update orchestrator for tone",
+        "duration": "0.5h",
+        "files": ["services/ai/edits/index.ts"],
+        "changes": [
+          "Add tone option to EditOptions type",
+          "Apply tone change in batch 4 (after length adjustments)",
+          "Handle tone='none' (skip tone transformation)"
+        ]
+      },
+      {
+        "step": 4,
+        "task": "Test Phase 2 features",
+        "duration": "0.5-1h",
+        "test_cases": [
+          "Apply professional tone to casual note",
+          "Apply technical tone to simple note",
+          "Apply clear tone to complex note",
+          "Test 'Keep Current Tone' (no change)",
+          "Combine tone with Phase 1 edits (format + grammar + professional)",
+          "Test tone with all length options",
+          "Verify parallel processing still works with tone in batch 4"
+        ]
+      }
+    ]
+  },
+
+  "testing_strategy": {
+    "unit_tests": [
+      "Test each edit function with various inputs",
+      "Test orchestrator with different option combinations",
+      "Test error handling (empty content, API failure)",
+      "Test parallel batching logic",
+      "Test AbortController cancellation",
+      "Test partial failure handling",
+      "Test normalized diff comparison (98% threshold)",
+      "Test markdown validation with invalid syntax"
+    ],
+    "integration_tests": [
+      "Test full workflow: Select options → Preview → Apply",
+      "Test UI state management (loading, error, success)",
+      "Test database updates (last_ai_edits_applied, last_ai_edit_at)",
+      "Test checkmark behavior after first use",
+      "Test state persistence via AsyncStorage",
+      "Test analytics event tracking",
+      "Test BYOK integration"
+    ],
+    "manual_tests": [
+      "Test on real notes with various content types",
+      "Test with very short notes (<10 chars)",
+      "Test with very long notes (>50K chars)",
+      "Test network errors (disconnect mid-request)",
+      "Test rapid clicking (prevent duplicate requests)",
+      "Test accessibility with VoiceOver/TalkBack",
+      "Test mobile touch targets and gestures",
+      "Test on different screen sizes"
+    ],
+    "edge_cases": [
+      "Empty note",
+      "Note with only whitespace",
+      "Note with special characters/emojis",
+      "Note with code blocks",
+      "Note with tables",
+      "Already perfectly formatted note (no changes needed)",
+      "AI returns identical content (98%+ similarity)",
+      "User cancels mid-processing",
+      "One edit fails, others succeed (partial failure)",
+      "Invalid markdown produced by AI",
+      "User has no API key configured (BYOK)",
+      "Network failure during processing"
+    ]
+  },
+
+  "success_metrics": {
+    "adoption": {
+      "target_usage": "30% of users try AI Edits within first week",
+      "frequency": "Average 5 edits per active user per week",
+      "preference": "70% of edits use multiple options (not just one)"
+    },
+    "quality": {
+      "acceptance_rate": "80% of previewed edits are applied (not cancelled)",
+      "regeneration_rate": "<20% of edits are regenerated",
+      "user_satisfaction": "4/5 rating from user surveys"
+    },
+    "technical": {
+      "api_success_rate": ">95% (API calls succeed)",
+      "average_latency": "<5 seconds for typical edit (with parallel processing)",
+      "error_rate": "<5% (user-facing errors)",
+      "cancellation_rate": "<10% (users cancel mid-processing)"
+    },
+    "business": {
+      "cost_per_user": "<$0.50 per month (assuming 100 edits) with BYOK, $0 cost to developer",
+      "feature_stickiness": "Users who try it once use it 3+ times in first month",
+      "retention_impact": "+10% retention among users who use AI Edits"
+    }
+  },
+
+  "cost_analysis": {
+    "per_edit_costs": {
+      "format_markdown": "$0.0001",
+      "fix_grammar": "$0.0001",
+      "add_headings": "$0.00015",
+      "improve_structure": "$0.0002",
+      "make_concise": "$0.0002",
+      "expand_content": "$0.0002",
+      "change_tone": "$0.00025",
+      "typical_combo": "$0.0003-0.0005 (3-4 edits)"
+    },
+    "monthly_projections": {
+      "light_user": {
+        "edits_per_month": 20,
+        "cost": "$0.01"
+      },
+      "medium_user": {
+        "edits_per_month": 100,
+        "cost": "$0.04"
+      },
+      "heavy_user": {
+        "edits_per_month": 500,
+        "cost": "$0.20"
+      }
+    },
+    "optimization_strategies": [
+      "BYOK implementation eliminates developer costs",
+      "Parallel processing reduces latency 30-50%",
+      "No caching needed (edits are always custom)",
+      "Use Claude Haiku (cheapest model that maintains quality)",
+      "Per-edit temperature optimization improves quality",
+      "No rate limits (costs are very low)",
+      "Monitor usage patterns to identify optimization opportunities"
+    ]
+  },
+
+  "future_enhancements": {
+    "phase_3_ideas": [
+      "Custom edit presets (save favorite combinations)",
+      "Full diff view with highlighted changes (like GitHub)",
+      "Edit history with undo (last 5 edits)",
+      "Batch edit multiple notes at once",
+      "AI suggests which edits to apply based on content analysis",
+      "Voice input for edit instructions ('Make this more professional')",
+      "Learn from user corrections (if user manually edits after AI)",
+      "Export comparison (PDF with original vs edited)",
+      "Translate to other languages",
+      "Extract action items automatically",
+      "Generate summary + tags from edited content",
+      "Real-time collaborative editing with AI suggestions"
+    ]
+  },
+
+  "files_to_create": [
+    "improvements/ai-integrations/ai-edits-implementation.json (this file)",
+    "components/ai-edits-modal.tsx",
+    "components/ai-edits-preview-modal.tsx",
+    "services/ai/edits/types.ts",
+    "services/ai/edits/formatMarkdown.ts",
+    "services/ai/edits/fixGrammar.ts",
+    "services/ai/edits/addHeadings.ts",
+    "services/ai/edits/improveStructure.ts",
+    "services/ai/edits/adjustLength.ts",
+    "services/ai/edits/changeTone.ts",
+    "services/ai/edits/validation.ts",
+    "services/ai/edits/index.ts",
+    "supabase/functions/ai-edit/index.ts",
+    "supabase/migrations/XXXXXX_add_ai_edits_tracking.sql"
+  ],
+
+  "files_to_modify": [
+    "components/ai-actions-modal.tsx (replace Extract Tags button, add handler)",
+    "services/notes.ts (add updateNoteWithAIEdits method)",
+    "services/analytics.ts (add AI Edits events)"
+  ],
+
+  "dependencies": {
+    "existing": [
+      "Claude 3.5 Haiku already integrated (via Summarize feature)",
+      "BYOK (Bring Your Own Key) already implemented",
+      "Supabase Edge Functions infrastructure exists",
+      "AI Actions Modal component exists",
+      "Toast notification system (sonner-native) exists",
+      "AsyncStorage for state persistence exists",
+      "Analytics tracking infrastructure exists"
+    ],
+    "new": [
+      "unified (markdown validation)",
+      "remark-parse (markdown parsing)",
+      "remark-stringify (markdown serialization)"
+    ]
+  },
+
+  "risks_and_mitigations": {
+    "technical_risks": [
+      {
+        "risk": "Sequential processing is slow (5+ edits take >10 seconds)",
+        "likelihood": "low (now using parallel batching)",
+        "impact": "medium",
+        "mitigation": "Parallel processing reduces latency 30-50%, step-by-step progress UI, allow cancel during processing"
+      },
+      {
+        "risk": "AI produces worse content than original",
+        "likelihood": "low",
+        "impact": "high",
+        "mitigation": "Preview modal allows user to reject, regenerate button gives second chance, markdown validation catches invalid output, normalized diff comparison prevents trivial changes"
+      },
+      {
+        "risk": "Claude API rate limits hit during heavy usage",
+        "likelihood": "low",
+        "impact": "medium",
+        "mitigation": "BYOK eliminates shared rate limits, implement retry with exponential backoff, show friendly error message"
+      },
+      {
+        "risk": "User cancels mid-processing leaving inconsistent state",
+        "likelihood": "medium",
+        "impact": "low",
+        "mitigation": "Full AbortController chain, proper cleanup on cancel, don't save partial results"
+      },
+      {
+        "risk": "AI produces invalid markdown",
+        "likelihood": "low",
+        "impact": "medium",
+        "mitigation": "Markdown validation with unified/remark, revert option for users, enhanced prompts with context preservation rules"
+      }
+    ],
+    "ux_risks": [
+      {
+        "risk": "Too many options overwhelm users",
+        "likelihood": "medium",
+        "impact": "low",
+        "mitigation": "Smart defaults (no options pre-selected), tooltips explain each option, Phase 2 optional, state persistence remembers preferences"
+      },
+      {
+        "risk": "Users expect instant results but processing takes time",
+        "likelihood": "high",
+        "impact": "low",
+        "mitigation": "Step-by-step progress UI with checkmarks, show estimated time if >3 seconds, parallel processing reduces wait time"
+      },
+      {
+        "risk": "Accessibility barriers for screen reader users",
+        "likelihood": "medium",
+        "impact": "high",
+        "mitigation": "Full WCAG 2.1 AA compliance, proper labels/hints, announce progress and errors, keyboard navigation"
+      }
+    ]
+  },
+
+  "rollout_plan": {
+    "development": {
+      "environment": "Local development with test notes",
+      "testing": "Manual testing with various note types and lengths",
+      "duration": "4-6 hours (Phase 1), 2-3 hours (Phase 2)"
+    },
+    "staging": {
+      "environment": "Deploy to staging with feature flag",
+      "testing": "End-to-end testing, cost monitoring, accessibility testing",
+      "beta_users": "Internal testing only (1-2 users)",
+      "duration": "1-2 days"
+    },
+    "production": {
+      "rollout_strategy": "Gradual rollout with feature flag",
+      "monitoring": "Track usage, errors, costs, user feedback, analytics events",
+      "success_criteria": "80% acceptance rate, <5% error rate, positive user feedback, <10% cancellation rate"
+    }
+  },
+
+  "notes": [
+    "AI Edits replaces the disabled 'Extract Tags' button - perfect slot for this feature",
+    "Multi-select batch editing is more efficient than separate edit actions",
+    "Parallel processing reduces latency 30-50% compared to sequential",
+    "Preview modal is critical - users must see changes before applying",
+    "Checkmark behavior matches existing patterns (Title, Summarize) for consistency",
+    "Very low cost per edit ($0.0003-0.0005 typical) makes this accessible to all users",
+    "BYOK integration eliminates all developer costs while providing unlimited usage",
+    "Phase 1 delivers immediate value, Phase 2 adds polish",
+    "Modular architecture makes it easy to add new edit types in future",
+    "No rate limits needed - costs are negligible even for heavy users",
+    "Full accessibility support (WCAG 2.1 AA) ensures inclusive UX",
+    "Mobile-first design matches existing action items UI/UX patterns",
+    "AbortController enables graceful cancellation at any stage",
+    "Partial failure handling ensures users get value even if one edit fails",
+    "Temperature optimization (0.1-0.5) balances determinism and creativity",
+    "Enhanced prompts with few-shot examples improve AI output quality",
+    "Markdown validation prevents invalid output from reaching users",
+    "Normalized diff comparison (98% threshold) prevents showing trivial changes",
+    "State persistence via AsyncStorage improves UX for repeat users",
+    "Comprehensive analytics provide insights for future improvements"
+  ]
+}
