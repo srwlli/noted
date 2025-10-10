@@ -7,6 +7,7 @@ import { AIEditsModal } from '@/components/ai-edits-modal';
 import { AIEditsPreviewModal } from '@/components/ai-edits-preview-modal';
 import { generateTitle } from '@/services/ai/generate-title';
 import { summarizeNote } from '@/services/ai/summarize';
+import { applyAIEdits } from '@/services/ai/apply-edits';
 import { notesService, Note } from '@/services/notes';
 import { toast } from 'sonner-native';
 import type { EditOptions, EditResult, EditType } from '@/services/ai/edits/types';
@@ -164,25 +165,24 @@ export function AIActionsModal({ visible, onClose, noteId, noteContent, note, on
     setIsProcessingEdits(true);
 
     try {
-      // Call AI Edits edge function
-      const response = await fetch('/api/ai-edit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: noteContent,
-          options,
-        }),
-      });
+      // Call AI Edits service (invokes Supabase edge function)
+      const result = await applyAIEdits(noteContent, options);
 
-      const result: EditResult = await response.json();
-      setEditResult(result);
+      if (!result.success) {
+        toast.error(result.error, { position: 'top-center' });
+        setShowPreviewModal(false);
+        return;
+      }
 
-      if (!result.success && result.error) {
-        toast.error(result.error.userMessage, { position: 'top-center' });
+      setEditResult(result.data);
+
+      if (!result.data.success && result.data.error) {
+        toast.error(result.data.error.userMessage, { position: 'top-center' });
       }
     } catch (error) {
       console.error('AI Edits error:', error);
       toast.error('Failed to apply AI edits. Please try again.', { position: 'top-center' });
+      setShowPreviewModal(false);
     } finally {
       setIsProcessingEdits(false);
     }
