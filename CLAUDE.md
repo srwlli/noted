@@ -6,6 +6,8 @@
 
 **⚠️ IMPORTANT**: This is an agentic coding environment. Do NOT include time estimates in implementation plans. Focus on clear, actionable steps and deliverables.
 
+**📘 See Also**: [AGENT-ENGAGEMENT.md](./AGENT-ENGAGEMENT.md) - Agent Communication System for AI agents to read/write notes via API (production-ready, 100% test pass rate)
+
 ---
 
 ## Overview

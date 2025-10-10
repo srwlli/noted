@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documentation:
     - API documentation: docs/AGENT-COMMUNICATION-API.md (600+ lines)
     - User guide: docs/AGENT-COMMUNICATION-USER-GUIDE.md (460+ lines)
+    - Agent engagement guide: AGENT-ENGAGEMENT.md (session persistence and future agent onboarding)
     - .env.example with token usage instructions
   - Use cases:
     - Claude Code integration for note-taking during coding sessions
@@ -70,6 +71,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: app/(tabs)/settings.tsx (added Agent Communication card)
   - Base URL: https://ikovzegiuzjkubymwvjz.supabase.co/functions/v1
   - Production-ready with comprehensive error handling and user-friendly messages
+  - **Critical Bug Fixes (2025-10-10):**
+    - Fixed bcryptjs namespace import causing 500 errors in Edge Functions
+    - Changed from `import * as bcrypt` to `import bcrypt` (default import)
+    - Created supabase/config.toml to disable JWT verification for agent endpoints
+    - Test suite: 100% pass rate (9/9 tests passing)
+    - Commits: cf149ee (bcryptjs fix), b278f41 (config.toml), b61e784 (documentation)
 
 - **Publish Notes to Public URLs** (2025-10-10)
   - Publish private notes as publicly accessible web pages with shareable URLs
