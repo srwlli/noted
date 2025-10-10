@@ -159,54 +159,54 @@ export async function applyAIEdits(
 
     let currentContent = content;
 
-    // BATCH 1: Format Markdown + Fix Grammar (parallel)
-    const batch1Edits: Array<() => Promise<EditResult>> = [];
-
+    // BATCH 1: Format Markdown (sequential for now)
     if (options.formatMarkdown) {
-      batch1Edits.push(() => formatMarkdown(currentContent, anthropic, signal));
-    }
-
-    if (options.fixGrammar) {
-      batch1Edits.push(() => fixGrammar(currentContent, anthropic, signal));
-    }
-
-    if (batch1Edits.length > 0) {
-      const batch1Results = await Promise.all(batch1Edits.map((fn) => fn()));
-
-      for (const result of batch1Results) {
-        if (result.success) {
-          currentContent = result.content;
-          appliedEdits.push(...result.appliedEdits);
-        } else {
-          if (result.failedEdits) {
-            failedEdits.push(...result.failedEdits);
-          }
+      const result = await formatMarkdown(currentContent, anthropic, signal);
+      if (result.success) {
+        currentContent = result.content;
+        appliedEdits.push(...result.appliedEdits);
+      } else {
+        if (result.failedEdits) {
+          failedEdits.push(...result.failedEdits);
         }
       }
     }
 
-    // BATCH 2: Add Headings + Improve Structure (parallel)
-    const batch2Edits: Array<() => Promise<EditResult>> = [];
+    // Fix Grammar (sequential)
+    if (options.fixGrammar) {
+      const result = await fixGrammar(currentContent, anthropic, signal);
+      if (result.success) {
+        currentContent = result.content;
+        appliedEdits.push(...result.appliedEdits);
+      } else {
+        if (result.failedEdits) {
+          failedEdits.push(...result.failedEdits);
+        }
+      }
+    }
 
+    // BATCH 2: Add Headings (sequential)
     if (options.addHeadings) {
-      batch2Edits.push(() => addHeadings(currentContent, anthropic, signal));
+      const result = await addHeadings(currentContent, anthropic, signal);
+      if (result.success) {
+        currentContent = result.content;
+        appliedEdits.push(...result.appliedEdits);
+      } else {
+        if (result.failedEdits) {
+          failedEdits.push(...result.failedEdits);
+        }
+      }
     }
 
+    // Improve Structure (sequential)
     if (options.improveStructure) {
-      batch2Edits.push(() => improveStructure(currentContent, anthropic, signal));
-    }
-
-    if (batch2Edits.length > 0) {
-      const batch2Results = await Promise.all(batch2Edits.map((fn) => fn()));
-
-      for (const result of batch2Results) {
-        if (result.success) {
-          currentContent = result.content;
-          appliedEdits.push(...result.appliedEdits);
-        } else {
-          if (result.failedEdits) {
-            failedEdits.push(...result.failedEdits);
-          }
+      const result = await improveStructure(currentContent, anthropic, signal);
+      if (result.success) {
+        currentContent = result.content;
+        appliedEdits.push(...result.appliedEdits);
+      } else {
+        if (result.failedEdits) {
+          failedEdits.push(...result.failedEdits);
         }
       }
     }
