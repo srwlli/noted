@@ -4,7 +4,6 @@ import { Stack, useLocalSearchParams, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useThemeColors } from '@/hooks/use-theme-colors';
 import { publishService } from '@/services/publish';
-import { markdownService } from '@/services/markdown-service';
 import { MarkdownRenderer } from '@/components/markdown/markdown-renderer';
 import * as Clipboard from 'expo-clipboard';
 import * as WebBrowser from 'expo-web-browser';
@@ -107,35 +106,6 @@ export default function PublicNoteScreen() {
     }
   };
 
-  const handleExport = async () => {
-    if (!note) return;
-
-    try {
-      const htmlContent = markdownService.renderToDocument(note.title, note.content);
-
-      if (Platform.OS === 'web') {
-        // Web: Download as file
-        const blob = new Blob([htmlContent], { type: 'text/html' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${note.title}.html`;
-        link.click();
-        URL.revokeObjectURL(url);
-        toast.success('HTML exported successfully');
-      } else {
-        // Mobile: Share sheet
-        await Share.share({
-          message: htmlContent,
-          title: `${note.title}.html`,
-        });
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast.error('Failed to export HTML');
-    }
-  };
-
   // Loading state
   if (loading) {
     return (
@@ -229,20 +199,13 @@ export default function PublicNoteScreen() {
             </TouchableOpacity>
           ),
           headerRight: () => (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginRight: 16 }}>
-              <TouchableOpacity
-                onPress={handleShare}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="share" size={24} color={colors.text} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={handleExport}
-                activeOpacity={0.7}
-              >
-                <MaterialIcons name="file-download" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={handleShare}
+              activeOpacity={0.7}
+              style={{ marginRight: 16 }}
+            >
+              <MaterialIcons name="share" size={24} color={colors.text} />
+            </TouchableOpacity>
           ),
         }}
       />
