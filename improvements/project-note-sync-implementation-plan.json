@@ -1,0 +1,1108 @@
+{
+  "plan_metadata": {
+    "feature_name": "Project Note Sync - Automatic Note to GitHub File Sync",
+    "plan_version": "1.0.0",
+    "created": "2025-10-10",
+    "author": "Claude Code",
+    "project": "Noted - Personal Note-Taking App",
+    "template_version": "feature-implementation-planning-standard v1.0.0"
+  },
+
+  "1_executive_summary": {
+    "purpose": "Enable users to edit notes on mobile/tablet and have changes automatically sync to GitHub repository files, allowing documentation, README, CHANGELOG, and planning files to be maintained through the Noted app with full Git version control",
+
+    "value_proposition": "Eliminates manual export/import workflow for keeping project documentation in sync, enables remote editing of repository files from any device, provides Git version history for all note changes automatically",
+
+    "real_world_analogy": "Like Dropbox for your project files, but specifically for markdown notes - edit on your phone during a meeting, and the changes automatically appear in your GitHub repo with a proper commit message and timestamp",
+
+    "use_case": "Developer maintains project README in Noted app → edits note on phone during commute → note content automatically synced to GitHub docs/README.md → GitHub commit created with note title and timestamp → other team members see updated README in repo",
+
+    "output": "Database table (note_sync_config), database trigger (sync_note_to_github), Edge Function (sync-note-to-github), UI modal (SyncConfigModal), sync status badge component, GitHub commits for synced notes"
+  },
+
+  "2_risk_assessment": {
+    "overall_risk": "HIGH - Complex feature with external API integration, database triggers, async HTTP calls, potential for data loss if implemented incorrectly",
+
+    "complexity": "High - 15-20 files affected, ~1500 lines of code, introduces new patterns (database triggers calling Edge Functions), requires pg_net extension, GitHub API integration",
+
+    "scope": "Large - 18 files (6 new, 12 modified), affects database layer, Edge Function layer, UI layer, involves external GitHub API dependency",
+
+    "risk_factors": {
+      "file_system": {
+        "level": "Low",
+        "rationale": "No direct file I/O - all GitHub file operations via API",
+        "mitigation": "GitHub API handles file validation and error handling"
+      },
+
+      "dependencies": {
+        "level": "High",
+        "external_dependencies": [
+          {
+            "name": "GitHub REST API v3",
+            "risk": "High - External service, rate limits (5000/hour), potential downtime",
+            "mitigation": "Retry logic with exponential backoff, error logging to database, user notification on persistent failures"
+          },
+          {
+            "name": "pg_net extension",
+            "risk": "Medium - Required for database trigger → HTTP calls, may not be available in all Supabase tiers",
+            "mitigation": "Verify pg_net availability before starting implementation, document tier requirements"
+          },
+          {
+            "name": "Supabase Edge Functions",
+            "risk": "Low - Well-established platform with 99.9% SLA",
+            "mitigation": "Standard Supabase error handling patterns"
+          }
+        ],
+        "internal_dependencies": [
+          {
+            "name": "notes table",
+            "risk": "Low - Core table, stable schema",
+            "impact": "Adding UPDATE trigger, no schema changes to notes table itself"
+          },
+          {
+            "name": "NoteActionsModal component",
+            "risk": "Low - Existing component, adding new action card",
+            "impact": "Minimal - one new action definition"
+          }
+        ]
+      },
+
+      "performance": {
+        "level": "Medium",
+        "concerns": [
+          {
+            "concern": "Database trigger overhead on every note update",
+            "impact": "Every note content/title change will execute trigger function (even non-synced notes)",
+            "mitigation": "Trigger checks sync config first (fast table lookup with index), exits immediately if note not synced, async HTTP call doesn't block note save"
+          },
+          {
+            "concern": "GitHub API latency (200-500ms per request)",
+            "impact": "Sync takes 2-3 seconds total (fetch SHA + commit)",
+            "mitigation": "Async operation - user not blocked, status indicator shows 'syncing' state, timeout after 30 seconds"
+          },
+          {
+            "concern": "GitHub API rate limit (5000/hour)",
+            "impact": "Heavy users (100+ synced edits/hour) could hit rate limit",
+            "mitigation": "Client-side rate limit: max 10 synced notes per user, warn at 80% of daily limit, disable sync if rate limit hit"
+          }
+        ],
+        "indexes_required": [
+          "idx_sync_config_note (note_id) - UNIQUE index for fast sync config lookup",
+          "idx_sync_config_enabled (enabled) - Partial index for counting active syncs"
+        ]
+      },
+
+      "security": {
+        "level": "High",
+        "threats": [
+          {
+            "threat": "GitHub Personal Access Token exposure",
+            "severity": "Critical",
+            "mitigation": "Store PAT in Supabase secrets (never in client code or database), Edge Function reads from Deno.env, token has minimal scope (repo only, no admin/delete)"
+          },
+          {
+            "threat": "Unauthorized file modification in GitHub",
+            "severity": "High",
+            "mitigation": "RLS policies ensure users can only sync their own notes, note ownership validated in Edge Function, GitHub PAT belongs to repo owner (not individual users)"
+          },
+          {
+            "threat": "Path traversal in file_path",
+            "severity": "Medium",
+            "mitigation": "Regex validation in database constraint: CHECK (file_path ~ '^[a-zA-Z0-9/_.-]+$'), Edge Function validates no '../' sequences"
+          },
+          {
+            "threat": "SQL injection in trigger function",
+            "severity": "Low",
+            "mitigation": "Use parameterized queries, no string concatenation in SQL"
+          },
+          {
+            "threat": "GitHub API abuse (rapid commits)",
+            "severity": "Medium",
+            "mitigation": "Max 10 synced notes per user, rate limit monitoring, auto-disable sync if 429 errors"
+          }
+        ],
+        "secrets_management": {
+          "GITHUB_PAT": "Store in Supabase secrets, access via Deno.env.get(), rotate every 90 days",
+          "SUPABASE_SERVICE_ROLE_KEY": "Auto-provided by Supabase, Edge Function only",
+          "app.edge_function_url": "Postgres config setting for trigger → Edge Function URL",
+          "app.service_role_key": "Postgres config setting for trigger authentication"
+        }
+      },
+
+      "breaking_changes": {
+        "level": "None",
+        "rationale": "Purely additive feature - no changes to existing APIs or schemas (except adding trigger to notes table)",
+        "migration_needed": true,
+        "migration_details": "Create note_sync_config table, create trigger function, add trigger to notes table, enable pg_net extension"
+      }
+    }
+  },
+
+  "3_current_state_analysis": {
+    "affected_files": {
+      "new_files": [
+        "supabase/migrations/20251010000002_project_note_sync.sql - Database schema: note_sync_config table, trigger function, trigger on notes table",
+        "supabase/functions/sync-note-to-github/index.ts - Edge Function for GitHub API integration",
+        "supabase/functions/sync-note-to-github/deno.json - Deno configuration for Edge Function",
+        "components/sync/sync-config-modal.tsx - Modal for configuring sync settings (file path, repo, branch)",
+        "components/sync/sync-status-badge.tsx - Status badge showing synced/syncing/error state",
+        "services/sync-service.ts - Client-side service for sync config CRUD operations"
+      ],
+
+      "modified_files": [
+        "components/note-actions-modal.tsx - Add 'Sync to Project' action card that opens SyncConfigModal",
+        "app/note-editor/[id].tsx - Add SyncStatusBadge to editor header, check sync status on mount",
+        "app/note-editor/new.tsx - Add SyncStatusBadge to editor header (disabled state for unsaved notes)",
+        "types/database.ts - Add NoteSync ConfigRow and SyncStatus types",
+        "lib/supabase.ts - Export sync_config table client (no code changes, just for reference)",
+        ".env.example - Add GITHUB_PAT documentation"
+      ],
+
+      "configuration_files": [
+        "Supabase Dashboard → Settings → Database → Extensions → Enable pg_net",
+        "Supabase Dashboard → Settings → Edge Functions → Secrets → Add GITHUB_PAT",
+        "Supabase Dashboard → Settings → Postgres Config → Add app.edge_function_url",
+        "Supabase Dashboard → Settings → Postgres Config → Add app.service_role_key"
+      ]
+    },
+
+    "dependencies": {
+      "existing_internal": [
+        "notes table (id, user_id, title, content, created_at, updated_at) - Will add AFTER UPDATE trigger",
+        "auth.users table - Foreign key reference for note_sync_config.user_id",
+        "NoteActionsModal component - Add new action card",
+        "useThemeColors hook - Style SyncConfigModal and SyncStatusBadge",
+        "toast (sonner-native) - Display sync success/error messages"
+      ],
+
+      "existing_external": [
+        "@supabase/supabase-js@2.x - Already installed, used for sync config CRUD",
+        "react-native - Modal, TextInput, Switch components for SyncConfigModal",
+        "@expo/vector-icons - Icons for sync status (cloud-done, cloud-sync, cloud-off)",
+        "sonner-native - Toast notifications for sync feedback"
+      ],
+
+      "new_external": [
+        "pg_net extension (Supabase) - Required for database trigger → HTTP calls",
+        "GitHub REST API v3 - No SDK needed, direct fetch() calls in Edge Function"
+      ],
+
+      "new_internal": [
+        "note_sync_config table - Stores sync configuration per note",
+        "sync_note_to_github() database function - Trigger function that calls Edge Function",
+        "sync-note-to-github Edge Function - Handles GitHub API communication",
+        "syncService - Client-side CRUD for sync config",
+        "SyncConfigModal - UI for configuring sync",
+        "SyncStatusBadge - UI for displaying sync status"
+      ]
+    },
+
+    "architecture_context": {
+      "layers_affected": [
+        "Data Layer: New table (note_sync_config), new trigger on notes table, new trigger function",
+        "API Layer: New Edge Function (sync-note-to-github) called by trigger",
+        "Service Layer: New syncService for client-side sync config operations",
+        "UI Layer: New modal (SyncConfigModal), new badge (SyncStatusBadge), updates to NoteActionsModal and editor screens"
+      ],
+
+      "patterns_to_follow": [
+        "Database: Follow existing migration pattern (timestamp prefix, descriptive name, enable extensions first)",
+        "Edge Functions: Follow publish-note pattern (service_role auth, error logging, CORS headers, standardized responses)",
+        "Services: Follow publish-service pattern (async functions, error mapping, typed interfaces)",
+        "UI Components: Follow publish-modal pattern (bottom sheet modal, form fields, validation, loading states)",
+        "RLS Policies: Follow publish_rate_limits pattern (users can view own rows, service_role can manage all)"
+      ],
+
+      "design_patterns": [
+        "Repository Pattern: syncService encapsulates database operations",
+        "Observer Pattern: Database trigger observes note changes, triggers sync",
+        "Strategy Pattern: Different error handling strategies (transient vs permanent errors)",
+        "Factory Pattern: Edge Function constructs GitHub API requests based on operation type"
+      ],
+
+      "coding_standards": [
+        "TypeScript: All new code must be TypeScript with strict type checking",
+        "React Native: Functional components with hooks (no class components)",
+        "Async/Await: All async operations use async/await (no .then() chains)",
+        "Error Handling: Try/catch blocks with specific error types, user-friendly error messages",
+        "Naming: camelCase for variables/functions, PascalCase for components/types",
+        "Comments: JSDoc for public functions, inline comments for complex logic"
+      ]
+    }
+  },
+
+  "4_key_features": {
+    "primary_features": [
+      "One-way automatic sync: Note content/title changes in app automatically commit to GitHub repository file",
+      "Per-note configuration: Each note can be independently configured to sync to a specific file path in a GitHub repository",
+      "Real-time status indicator: Visual badge in editor header shows sync state (synced/syncing/error) with timestamp",
+      "GitHub commit generation: Each sync creates a proper Git commit with descriptive message including note title and timestamp",
+      "Enable/disable toggle: Users can pause sync for a note without losing configuration"
+    ],
+
+    "secondary_features": [
+      "File creation on first sync: If GitHub file doesn't exist, Edge Function creates it automatically",
+      "Slug collision handling: Syncs preserve file SHA to prevent conflicts when file was manually edited",
+      "Error recovery: Failed syncs are logged with error message, user can retry manually via status badge",
+      "Sync configuration persistence: File path, repo, and branch settings stored in database per note"
+    ],
+
+    "edge_case_handling": [
+      "GitHub token expired: Sync fails with clear error, user prompted to refresh token in settings",
+      "File deleted in GitHub: Sync fails, user warned to update file path or recreate file",
+      "Branch deleted in GitHub: Sync fails, user prompted to update target branch",
+      "Concurrent edits (app + GitHub): SHA mismatch detected, user shown conflict resolution dialog",
+      "Network timeout: Exponential backoff retry up to 3 attempts, then log error",
+      "Rate limit exceeded: Sync paused, user notified of remaining time until reset"
+    ],
+
+    "configuration_options": [
+      "File path: User-specified relative path in repository (e.g., 'docs/README.md', 'CHANGELOG.md')",
+      "Repository: User-specified owner/repo (e.g., 'srwlli/noted')",
+      "Branch: User-specified target branch (default: 'main')",
+      "Enabled flag: Toggle to pause/resume sync without deleting configuration"
+    ]
+  },
+
+  "5_task_breakdown_with_ids": {
+    "SETUP_tasks": [
+      "SETUP-001: Verify pg_net extension availability in Supabase project",
+      "SETUP-002: Generate GitHub Personal Access Token with 'repo' scope from https://github.com/settings/tokens",
+      "SETUP-003: Store GitHub PAT in Supabase secrets: npx supabase secrets set GITHUB_PAT=ghp_...",
+      "SETUP-004: Configure postgres settings: app.edge_function_url and app.service_role_key",
+      "SETUP-005: Create TypeScript types file for sync-related interfaces"
+    ],
+
+    "DB_tasks": [
+      "DB-001: Create migration file supabase/migrations/20251010000002_project_note_sync.sql",
+      "DB-002: Enable pg_net extension in migration: CREATE EXTENSION IF NOT EXISTS pg_net",
+      "DB-003: Create note_sync_config table with all columns, constraints, and indexes",
+      "DB-004: Create RLS policies for note_sync_config (users can view own, service_role can manage all)",
+      "DB-005: Create sync_note_to_github() trigger function with pg_net HTTP call logic",
+      "DB-006: Create AFTER UPDATE trigger on notes table calling sync_note_to_github()",
+      "DB-007: Apply migration with npx supabase db push",
+      "DB-008: Verify migration applied: npx supabase migration list --linked"
+    ],
+
+    "API_tasks": [
+      "API-001: Create supabase/functions/sync-note-to-github/index.ts Edge Function skeleton",
+      "API-002: Create supabase/functions/sync-note-to-github/deno.json with Supabase imports",
+      "API-003: Implement request body parsing and validation in Edge Function",
+      "API-004: Implement GitHub API fetch current file SHA logic (GET /repos/{owner}/{repo}/contents/{path})",
+      "API-005: Implement GitHub API update file logic (PUT /repos/{owner}/{repo}/contents/{path})",
+      "API-006: Implement commit message generation with note title and timestamp",
+      "API-007: Implement base64 encoding for file content (GitHub API requirement)",
+      "API-008: Implement error handling for GitHub API errors (401, 404, 409, 429, 500)",
+      "API-009: Implement sync status update in note_sync_config table (last_synced_at, last_sync_error)",
+      "API-010: Add CORS headers to all responses",
+      "API-011: Deploy Edge Function: npx supabase functions deploy sync-note-to-github",
+      "API-012: Test Edge Function with curl (mock note update payload)"
+    ],
+
+    "LOGIC_tasks": [
+      "LOGIC-001: Create services/sync-service.ts with TypeScript interfaces",
+      "LOGIC-002: Implement createSyncConfig(noteId, filePath, repoOwner, repoName, branch) function",
+      "LOGIC-003: Implement updateSyncConfig(noteId, updates) function",
+      "LOGIC-004: Implement deleteSyncConfig(noteId) function",
+      "LOGIC-005: Implement getSyncConfig(noteId) function",
+      "LOGIC-006: Implement getUserSyncConfigs(userId) function (list all synced notes)",
+      "LOGIC-007: Implement toggleSyncEnabled(noteId, enabled) function",
+      "LOGIC-008: Implement testSyncConfig(noteId) function (dry-run to verify GitHub access)",
+      "LOGIC-009: Add error mapping for sync service errors (DATABASE_ERROR, UNAUTHORIZED, etc.)"
+    ],
+
+    "UI_tasks": [
+      "UI-001: Create components/sync/sync-config-modal.tsx skeleton",
+      "UI-002: Implement SyncConfigModal form fields (file path, repo owner, repo name, branch, enabled toggle)",
+      "UI-003: Add form validation (file path regex, repo format, branch name)",
+      "UI-004: Implement 'Test Sync' button with loading state and success/error feedback",
+      "UI-005: Implement 'Save' button that calls createSyncConfig or updateSyncConfig",
+      "UI-006: Add error display for validation errors and sync errors",
+      "UI-007: Create components/sync/sync-status-badge.tsx component",
+      "UI-008: Implement badge states: synced (green cloud), syncing (blue spinner), error (red cloud), disabled (gray cloud)",
+      "UI-009: Add badge tooltip showing sync status details (last synced timestamp, error message)",
+      "UI-010: Implement badge click handler that opens SyncConfigModal for error state",
+      "UI-011: Add 'Sync to Project' action card to NoteActionsModal",
+      "UI-012: Add SyncStatusBadge to app/note-editor/[id].tsx header",
+      "UI-013: Add SyncStatusBadge to app/note-editor/new.tsx header (disabled state)",
+      "UI-014: Implement useEffect to check sync status on editor mount",
+      "UI-015: Add toast notifications for sync success, sync error, sync disabled"
+    ],
+
+    "TEST_tasks": [
+      "TEST-001: Unit test sync_note_to_github() trigger function (mock HTTP call)",
+      "TEST-002: Unit test Edge Function GitHub API fetch SHA logic",
+      "TEST-003: Unit test Edge Function GitHub API commit logic",
+      "TEST-004: Unit test base64 encoding/decoding",
+      "TEST-005: Integration test: Create sync config → Update note → Verify GitHub commit created",
+      "TEST-006: Integration test: First sync (file doesn't exist) → Verify file created",
+      "TEST-007: Integration test: Update sync (file exists) → Verify file updated with new SHA",
+      "TEST-008: Integration test: Disable sync → Update note → Verify no GitHub commit",
+      "TEST-009: Edge case test: Invalid GitHub token → Verify 401 error logged",
+      "TEST-010: Edge case test: File deleted in GitHub → Verify SHA fetch fails gracefully",
+      "TEST-011: Edge case test: SHA mismatch (concurrent edit) → Verify 409 conflict error",
+      "TEST-012: Edge case test: Rate limit exceeded → Verify 429 error, sync paused",
+      "TEST-013: Load test: 10 rapid note edits → Verify all syncs complete (async queue)",
+      "TEST-014: Manual test: Full user flow (config → edit → verify GitHub → disable → edit → verify no commit)"
+    ],
+
+    "SEC_tasks": [
+      "SEC-001: Verify GitHub PAT is never exposed in client code or database (only in Supabase secrets)",
+      "SEC-002: Add input sanitization for file_path (prevent path traversal)",
+      "SEC-003: Verify RLS policies prevent users from viewing/editing other users' sync configs",
+      "SEC-004: Add rate limiting check in Edge Function (max 10 synced notes per user)",
+      "SEC-005: Implement secure error messages (don't leak sensitive info like PAT or file paths to client)"
+    ],
+
+    "DOC_tasks": [
+      "DOC-001: Update README with Project Note Sync setup instructions",
+      "DOC-002: Document GitHub PAT generation steps with screenshots",
+      "DOC-003: Document Supabase secrets configuration steps",
+      "DOC-004: Add JSDoc comments to syncService public functions",
+      "DOC-005: Create user guide: How to sync a note to GitHub",
+      "DOC-006: Document error codes and troubleshooting steps"
+    ],
+
+    "DEPLOY_tasks": [
+      "DEPLOY-001: Add GITHUB_PAT to production Supabase secrets",
+      "DEPLOY-002: Configure production postgres settings (app.edge_function_url, app.service_role_key)",
+      "DEPLOY-003: Deploy Edge Function to production: npx supabase functions deploy sync-note-to-github --project-ref <prod-ref>",
+      "DEPLOY-004: Apply database migration to production: npx supabase db push --linked",
+      "DEPLOY-005: Verify pg_net extension enabled in production",
+      "DEPLOY-006: Smoke test in production: Configure sync for test note → Edit → Verify GitHub commit"
+    ]
+  },
+
+  "6_implementation_phases": {
+    "phase_1_foundation": {
+      "title": "Database Setup & Configuration",
+      "purpose": "Create database infrastructure and configure external dependencies before writing application logic",
+      "duration": "1.5 hours",
+
+      "tasks": [
+        "SETUP-001: Verify pg_net extension availability",
+        "SETUP-002: Generate GitHub PAT",
+        "SETUP-003: Store GitHub PAT in Supabase secrets",
+        "SETUP-004: Configure postgres settings",
+        "SETUP-005: Create TypeScript types file",
+        "DB-001: Create migration file",
+        "DB-002: Enable pg_net extension",
+        "DB-003: Create note_sync_config table",
+        "DB-004: Create RLS policies",
+        "DB-005: Create trigger function",
+        "DB-006: Create trigger on notes table",
+        "DB-007: Apply migration",
+        "DB-008: Verify migration applied"
+      ],
+
+      "completion_criteria": [
+        "pg_net extension enabled and verified with SELECT * FROM pg_available_extensions WHERE name = 'pg_net'",
+        "GITHUB_PAT stored in Supabase secrets and accessible via npx supabase secrets list",
+        "note_sync_config table exists with all columns and indexes",
+        "Trigger exists on notes table: SELECT * FROM pg_trigger WHERE tgname = 'trigger_sync_note_to_github'",
+        "Migration 20251010000002 appears in npx supabase migration list --linked"
+      ],
+
+      "dependencies": "None (foundation phase)",
+
+      "risks": [
+        "pg_net extension may not be available in current Supabase tier → Mitigation: Check documentation and upgrade tier if needed",
+        "GitHub PAT generation may fail if user lacks repo access → Mitigation: Verify user has admin access to target repository"
+      ]
+    },
+
+    "phase_2_edge_function_implementation": {
+      "title": "Edge Function & GitHub API Integration",
+      "purpose": "Implement server-side logic for GitHub API communication and commit creation",
+      "duration": "2 hours",
+
+      "tasks": [
+        "API-001: Create Edge Function skeleton",
+        "API-002: Create deno.json config",
+        "API-003: Implement request parsing",
+        "API-004: Implement GitHub fetch SHA logic",
+        "API-005: Implement GitHub commit logic",
+        "API-006: Implement commit message generation",
+        "API-007: Implement base64 encoding",
+        "API-008: Implement error handling",
+        "API-009: Implement sync status updates",
+        "API-010: Add CORS headers",
+        "API-011: Deploy Edge Function",
+        "API-012: Test Edge Function with curl"
+      ],
+
+      "completion_criteria": [
+        "Edge Function deployed successfully: npx supabase functions list shows sync-note-to-github",
+        "curl test with valid payload returns 200 and creates GitHub commit",
+        "curl test with invalid token returns 401 error",
+        "curl test with non-existent file creates new file in GitHub",
+        "curl test with existing file updates file with new SHA",
+        "Error responses include CORS headers"
+      ],
+
+      "dependencies": "Phase 1 complete (GitHub PAT available, postgres config set)",
+
+      "review_gate": true,
+      "review_criteria": "Manual verification of GitHub commit created with correct message format and content"
+    },
+
+    "phase_3_client_service_layer": {
+      "title": "Client-Side Sync Service",
+      "purpose": "Implement TypeScript service for sync configuration CRUD operations",
+      "duration": "1 hour",
+
+      "tasks": [
+        "LOGIC-001: Create sync-service.ts skeleton",
+        "LOGIC-002: Implement createSyncConfig",
+        "LOGIC-003: Implement updateSyncConfig",
+        "LOGIC-004: Implement deleteSyncConfig",
+        "LOGIC-005: Implement getSyncConfig",
+        "LOGIC-006: Implement getUserSyncConfigs",
+        "LOGIC-007: Implement toggleSyncEnabled",
+        "LOGIC-008: Implement testSyncConfig",
+        "LOGIC-009: Add error mapping"
+      ],
+
+      "completion_criteria": [
+        "All functions exported from services/sync-service.ts",
+        "All functions have TypeScript types with no 'any' types",
+        "All functions have JSDoc comments",
+        "Error mapping returns standardized error codes",
+        "TypeScript compiler returns zero errors for sync-service.ts"
+      ],
+
+      "dependencies": "Phase 1 complete (database table exists with RLS policies)"
+    },
+
+    "phase_4_user_interface": {
+      "title": "UI Components & User Experience",
+      "purpose": "Build UI for configuring sync and displaying sync status",
+      "duration": "2.5 hours",
+
+      "tasks": [
+        "UI-001: Create SyncConfigModal skeleton",
+        "UI-002: Implement form fields",
+        "UI-003: Add form validation",
+        "UI-004: Implement Test Sync button",
+        "UI-005: Implement Save button",
+        "UI-006: Add error display",
+        "UI-007: Create SyncStatusBadge component",
+        "UI-008: Implement badge states",
+        "UI-009: Add badge tooltip",
+        "UI-010: Implement badge click handler",
+        "UI-011: Add action card to NoteActionsModal",
+        "UI-012: Add badge to note-editor/[id].tsx",
+        "UI-013: Add badge to note-editor/new.tsx",
+        "UI-014: Implement useEffect for sync status check",
+        "UI-015: Add toast notifications"
+      ],
+
+      "completion_criteria": [
+        "SyncConfigModal opens from NoteActionsModal 'Sync to Project' action",
+        "All form fields render and accept input",
+        "Form validation shows error messages for invalid input (tested manually with empty fields, invalid paths, etc.)",
+        "Test Sync button shows loading spinner and success/error toast",
+        "Save button creates sync config in database (verified with Supabase dashboard query)",
+        "SyncStatusBadge appears in editor header with correct state",
+        "Badge tooltip shows last synced timestamp or error message",
+        "Toast notifications appear for sync success/error/disabled events",
+        "No TypeScript errors in UI components",
+        "No React Native warnings in console"
+      ],
+
+      "dependencies": "Phase 3 complete (syncService available)"
+    },
+
+    "phase_5_comprehensive_testing": {
+      "title": "Testing & Quality Assurance",
+      "purpose": "Validate all functionality with automated tests and manual testing",
+      "duration": "2 hours",
+
+      "tasks": [
+        "TEST-001 through TEST-014: All test tasks",
+        "SEC-001 through SEC-005: All security tasks"
+      ],
+
+      "completion_criteria": [
+        "All unit tests pass: npx jest services/sync-service.test.ts returns 0 failures",
+        "All integration tests pass with real database",
+        "All edge case scenarios tested and pass",
+        "Load test: 10 rapid edits all sync successfully within 30 seconds",
+        "Manual test checklist completed with screenshots",
+        "Security audit: GitHub PAT never appears in client logs, network requests, or database",
+        "Rate limiting enforced: 11th synced note shows error 'Max 10 synced notes per user'"
+      ],
+
+      "dependencies": "All previous phases complete"
+    },
+
+    "phase_6_documentation_and_deployment": {
+      "title": "Documentation & Production Deployment",
+      "purpose": "Finalize documentation and deploy to production environment",
+      "duration": "1 hour",
+
+      "tasks": [
+        "DOC-001 through DOC-006: All documentation tasks",
+        "DEPLOY-001 through DEPLOY-006: All deployment tasks"
+      ],
+
+      "completion_criteria": [
+        "README.md updated with sync setup instructions",
+        "GitHub PAT generation guide created with screenshots",
+        "User guide published with step-by-step sync configuration flow",
+        "All functions have JSDoc comments (verified with ESLint rule)",
+        "Production deployment successful: Smoke test passes",
+        "Production Edge Function logs show successful sync (verified in Supabase dashboard)"
+      ],
+
+      "dependencies": "Phase 5 complete (all tests passing)",
+
+      "review_gate": true,
+      "review_criteria": "Stakeholder approval of user guide and production smoke test results"
+    }
+  },
+
+  "7_testing_strategy": {
+    "unit_tests": {
+      "scope": "Individual functions in isolation (services, Edge Function helpers)",
+      "framework": "Jest for client-side, Deno Test for Edge Function",
+      "coverage_target": "85% line coverage for syncService and Edge Function",
+
+      "test_cases": [
+        {
+          "function": "syncService.createSyncConfig()",
+          "tests": [
+            "Creates sync config row in database with correct values",
+            "Returns error if user_id doesn't match authenticated user",
+            "Validates file_path regex (rejects '../' path traversal)",
+            "Returns error if note_id already has sync config (unique constraint)"
+          ]
+        },
+        {
+          "function": "syncService.testSyncConfig()",
+          "tests": [
+            "Returns success if GitHub file accessible",
+            "Returns 401 error if GitHub PAT invalid",
+            "Returns 404 error if repository not found",
+            "Returns 404 error if branch not found"
+          ]
+        },
+        {
+          "function": "Edge Function: base64 encode",
+          "tests": [
+            "Encodes UTF-8 string correctly (matches btoa output)",
+            "Handles special characters (emojis, accents)",
+            "Handles multi-line content with newlines"
+          ]
+        },
+        {
+          "function": "Edge Function: generateCommitMessage()",
+          "tests": [
+            "Includes file path in message",
+            "Includes note title in message",
+            "Includes ISO timestamp in message",
+            "Truncates note title to 100 chars if longer"
+          ]
+        }
+      ]
+    },
+
+    "integration_tests": {
+      "scope": "Multi-component workflows with real database and Edge Function",
+      "framework": "Jest with Supabase test database",
+      "setup": "Test database with notes table, note_sync_config table, test GitHub repo",
+
+      "test_cases": [
+        {
+          "workflow": "First sync (file creation)",
+          "setup": "Note with no sync config, GitHub file doesn't exist",
+          "steps": [
+            "1. Create sync config with createSyncConfig()",
+            "2. Update note content with Supabase client",
+            "3. Wait 5 seconds for async sync",
+            "4. Fetch GitHub file via API",
+            "5. Verify file content matches note content",
+            "6. Verify commit message includes note title"
+          ],
+          "expected": "GitHub file created with correct content, sync config last_synced_at updated",
+          "cleanup": "Delete GitHub file, delete sync config row"
+        },
+        {
+          "workflow": "Update sync (file exists)",
+          "setup": "Note with sync config, GitHub file exists",
+          "steps": [
+            "1. Update note content with new text",
+            "2. Wait 5 seconds for async sync",
+            "3. Fetch GitHub file via API",
+            "4. Verify file content matches new text",
+            "5. Verify commit history shows 2 commits"
+          ],
+          "expected": "GitHub file updated with new SHA, both commits visible in history"
+        },
+        {
+          "workflow": "Sync disabled",
+          "setup": "Note with sync config where enabled = false",
+          "steps": [
+            "1. Update note content",
+            "2. Wait 5 seconds",
+            "3. Check note_sync_config.last_synced_at timestamp",
+            "4. Fetch GitHub file via API"
+          ],
+          "expected": "last_synced_at unchanged (no sync occurred), GitHub file unchanged"
+        }
+      ]
+    },
+
+    "end_to_end_tests": {
+      "scope": "Complete user workflows through UI (manual testing with checklist)",
+      "when_needed": "After Phase 4 (UI complete)",
+
+      "test_cases": [
+        {
+          "scenario": "User configures sync for first time",
+          "steps": [
+            "1. Open note editor for existing note",
+            "2. Tap (...) menu → Actions Modal opens",
+            "3. Tap 'Sync to Project' action → SyncConfigModal opens",
+            "4. Enter file path: docs/test-note.md",
+            "5. Enter repo: srwlli/noted",
+            "6. Leave branch as 'main'",
+            "7. Tap 'Test Sync' → Loading spinner appears → Success toast",
+            "8. Tap 'Save' → Modal closes → Badge appears in editor header (green cloud)",
+            "9. Edit note content and save",
+            "10. Badge shows 'syncing' (blue spinner)",
+            "11. After 3 seconds, badge shows 'synced' (green cloud) with timestamp tooltip",
+            "12. Open GitHub repo → Verify docs/test-note.md exists with correct content"
+          ],
+          "expected": "All steps complete without errors, GitHub file matches note content"
+        },
+        {
+          "scenario": "User handles sync error (invalid token)",
+          "steps": [
+            "1. Invalidate GitHub PAT in Supabase secrets (set to dummy value)",
+            "2. Edit synced note content",
+            "3. Badge shows 'syncing' then 'error' (red cloud)",
+            "4. Tap error badge → Modal shows 'GitHub authentication failed. Check token in Settings.'",
+            "5. Restore valid GitHub PAT in Supabase secrets",
+            "6. Tap 'Retry' in error modal → Badge shows 'syncing' then 'synced'",
+            "7. Verify GitHub file updated"
+          ],
+          "expected": "Error state clearly communicated, retry succeeds after fixing token"
+        }
+      ]
+    },
+
+    "edge_case_scenarios": [
+      {
+        "category": "Empty/Null Input",
+        "scenario": "User submits SyncConfigModal with empty file path",
+        "setup": "Open SyncConfigModal, leave file_path field empty, tap Save",
+        "expected_behavior": "Validation error displayed: 'File path is required'",
+        "verification": "Modal does not close, error message visible below field",
+        "error_handling": "Validation error (no database call)"
+      },
+      {
+        "category": "Invalid Input",
+        "scenario": "User enters invalid file path with '../' (path traversal attempt)",
+        "setup": "Enter file path: '../etc/passwd', tap Save",
+        "expected_behavior": "Validation error: 'Invalid file path. Use alphanumeric, /, -, _, . only'",
+        "verification": "Regex validation rejects input, database constraint also prevents insert",
+        "error_handling": "Client-side validation error + database constraint violation (belt and suspenders)"
+      },
+      {
+        "category": "Boundary Conditions",
+        "scenario": "File path at maximum length (255 characters)",
+        "setup": "Enter 255-character file path (all valid chars), tap Save",
+        "expected_behavior": "Sync config created successfully",
+        "verification": "Database row created, sync works correctly",
+        "error_handling": "No error"
+      },
+      {
+        "category": "Concurrent Access",
+        "scenario": "Two users editing same note simultaneously (different users)",
+        "setup": "Not applicable - users can only sync their own notes (RLS policy prevents)",
+        "expected_behavior": "N/A",
+        "verification": "N/A",
+        "error_handling": "N/A"
+      },
+      {
+        "category": "Concurrent Access",
+        "scenario": "User edits synced note rapidly 5 times in 10 seconds",
+        "setup": "Configure sync, then edit note 5 times quickly",
+        "expected_behavior": "All 5 edits trigger sync, Edge Function queues requests, GitHub shows 5 commits",
+        "verification": "GitHub commit history shows 5 sequential commits with timestamps ~2 seconds apart",
+        "error_handling": "No errors, async queue handles load"
+      },
+      {
+        "category": "External Dependency Failure",
+        "scenario": "GitHub API returns 500 error (service down)",
+        "setup": "Mock GitHub API to return 500, edit synced note",
+        "expected_behavior": "Sync fails, error logged to note_sync_config.last_sync_error, badge shows error state",
+        "verification": "Database query shows last_sync_error = 'GitHub API unavailable (500)', badge tooltip shows error",
+        "error_handling": "Transient error - retry logic with exponential backoff (1s, 2s, 4s), max 3 attempts, then user notification"
+      },
+      {
+        "category": "External Dependency Failure",
+        "scenario": "Network timeout (GitHub API doesn't respond within 30 seconds)",
+        "setup": "Mock GitHub API with 35-second delay, edit synced note",
+        "expected_behavior": "Edge Function times out after 30 seconds, error logged",
+        "verification": "last_sync_error = 'Request timeout', badge shows error",
+        "error_handling": "Timeout error, no retry (user must manually retry via badge click)"
+      },
+      {
+        "category": "Security",
+        "scenario": "SQL injection attempt in file_path field",
+        "setup": "Enter file path: docs/README.md'; DROP TABLE notes; --",
+        "expected_behavior": "Input rejected by regex validation (contains semicolon and spaces)",
+        "verification": "Validation error shown, no database query executed",
+        "error_handling": "Client-side validation prevents malicious input"
+      },
+      {
+        "category": "Security",
+        "scenario": "User tries to sync another user's note (bypass RLS)",
+        "setup": "Manually craft Supabase client request to create sync config for note_id owned by different user",
+        "expected_behavior": "RLS policy rejects INSERT: auth.uid() != user_id",
+        "verification": "Database error: 'new row violates row-level security policy'",
+        "error_handling": "Database-level security, request rejected before insert"
+      },
+      {
+        "category": "State",
+        "scenario": "User deletes sync config, then edits note",
+        "setup": "Create sync config, then delete with deleteSyncConfig(), then edit note",
+        "expected_behavior": "Trigger function checks sync config, finds none, exits early without sync",
+        "verification": "No GitHub commit created, no error logged",
+        "error_handling": "No error (expected behavior)"
+      },
+      {
+        "category": "State",
+        "scenario": "File deleted in GitHub (external change), then user edits note",
+        "setup": "Configure sync, create GitHub file via sync, manually delete file in GitHub, edit note",
+        "expected_behavior": "Edge Function fetches SHA, receives 404, treats as 'file doesn't exist', creates new file",
+        "verification": "GitHub file recreated with new commit, sync succeeds",
+        "error_handling": "No error - 404 handled as file creation case"
+      },
+      {
+        "category": "State",
+        "scenario": "File modified in GitHub (SHA changed), then user edits note",
+        "setup": "Configure sync, create GitHub file, manually edit file in GitHub (new SHA), edit note in app",
+        "expected_behavior": "Edge Function fetches SHA, compares to expected, detects mismatch, returns 409 conflict",
+        "verification": "last_sync_error = 'File modified in GitHub. Overwrite or cancel?', badge shows error, user sees conflict dialog",
+        "error_handling": "Conflict error - user must choose to overwrite or cancel sync"
+      }
+    ]
+  },
+
+  "8_success_criteria": {
+    "functional_requirements": [
+      {
+        "requirement": "Sync configuration creation",
+        "metric": "User can create sync config via UI and it persists in database",
+        "target": "SyncConfigModal Save button creates row in note_sync_config table with correct values (verified via Supabase query)",
+        "validation": "Manual test: Open modal → fill fields → save → query database: SELECT * FROM note_sync_config WHERE note_id = '[test-note-id]'"
+      },
+      {
+        "requirement": "Automatic sync on note edit",
+        "metric": "Editing synced note content triggers GitHub commit",
+        "target": "Within 5 seconds of saving note edit, GitHub file is updated with new content (100% success rate for 10 test edits)",
+        "validation": "Integration test TEST-005: Update note → wait 5s → fetch GitHub file via API → assert content matches"
+      },
+      {
+        "requirement": "Sync status indicator accuracy",
+        "metric": "Badge state matches actual sync status",
+        "target": "Badge shows 'synced' within 5s of successful sync, 'error' within 5s of failed sync, 'syncing' during operation (verified in 10 manual tests)",
+        "validation": "Manual test: Edit note → observe badge transitions: syncing → synced (or error)"
+      },
+      {
+        "requirement": "GitHub commit message format",
+        "metric": "Commit messages include file path, note title, timestamp",
+        "target": "100% of commits match format: 'Update {file_path} from Noted app\\n\\nNote: {note_title}\\nSynced at: {ISO-timestamp}'",
+        "validation": "Integration test: Parse commit message from GitHub API, verify regex match"
+      },
+      {
+        "requirement": "Enable/disable toggle",
+        "metric": "Disabling sync prevents commits, enabling resumes commits",
+        "target": "Edit note with sync disabled → no GitHub commit (verified in 5 tests), re-enable → next edit creates commit",
+        "validation": "Integration test TEST-008: Toggle enabled=false → edit note → query GitHub (no new commit) → toggle enabled=true → edit note → verify commit"
+      },
+      {
+        "requirement": "File creation on first sync",
+        "metric": "Syncing to non-existent file path creates file",
+        "target": "100% success rate for 5 first-sync tests (file created with correct content)",
+        "validation": "Integration test TEST-006: Sync to new path → verify GitHub file exists via API"
+      },
+      {
+        "requirement": "Error recovery UI",
+        "metric": "User can retry failed sync via badge click",
+        "target": "Badge in error state → click → SyncConfigModal opens with 'Retry' button → retry succeeds and badge shows 'synced'",
+        "validation": "Manual test: Cause sync failure (invalid token) → click error badge → restore token → click Retry → verify success"
+      },
+      {
+        "requirement": "Rate limiting enforcement",
+        "metric": "Users cannot sync more than 10 notes",
+        "target": "Attempting to create 11th sync config returns error: 'Maximum 10 synced notes per user'",
+        "validation": "Integration test: Create 10 sync configs → attempt 11th → assert error message matches"
+      }
+    ],
+
+    "quality_requirements": [
+      {
+        "requirement": "TypeScript type safety",
+        "metric": "Zero TypeScript errors in all new code",
+        "target": "npx tsc --noEmit returns exit code 0 for all sync-related files",
+        "validation": "Run: npx tsc --noEmit services/sync-service.ts components/sync/*.tsx supabase/functions/sync-note-to-github/index.ts"
+      },
+      {
+        "requirement": "Test coverage",
+        "metric": "Line coverage percentage for new code",
+        "target": "> 85% line coverage for services/sync-service.ts and Edge Function",
+        "validation": "Run: npx jest --coverage services/sync-service.test.ts (check coverage report)"
+      },
+      {
+        "requirement": "Code style compliance",
+        "metric": "ESLint passes with zero warnings",
+        "target": "npx eslint services/sync-service.ts components/sync/*.tsx returns exit code 0",
+        "validation": "Run ESLint on all new files, verify 0 errors and 0 warnings"
+      },
+      {
+        "requirement": "Documentation completeness",
+        "metric": "All public functions have JSDoc comments",
+        "target": "100% of exported functions in syncService have JSDoc with @param and @returns",
+        "validation": "Manual review: Open services/sync-service.ts → verify each export has /** */ comment above it"
+      },
+      {
+        "requirement": "No code duplication",
+        "metric": "Duplicate code percentage",
+        "target": "< 5% duplicate code (similar logic appears max once per file)",
+        "validation": "Manual review: Check for copy-pasted code blocks, extract to shared functions if found"
+      },
+      {
+        "requirement": "Error messages are user-friendly",
+        "metric": "Error messages avoid technical jargon",
+        "target": "All user-facing error messages tested with non-technical user, 100% comprehension rate",
+        "validation": "Manual review: List all error messages → verify they explain problem and solution in plain English"
+      }
+    ],
+
+    "performance_requirements": [
+      {
+        "requirement": "Sync latency",
+        "metric": "Time from note save to GitHub commit complete",
+        "target": "< 5 seconds for P95 (95th percentile) of sync operations",
+        "validation": "Load test TEST-013: Measure timestamp(note update) to timestamp(GitHub commit), calculate P95 across 100 samples"
+      },
+      {
+        "requirement": "Trigger overhead",
+        "metric": "Note save latency increase due to trigger",
+        "target": "< 50ms added latency for non-synced notes (trigger checks sync config and exits)",
+        "validation": "Performance test: Measure note update time before adding trigger vs after (for note without sync config)"
+      },
+      {
+        "requirement": "UI responsiveness",
+        "metric": "SyncConfigModal render time",
+        "target": "< 300ms from tap to modal fully rendered (measured on mid-range device)",
+        "validation": "Manual test with React DevTools Profiler: Measure render time on test device (e.g., iPhone 12)"
+      },
+      {
+        "requirement": "Concurrent sync handling",
+        "metric": "Multiple rapid edits all sync successfully",
+        "target": "10 edits in 20 seconds → all 10 GitHub commits created within 60 seconds total",
+        "validation": "Load test TEST-013: Edit note 10 times → wait 60s → query GitHub API for commit count"
+      }
+    ],
+
+    "security_requirements": [
+      {
+        "requirement": "GitHub PAT protection",
+        "metric": "Token never exposed in client code, logs, or database",
+        "target": "Zero occurrences of PAT in: client-side code (git grep), browser network logs (DevTools), database (SELECT * FROM note_sync_config), client-side console logs",
+        "validation": "SEC-001: Audit all code → verify PAT only accessed via Deno.env in Edge Function"
+      },
+      {
+        "requirement": "Path traversal prevention",
+        "metric": "Input validation rejects malicious file paths",
+        "target": "100% of path traversal attempts rejected: '../', '..\\', absolute paths ('/etc/passwd', 'C:\\\\')",
+        "validation": "SEC-002: Unit test with malicious inputs → assert validation error for each"
+      },
+      {
+        "requirement": "RLS policy enforcement",
+        "metric": "Users cannot access other users' sync configs",
+        "target": "Attempting to query/modify another user's sync config returns 0 rows (RLS blocks query)",
+        "validation": "SEC-003: Integration test with two user accounts → User A attempts SELECT on User B's sync config → assert 0 rows returned"
+      },
+      {
+        "requirement": "Rate limit enforcement",
+        "metric": "Users cannot exceed 10 synced notes",
+        "target": "11th sync config creation fails with error code 'RATE_LIMIT_EXCEEDED'",
+        "validation": "SEC-004: Integration test → create 10 configs → attempt 11th → assert error"
+      },
+      {
+        "requirement": "Secure error handling",
+        "metric": "Error messages don't leak sensitive information",
+        "target": "Zero error messages containing: file paths, GitHub PAT, user IDs, database schema details",
+        "validation": "SEC-005: Review all error messages in Edge Function → verify only generic messages returned to client"
+      }
+    ]
+  },
+
+  "9_implementation_checklist": {
+    "pre_implementation": [
+      "☐ Review complete plan for gaps or ambiguities",
+      "☐ Verify Supabase project has pg_net extension available (check tier/plan)",
+      "☐ Create feature branch: git checkout -b feature/project-note-sync",
+      "☐ Verify GitHub account has admin access to target repository"
+    ],
+
+    "phase_1_foundation": [
+      "☐ SETUP-001: Verify pg_net extension availability",
+      "☐ SETUP-002: Generate GitHub PAT with 'repo' scope",
+      "☐ SETUP-003: Store GitHub PAT in Supabase secrets",
+      "☐ SETUP-004: Configure postgres settings (app.edge_function_url, app.service_role_key)",
+      "☐ SETUP-005: Create types/database.ts additions for sync types",
+      "☐ DB-001: Create migration file 20251010000002_project_note_sync.sql",
+      "☐ DB-002: Enable pg_net extension in migration",
+      "☐ DB-003: Create note_sync_config table with all columns and constraints",
+      "☐ DB-004: Create RLS policies for note_sync_config",
+      "☐ DB-005: Create sync_note_to_github() trigger function",
+      "☐ DB-006: Create AFTER UPDATE trigger on notes table",
+      "☐ DB-007: Apply migration with npx supabase db push",
+      "☐ DB-008: Verify migration applied with npx supabase migration list --linked"
+    ],
+
+    "phase_2_edge_function": [
+      "☐ API-001: Create supabase/functions/sync-note-to-github/index.ts",
+      "☐ API-002: Create deno.json config",
+      "☐ API-003: Implement request body parsing",
+      "☐ API-004: Implement GitHub fetch SHA logic",
+      "☐ API-005: Implement GitHub commit logic",
+      "☐ API-006: Implement commit message generation",
+      "☐ API-007: Implement base64 encoding",
+      "☐ API-008: Implement error handling for GitHub API errors",
+      "☐ API-009: Implement sync status updates in database",
+      "☐ API-010: Add CORS headers to all responses",
+      "☐ API-011: Deploy Edge Function",
+      "☐ API-012: Test Edge Function with curl",
+      "☐ REVIEW GATE: Verify GitHub commit created with correct format"
+    ],
+
+    "phase_3_service_layer": [
+      "☐ LOGIC-001: Create services/sync-service.ts skeleton",
+      "☐ LOGIC-002: Implement createSyncConfig",
+      "☐ LOGIC-003: Implement updateSyncConfig",
+      "☐ LOGIC-004: Implement deleteSyncConfig",
+      "☐ LOGIC-005: Implement getSyncConfig",
+      "☐ LOGIC-006: Implement getUserSyncConfigs",
+      "☐ LOGIC-007: Implement toggleSyncEnabled",
+      "☐ LOGIC-008: Implement testSyncConfig",
+      "☐ LOGIC-009: Add error mapping"
+    ],
+
+    "phase_4_ui": [
+      "☐ UI-001: Create SyncConfigModal skeleton",
+      "☐ UI-002: Implement form fields",
+      "☐ UI-003: Add form validation",
+      "☐ UI-004: Implement Test Sync button",
+      "☐ UI-005: Implement Save button",
+      "☐ UI-006: Add error display",
+      "☐ UI-007: Create SyncStatusBadge component",
+      "☐ UI-008: Implement badge states (synced/syncing/error/disabled)",
+      "☐ UI-009: Add badge tooltip",
+      "☐ UI-010: Implement badge click handler",
+      "☐ UI-011: Add 'Sync to Project' action to NoteActionsModal",
+      "☐ UI-012: Add SyncStatusBadge to app/note-editor/[id].tsx",
+      "☐ UI-013: Add SyncStatusBadge to app/note-editor/new.tsx",
+      "☐ UI-014: Implement useEffect for sync status check",
+      "☐ UI-015: Add toast notifications"
+    ],
+
+    "phase_5_testing": [
+      "☐ TEST-001: Unit test trigger function",
+      "☐ TEST-002: Unit test Edge Function SHA fetch",
+      "☐ TEST-003: Unit test Edge Function commit",
+      "☐ TEST-004: Unit test base64 encoding",
+      "☐ TEST-005: Integration test create config → edit → verify commit",
+      "☐ TEST-006: Integration test first sync (file creation)",
+      "☐ TEST-007: Integration test update sync",
+      "☐ TEST-008: Integration test sync disabled",
+      "☐ TEST-009: Edge case invalid token",
+      "☐ TEST-010: Edge case file deleted",
+      "☐ TEST-011: Edge case SHA mismatch",
+      "☐ TEST-012: Edge case rate limit",
+      "☐ TEST-013: Load test 10 rapid edits",
+      "☐ TEST-014: Manual test complete user flow",
+      "☐ SEC-001: Security audit GitHub PAT never exposed",
+      "☐ SEC-002: Security test path traversal rejection",
+      "☐ SEC-003: Security test RLS policy enforcement",
+      "☐ SEC-004: Security test rate limit enforcement",
+      "☐ SEC-005: Security review error messages"
+    ],
+
+    "phase_6_documentation": [
+      "☐ DOC-001: Update README with setup instructions",
+      "☐ DOC-002: Document GitHub PAT generation",
+      "☐ DOC-003: Document Supabase secrets config",
+      "☐ DOC-004: Add JSDoc to syncService",
+      "☐ DOC-005: Create user guide",
+      "☐ DOC-006: Document error codes",
+      "☐ DEPLOY-001: Add GITHUB_PAT to production secrets",
+      "☐ DEPLOY-002: Configure production postgres settings",
+      "☐ DEPLOY-003: Deploy Edge Function to production",
+      "☐ DEPLOY-004: Apply migration to production",
+      "☐ DEPLOY-005: Verify pg_net in production",
+      "☐ DEPLOY-006: Smoke test in production",
+      "☐ REVIEW GATE: Stakeholder approval of user guide and smoke test"
+    ],
+
+    "finalization": [
+      "☐ All unit tests passing (npm test returns exit code 0)",
+      "☐ All integration tests passing",
+      "☐ All edge case tests passing",
+      "☐ Test coverage > 85% for new code",
+      "☐ TypeScript compiler zero errors (npx tsc --noEmit)",
+      "☐ ESLint zero warnings (npx eslint)",
+      "☐ Code review completed and approved",
+      "☐ User documentation complete",
+      "☐ Update CHANGELOG.md with feature entry",
+      "☐ Merge feature branch to main: git merge feature/project-note-sync",
+      "☐ Tag release: git tag v1.x.x",
+      "☐ Production deployment complete and verified"
+    ]
+  },
+
+  "implementation_notes": {
+    "estimated_total_effort": "10-12 hours (all phases)",
+    "difficulty_level": "Hard (7/10)",
+
+    "critical_dependencies": [
+      "pg_net extension must be available in Supabase tier (verify before starting)",
+      "GitHub Personal Access Token with 'repo' scope required",
+      "User must have admin access to target GitHub repository"
+    ],
+
+    "known_limitations": [
+      "One-way sync only (app → GitHub), bidirectional sync is future enhancement",
+      "Max 10 synced notes per user (rate limiting)",
+      "GitHub API rate limit: 5000 requests/hour (approximately 2500 syncs/hour max)",
+      "Sync is async (2-5 second delay), not instant"
+    ],
+
+    "future_enhancements": [
+      "Bidirectional sync (GitHub → app) via webhooks",
+      "Bulk sync (entire folder of notes)",
+      "Conflict resolution UI (three-way merge)",
+      "Sync history log with commit links",
+      "Multiple branch support (sync same note to dev/staging/main)"
+    ],
+
+    "rollback_plan": {
+      "if_production_issues": [
+        "1. Disable trigger: ALTER TABLE notes DISABLE TRIGGER trigger_sync_note_to_github",
+        "2. Undeploy Edge Function: npx supabase functions delete sync-note-to-github",
+        "3. Drop note_sync_config table: DROP TABLE note_sync_config CASCADE",
+        "4. Remove GitHub PAT from secrets",
+        "5. Rollback UI: git revert [commit-hash]",
+        "6. Deploy rollback to production"
+      ],
+      "data_preservation": "note_sync_config table can be preserved if only disabling feature (users won't lose configuration)"
+    }
+  }
+}
