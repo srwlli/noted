@@ -7,6 +7,7 @@ import { useThemeColors } from '@/hooks/use-theme-colors';
 import { PrimaryActionRow } from '@/components/note-actions/primary-action-row';
 import { AIActionsModal } from '@/components/ai-actions-modal';
 import { FolderPickerModal } from '@/components/folder-picker-modal';
+import { PublishModal } from '@/components/publish-modal';
 import { notesService, Note } from '@/services/notes';
 import { summarizeNote } from '@/services/ai/summarize';
 import { toast } from 'sonner-native';
@@ -31,6 +32,7 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
   const [title, setTitle] = useState(noteTitle);
   const [showAIActionsModal, setShowAIActionsModal] = useState(false);
   const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   // Sync local title state with prop when it changes (e.g., after AI title generation)
@@ -126,6 +128,10 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
     setShowFolderPicker(true);
   };
 
+  const handlePublish = () => {
+    setShowPublishModal(true);
+  };
+
   const handleSummarize = async () => {
     if (isGeneratingSummary) return;
 
@@ -161,9 +167,9 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
 
   // Secondary actions
   const secondaryActions = [
-    { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
+    { icon: 'public' as const, label: 'Publish', onPress: handlePublish, disabled: false },
     { icon: 'folder-open' as const, label: 'Organization', onPress: handleOrganization, disabled: false },
-    { icon: 'download' as const, label: 'Download', onPress: showComingSoon, disabled: false },
+    { icon: 'file-download' as const, label: 'Export', onPress: showComingSoon, disabled: false },
   ];
 
   const handleDelete = () => {
@@ -272,6 +278,16 @@ export function NoteActionsModal({ visible, onClose, noteId, noteTitle, noteCont
         noteId={noteId}
         currentFolderId={folderId}
         onFolderChanged={onFolderChanged}
+      />
+
+      {/* Publish Modal */}
+      <PublishModal
+        visible={showPublishModal}
+        onClose={() => setShowPublishModal(false)}
+        noteId={noteId}
+        noteTitle={noteTitle}
+        noteContent={noteContent}
+        onPublished={onNoteUpdated}
       />
     </Modal>
   );
