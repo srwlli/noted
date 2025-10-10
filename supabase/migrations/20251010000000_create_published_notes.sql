@@ -4,6 +4,13 @@
 -- Date: 2025-10-10
 
 -- ============================================================================
+-- PART 0: ENABLE REQUIRED EXTENSIONS
+-- ============================================================================
+
+-- Enable uuid-ossp extension for uuid_generate_v4() function
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================================================
 -- PART 1: CREATE TRIGGER FUNCTION (reusable for updated_at columns)
 -- ============================================================================
 
@@ -23,7 +30,7 @@ $$ LANGUAGE plpgsql;
 
 -- Table to track which notes are publicly accessible and their slugs
 CREATE TABLE IF NOT EXISTS published_notes (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Reference to the note being published (one-to-one relationship)
   note_id UUID NOT NULL UNIQUE REFERENCES notes(id) ON DELETE CASCADE,
