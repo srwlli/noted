@@ -1,0 +1,596 @@
+{
+  "plan_metadata": {
+    "feature_name": "Agent Communication - Direct Database Write Access",
+    "plan_version": "2.1.0",
+    "created": "2025-10-10",
+    "updated": "2025-10-10",
+    "changelog": "v2.1.0 - Fixed SETUP tasks (removed confusing shared token references), clarified token_prefix (17 chars), fixed rate limiting to use atomic SQL (no race conditions), added last_used_at update logic, enhanced XSS validation for all modes, clarified optimistic locking (required for append), specified SHA-256 for content_hash, fixed 'three' to 'four' functions, added missing test cases (TEST-011 through TEST-013), added SEC-013 for token response security, updated DOC-002 with retry strategy and User-Agent header, fixed Phase 2 title, added cleanup strategy to future enhancements, specified 10,240 bytes (10 KiB) limit, added operation_type CHECK constraint, clarified CORS policy\nv2.0.0 - Added token generation/revocation/read endpoints, improved rate limiting with database columns, fixed token hashing to use bcrypt, added auto-revocation logic, fixed expiry consistency to 90 days, enhanced security validations",
+    "author": "Claude Code",
+    "project": "Noted - Personal Note-Taking App",
+    "template_version": "feature-implementation-planning-standard v1.0.0"
+  },
+
+  "1_executive_summary": {
+    "purpose": "Enable AI agents (like Claude Code) to write updates directly to notes in the database, providing instant bidirectional communication between user and agent for task management, status updates, and project collaboration",
+
+    "value_proposition": "Real-time agent-to-user communication without complexity of webhooks or polling. Agent reads tasks from notes, executes work, writes status updates back to notes that appear instantly in the app via existing Supabase realtime infrastructure",
+
+    "real_world_analogy": "Like Slack DMs with your AI assistant - you write a task, the agent completes it and replies in the same thread. All updates appear instantly in your app.",
+
+    "use_case": "Developer writes 'Claude, add authentication to the API' in a note → Claude Code reads the note → implements auth feature → writes '✅ JWT authentication added, see commit abc123' back to the note → user sees update in app within 1 second",
+
+    "output": "Edge Function (agent-update-note), agent authentication tokens table, agent token generation UI, security middleware, audit log of agent writes"
+  },
+
+  "2_risk_assessment": {
+    "overall_risk": "MEDIUM - Simpler than GitHub sync, but security-critical due to agent write access to database",
+
+    "complexity": "Medium-High - 11 files affected, ~800 lines of code, introduces agent authentication pattern with bcrypt hashing, rate limiting, optimistic locking",
+
+    "scope": "Medium - 11 files (7 new, 4 modified), affects database layer (2 new tables with rate limiting columns), Edge Function layer (4 new endpoints + shared helpers), UI layer (token management)",
+
+    "risk_factors": {
+      "security": {
+        "level": "Critical",
+        "threats": [
+          {
+            "threat": "Agent token theft",
+            "severity": "Critical",
+            "mitigation": "Store token in user environment only (never in Supabase secrets - those are for app keys), require token in Authorization header, scope token to specific user_id, use bcrypt hashing (not plain SHA-256), tokens expire after 90 days, user can manually revoke anytime"
+          },
+          {
+            "threat": "Unauthorized note modification",
+            "severity": "High",
+            "mitigation": "Validate token + user_id + note_id ownership, agent can only write to notes owned by token's user, log all writes with content hash"
+          },
+          {
+            "threat": "Agent API abuse",
+            "severity": "Medium",
+            "mitigation": "Rate limit: 100 requests/hour per token, max 10KB per request, auto-revoke after 10 failed auth attempts"
+          },
+          {
+            "threat": "Content injection attacks",
+            "severity": "Medium",
+            "mitigation": "Validate content length, sanitize markdown (no script tags if rendering HTML), log suspicious patterns"
+          }
+        ]
+      },
+
+      "performance": {
+        "level": "Low",
+        "concerns": [
+          {
+            "concern": "Edge Function latency",
+            "impact": "Agent writes take 100-300ms",
+            "mitigation": "Acceptable for async agent updates, not user-blocking operation"
+          }
+        ]
+      },
+
+      "breaking_changes": {
+        "level": "None",
+        "rationale": "Purely additive - no changes to existing note editing flow"
+      }
+    }
+  },
+
+  "3_current_state_analysis": {
+    "affected_files": {
+      "new_files": [
+        "supabase/migrations/20251010000003_agent_communication.sql - Database: agent_tokens table with rate limiting columns, agent_write_log table, RLS policies, indexes",
+        "supabase/functions/agent-generate-token/index.ts - Edge Function for users to generate agent tokens (requires user auth)",
+        "supabase/functions/agent-read-note/index.ts - Edge Function for agents to read note content (requires agent token)",
+        "supabase/functions/agent-update-note/index.ts - Edge Function for agents to write note updates (requires agent token)",
+        "supabase/functions/agent-revoke-token/index.ts - Edge Function for users to revoke tokens (requires user auth)",
+        "supabase/functions/_shared/agent-auth.ts - Shared token validation and rate limiting helpers",
+        "app/settings/agent-tokens.tsx - UI for viewing/managing agent tokens"
+      ],
+
+      "modified_files": [
+        "types/database.ts - Add AgentToken and AgentWriteLog types",
+        "app/settings/index.tsx - Add link to Agent Tokens settings",
+        "lib/supabase.ts - Export agent_tokens table (reference only)",
+        ".env.example - Document AGENT_AUTH_TOKEN usage for agents"
+      ]
+    },
+
+    "dependencies": {
+      "existing_internal": [
+        "notes table - Agent writes to existing notes",
+        "auth.users table - Foreign key for agent_tokens.user_id",
+        "Supabase realtime - User sees updates instantly (already working)"
+      ],
+
+      "existing_external": [
+        "@supabase/supabase-js@2.x - Agent uses Supabase client to call Edge Function"
+      ],
+
+      "new_internal": [
+        "agent_tokens table - Stores authentication tokens per user",
+        "agent_write_log table - Audit trail of all agent writes",
+        "agent-update-note Edge Function - Validates token and writes to notes"
+      ]
+    }
+  },
+
+  "4_key_features": {
+    "primary_features": [
+      "Agent authentication: Secure bcrypt-hashed token-based auth for agents to access notes",
+      "Agent read access: Agent can read note content via GET /agent-read-note (with token validation)",
+      "Agent write access: Agent can update note content via POST /agent-update-note (with ownership validation)",
+      "Real-time updates: User sees agent changes instantly via Supabase realtime (no additional code needed)",
+      "Write audit log: All agent writes logged with timestamp, note_id, content_hash, content_length for security",
+      "Token management UI: User can generate, view, and revoke agent tokens from app settings"
+    ],
+
+    "secondary_features": [
+      "Database-backed rate limiting: Uses agent_tokens columns (requests_count, rate_limit_reset_at) for efficient rate limiting (100 req/hour per token)",
+      "Content validation: Max 10KB per update, validates note ownership, basic XSS prevention",
+      "Auto-revocation: Token auto-revoked after 10 failed auth attempts (failed_attempts counter)",
+      "Token expiry: Tokens expire after 90 days, user can manually revoke anytime",
+      "Optimistic locking: Append mode uses updated_at version check to prevent concurrent write conflicts (409 error if version mismatch)",
+      "Shared helpers: Reusable token validation and rate limiting logic across all agent endpoints"
+    ],
+
+    "edge_case_handling": [
+      "Invalid token: Return 401 Unauthorized, log failed attempt",
+      "Note doesn't exist: Return 404 Not Found",
+      "Note owned by different user: Return 403 Forbidden, log security violation",
+      "Content too large: Return 413 Payload Too Large",
+      "Rate limit exceeded: Return 429 Too Many Requests, include Retry-After header",
+      "Network timeout: Agent retries with exponential backoff (agent's responsibility)"
+    ]
+  },
+
+  "5_task_breakdown_with_ids": {
+    "SETUP_tasks": [
+      "SETUP-001: Install bcrypt library for Deno (https://deno.land/x/bcrypt) - required for token hashing",
+      "SETUP-002: Configure Edge Functions environment (verify service_role key access for database operations)",
+      "SETUP-003: Document token format and agent usage in .env.example (show example with NOTED_AGENT_TOKEN=agent_...)"
+    ],
+
+    "DB_tasks": [
+      "DB-001: Create migration file 20251010000003_agent_communication.sql",
+      "DB-002: Create agent_tokens table with columns: id (UUID PK), user_id (UUID FK to auth.users), token_hash (TEXT, bcrypt hash), token_prefix (TEXT, first 17 chars including 'agent_' prefix for display, e.g., 'agent_abc123def4'), name (TEXT, optional label), created_at (TIMESTAMP), expires_at (TIMESTAMP, created_at + 90 days), revoked_at (TIMESTAMP NULL), last_used_at (TIMESTAMP NULL)",
+      "DB-002b: Add rate limiting columns to agent_tokens: requests_count (INTEGER DEFAULT 0), rate_limit_reset_at (TIMESTAMP, hourly reset), failed_attempts (INTEGER DEFAULT 0), last_failed_at (TIMESTAMP NULL)",
+      "DB-003: Create agent_write_log table (id UUID PK, token_id UUID FK, note_id UUID FK, content_hash TEXT SHA-256 hash, content_length INTEGER, written_at TIMESTAMP, operation_type TEXT CHECK (operation_type IN ('replace', 'append')))",
+      "DB-004: Create RLS policies for agent_tokens (users can SELECT/UPDATE own tokens only, service_role can INSERT/DELETE)",
+      "DB-005: Create RLS policies for agent_write_log (users can SELECT own logs only, service_role can INSERT)",
+      "DB-006: Create indexes: agent_tokens(user_id), agent_tokens(token_hash) UNIQUE, agent_tokens(expires_at, revoked_at), agent_write_log(note_id, written_at), agent_write_log(token_id)",
+      "DB-007: Apply migration with npx supabase db push",
+      "DB-008: Verify migration applied with SELECT * FROM agent_tokens LIMIT 0"
+    ],
+
+    "API_tasks": [
+      "API-000: Create supabase/functions/agent-generate-token/index.ts - POST endpoint for users to generate new token (requires user auth, returns plaintext token ONCE, stores bcrypt hash)",
+      "API-001: Create supabase/functions/agent-read-note/index.ts - GET endpoint for agent to read note content (validates token, checks ownership, returns note)",
+      "API-002: Create supabase/functions/agent-update-note/index.ts skeleton",
+      "API-003: Create supabase/functions/agent-revoke-token/index.ts - POST endpoint for users to revoke token (sets revoked_at timestamp)",
+      "API-004: Create deno.json config for all four Edge Functions (agent-generate-token, agent-read-note, agent-update-note, agent-revoke-token)",
+      "API-005: Implement shared token validation helper (extract from Authorization header, bcrypt compare against token_hash, check expires_at, check revoked_at, check failed_attempts < 10, UPDATE last_used_at on successful auth)",
+      "API-006: Implement shared rate limiting helper with atomic SQL (single UPDATE with CASE statements: reset to 1 if hour passed OR increment, update rate_limit_reset_at, RETURNING to check > 100, no race conditions)",
+      "API-007: Implement note ownership validation in agent-read-note (token.user_id matches note.user_id)",
+      "API-008: Implement note ownership validation in agent-update-note (token.user_id matches note.user_id)",
+      "API-009: Implement content validation (max 10,240 bytes (10 KiB), not empty, XSS prevention in ALL modes: reject <script>, <iframe>, <object>, <embed>, on*= event handlers, javascript: protocol)",
+      "API-010: Implement note update logic with optimistic locking (if expected_version provided, UPDATE WHERE id = ? AND updated_at = expected_version, return 409 if mismatch with current version; if append=true, REQUIRE expected_version parameter)",
+      "API-011: Implement audit logging (INSERT into agent_write_log with SHA-256 content_hash, content_length, operation_type)",
+      "API-012: Implement failed auth tracking (on 401 error, INCREMENT failed_attempts, UPDATE last_failed_at, auto-revoke if failed_attempts >= 10)",
+      "API-013: Implement error handling (401, 403, 404, 409, 413, 429, 500)",
+      "API-014: Add CORS headers (agent endpoints: no CORS needed since server-side only; user endpoints generate-token/revoke-token: app origin only if called from browser, otherwise omit)",
+      "API-015: Deploy all Edge Functions (agent-generate-token, agent-read-note, agent-update-note, agent-revoke-token)",
+      "API-016: Test agent-generate-token with authenticated user → returns token",
+      "API-017: Test agent-read-note with valid token → returns note content",
+      "API-018: Test agent-update-note with valid token → updates note",
+      "API-019: Test agent-revoke-token → token becomes invalid",
+      "API-020: Test failed auth auto-revocation (10 failed attempts → token revoked)"
+    ],
+
+    "UI_tasks": [
+      "UI-001: Create app/settings/agent-tokens.tsx screen",
+      "UI-002: Implement token list view (show token prefix, created date, expires date)",
+      "UI-003: Implement 'Generate New Token' button",
+      "UI-004: Implement token generation logic (POST to Edge Function, show full token ONCE)",
+      "UI-005: Implement 'Revoke Token' button per token",
+      "UI-006: Add token copy-to-clipboard functionality",
+      "UI-007: Add warning modal: 'Save this token securely. You won't see it again.'",
+      "UI-008: Add link to Agent Tokens in Settings menu"
+    ],
+
+    "TEST_tasks": [
+      "TEST-001: Unit test token validation logic",
+      "TEST-002: Unit test note ownership validation",
+      "TEST-003: Integration test: Generate token → Agent writes to note → Verify content updated",
+      "TEST-004: Integration test: Revoked token → Agent write fails with 401",
+      "TEST-005: Integration test: Agent writes to other user's note → 403 error",
+      "TEST-006: Edge case: Invalid token format → 401 error",
+      "TEST-007: Edge case: Content > 10,240 bytes → 413 error",
+      "TEST-008: Edge case: 101st request in hour → 429 error",
+      "TEST-009: Security test: Verify token never exposed in client logs",
+      "TEST-010: Security test: Verify agent_write_log contains all writes",
+      "TEST-011: Edge case: Expired token (expires_at < NOW()) → 401 error",
+      "TEST-012: Edge case: Concurrent append with same expected_version → one succeeds, one gets 409",
+      "TEST-013: Performance test: 100 sequential requests in 1 hour → all succeed, 101st fails with 429"
+    ],
+
+    "SEC_tasks": [
+      "SEC-001: Audit token storage (only bcrypt hashed tokens in database, no plaintext)",
+      "SEC-002: Verify token validation includes user_id check",
+      "SEC-003: Verify RLS policies prevent cross-user access",
+      "SEC-004: Test rate limiting enforcement (verify uses agent_tokens columns, not query count)",
+      "SEC-005: Review error messages (don't leak sensitive info)",
+      "SEC-006: Verify token generation uses crypto.getRandomValues() (not Math.random())",
+      "SEC-007: Verify token hashing uses bcrypt with salt rounds >= 10 (not plain SHA-256)",
+      "SEC-008: Verify failed attempts auto-revoke works (10 failed attempts → revoked_at set)",
+      "SEC-009: Test concurrent requests don't bypass rate limit (race condition check)",
+      "SEC-010: Verify tokens never logged in Edge Function console.log statements",
+      "SEC-011: Test XSS prevention in content validation (reject <script>, <iframe>, onerror=, etc.)",
+      "SEC-012: Verify optimistic locking prevents concurrent write conflicts",
+      "SEC-013: Verify agent-generate-token response includes Cache-Control: no-store, token never appears in Edge Function logs or error messages"
+    ],
+
+    "DOC_tasks": [
+      "DOC-001: Document agent authentication flow in README",
+      "DOC-002: Create agent usage guide: How to use token in API requests, include retry strategy (401/403/404: don't retry, 409: retry once with current_version, 429: retry after retry_after seconds, 500/503: exponential backoff max 3 attempts), recommend User-Agent header (e.g., Claude-Code/1.0.0) for debugging",
+      "DOC-003: Document API endpoints: POST /agent-generate-token, GET /agent-read-note, POST /agent-update-note, POST /agent-revoke-token",
+      "DOC-004: Document agent discovery flow: How agent finds which note to read/update (user specifies note_id in task instructions)",
+      "DOC-005: Add JSDoc to all Edge Functions",
+      "DOC-006: Document security best practices for token storage (store in environment variables, never commit to git, rotate every 90 days)",
+      "DOC-007: Document rate limiting behavior (100 req/hour, hourly reset, 429 error with Retry-After header)",
+      "DOC-008: Document append mode conflict resolution (optimistic locking with updated_at version check)"
+    ]
+  },
+
+  "6_implementation_phases": {
+    "phase_1_database_and_auth": {
+      "title": "Database Schema & Token Infrastructure",
+      "purpose": "Create tables for agent tokens and audit logs, set up authentication foundation",
+
+      "tasks": [
+        "SETUP-001: Generate secure token",
+        "SETUP-002: Store in Supabase secrets",
+        "DB-001 through DB-008: All database tasks"
+      ],
+
+      "completion_criteria": [
+        "agent_tokens table exists with all columns",
+        "agent_write_log table exists",
+        "RLS policies prevent cross-user access",
+        "Migration 20251010000003 applied successfully"
+      ]
+    },
+
+    "phase_2_edge_function": {
+      "title": "Agent API Endpoints (All 4 Functions)",
+      "purpose": "Implement secure API endpoints for token generation, note reading, note updating, and token revocation",
+
+      "tasks": [
+        "API-001 through API-012: All API tasks"
+      ],
+
+      "completion_criteria": [
+        "Edge Function deployed",
+        "Valid token + valid note → 200 success",
+        "Invalid token → 401 error",
+        "Unauthorized note → 403 error",
+        "Rate limit enforced"
+      ]
+    },
+
+    "phase_3_token_management_ui": {
+      "title": "User Token Management",
+      "purpose": "Allow users to generate, view, revoke agent tokens from app",
+
+      "tasks": [
+        "UI-001 through UI-008: All UI tasks"
+      ],
+
+      "completion_criteria": [
+        "User can generate new token",
+        "Token displayed ONCE with copy button",
+        "User can view active tokens",
+        "User can revoke tokens"
+      ]
+    },
+
+    "phase_4_testing_and_security": {
+      "title": "Testing & Security Audit",
+      "purpose": "Validate functionality and security",
+
+      "tasks": [
+        "TEST-001 through TEST-010: All test tasks",
+        "SEC-001 through SEC-005: All security tasks"
+      ],
+
+      "completion_criteria": [
+        "All tests passing",
+        "Security audit complete",
+        "Agent write works end-to-end"
+      ]
+    },
+
+    "phase_5_documentation": {
+      "title": "Documentation",
+      "purpose": "Document API and usage for agents",
+
+      "tasks": [
+        "DOC-001 through DOC-005: All documentation tasks"
+      ],
+
+      "completion_criteria": [
+        "Agent usage guide complete",
+        "API endpoint documented",
+        "Security practices documented"
+      ]
+    }
+  },
+
+  "7_api_specification": {
+    "endpoints": {
+      "generate_token": {
+        "method": "POST",
+        "path": "https://[project].supabase.co/functions/v1/agent-generate-token",
+        "authentication": "User JWT (from Supabase auth)",
+        "request_body": {
+          "name": "Optional token label (e.g., 'Claude Code - Desktop')"
+        },
+        "response_200": {
+          "token": "agent_abc123def456...full_plaintext_token_64_chars",
+          "token_id": "uuid-of-token-row",
+          "token_prefix": "agent_abc123def4 (first 17 chars for UI display)",
+          "expires_at": "2025-12-31T23:59:59Z",
+          "warning": "Save this token securely. It will not be shown again."
+        },
+        "response_headers": {
+          "Cache-Control": "no-store",
+          "X-Content-Type-Options": "nosniff"
+        },
+        "notes": "Token is shown ONCE. Store securely in environment variables. Hashed with bcrypt (10 rounds) before storing in database. Response includes Cache-Control: no-store to prevent browser/proxy caching."
+      },
+
+      "read_note": {
+        "method": "GET",
+        "path": "https://[project].supabase.co/functions/v1/agent-read-note",
+        "authentication": "Authorization: Bearer <agent_token>",
+        "query_params": {
+          "note_id": "UUID of note to read (required)"
+        },
+        "response_200": {
+          "note_id": "abc-123",
+          "title": "My Note",
+          "content": "Note content here...",
+          "updated_at": "2025-10-10T14:30:00Z",
+          "created_at": "2025-10-01T10:00:00Z"
+        },
+        "errors": ["401_unauthorized", "403_forbidden", "404_not_found", "429_rate_limit"]
+      },
+
+      "update_note": {
+        "method": "POST",
+        "path": "https://[project].supabase.co/functions/v1/agent-update-note",
+        "authentication": "Authorization: Bearer <agent_token>",
+        "request_body": {
+          "note_id": "UUID of note to update (required)",
+          "content": "New note content (required, max 10,240 bytes / 10 KiB)",
+          "append": "Boolean - append to existing content vs replace (optional, default: false)",
+          "expected_version": "ISO 8601 timestamp for optimistic locking (REQUIRED if append=true, optional otherwise, use updated_at from previous GET)"
+        },
+        "response_200": {
+          "note_id": "abc-123",
+          "updated_at": "2025-10-10T14:32:15Z",
+          "content_hash": "sha256:...",
+          "message": "Note updated successfully"
+        },
+        "errors": ["401_unauthorized", "403_forbidden", "404_not_found", "409_conflict", "413_too_large", "429_rate_limit"]
+      },
+
+      "revoke_token": {
+        "method": "POST",
+        "path": "https://[project].supabase.co/functions/v1/agent-revoke-token",
+        "authentication": "User JWT (from Supabase auth)",
+        "request_body": {
+          "token_id": "UUID of token to revoke (required)"
+        },
+        "response_200": {
+          "message": "Token revoked successfully",
+          "token_id": "uuid",
+          "revoked_at": "2025-10-10T14:35:00Z"
+        }
+      }
+    },
+
+    "common_responses": {
+      "401_unauthorized": {
+        "error": "Invalid, expired, or revoked token",
+        "code": "INVALID_TOKEN"
+      },
+      "403_forbidden": {
+        "error": "You don't have permission to access this note",
+        "code": "UNAUTHORIZED_NOTE"
+      },
+      "404_not_found": {
+        "error": "Note not found",
+        "code": "NOTE_NOT_FOUND"
+      },
+      "409_conflict": {
+        "error": "Note was modified by another process. Retry with latest version.",
+        "code": "VERSION_CONFLICT",
+        "current_version": "2025-10-10T14:32:00Z"
+      },
+      "413_too_large": {
+        "error": "Content exceeds 10,240 bytes (10 KiB) limit",
+        "code": "CONTENT_TOO_LARGE",
+        "max_size_bytes": 10240
+      },
+      "429_rate_limit": {
+        "error": "Rate limit exceeded (100 requests/hour)",
+        "code": "RATE_LIMIT_EXCEEDED",
+        "retry_after": 3600
+      }
+    },
+
+    "token_format": "agent_[12_random_chars]_[52_random_chars] = 64 chars total, generated with crypto.getRandomValues()",
+    "token_hashing": "bcrypt with 10 salt rounds",
+    "token_expiry": "90 days from creation",
+    "rate_limit": "100 requests per hour per token, resets hourly"
+  },
+
+  "8_success_criteria": {
+    "functional_requirements": [
+      {
+        "requirement": "Agent can write to user's notes",
+        "validation": "Agent calls endpoint with valid token → note content updated → user sees update in app within 1 second"
+      },
+      {
+        "requirement": "Token authentication works",
+        "validation": "Valid token → 200 success, Invalid token → 401 error, Revoked token → 401 error"
+      },
+      {
+        "requirement": "Authorization enforced",
+        "validation": "Agent attempts to write to other user's note → 403 Forbidden"
+      },
+      {
+        "requirement": "Rate limiting enforced",
+        "validation": "101st request in hour → 429 Too Many Requests"
+      },
+      {
+        "requirement": "Audit log populated",
+        "validation": "After agent write, agent_write_log contains entry with note_id, timestamp, content_hash"
+      }
+    ],
+
+    "security_requirements": [
+      {
+        "requirement": "Token security",
+        "validation": "Only hashed tokens in database, full token never logged or exposed in errors"
+      },
+      {
+        "requirement": "RLS enforcement",
+        "validation": "User A cannot query User B's agent_tokens or agent_write_log"
+      },
+      {
+        "requirement": "Write authorization",
+        "validation": "Agent can only write to notes owned by token's user_id"
+      }
+    ],
+
+    "performance_requirements": [
+      {
+        "requirement": "Agent write latency",
+        "target": "< 500ms for P95 of agent writes"
+      }
+    ]
+  },
+
+  "9_implementation_checklist": {
+    "phase_1": [
+      "☐ SETUP-001: Generate secure token",
+      "☐ SETUP-002: Store in Supabase secrets",
+      "☐ DB-001: Create migration file",
+      "☐ DB-002: Create agent_tokens table",
+      "☐ DB-003: Create agent_write_log table",
+      "☐ DB-004: Create RLS policies for agent_tokens",
+      "☐ DB-005: Create RLS policies for agent_write_log",
+      "☐ DB-006: Create indexes",
+      "☐ DB-007: Apply migration",
+      "☐ DB-008: Verify migration"
+    ],
+
+    "phase_2": [
+      "☐ API-000: Create agent-generate-token Edge Function",
+      "☐ API-001: Create agent-read-note Edge Function",
+      "☐ API-002: Create agent-update-note Edge Function skeleton",
+      "☐ API-003: Create agent-revoke-token Edge Function",
+      "☐ API-004: Create deno.json for all functions",
+      "☐ API-005: Implement shared token validation helper (bcrypt)",
+      "☐ API-006: Implement shared rate limiting helper",
+      "☐ API-007: Implement ownership validation in read-note",
+      "☐ API-008: Implement ownership validation in update-note",
+      "☐ API-009: Implement content validation (XSS checks)",
+      "☐ API-010: Implement optimistic locking",
+      "☐ API-011: Implement audit logging",
+      "☐ API-012: Implement failed auth tracking",
+      "☐ API-013: Implement error handling",
+      "☐ API-014: Add CORS headers",
+      "☐ API-015: Deploy all Edge Functions",
+      "☐ API-016: Test generate-token",
+      "☐ API-017: Test read-note",
+      "☐ API-018: Test update-note",
+      "☐ API-019: Test revoke-token",
+      "☐ API-020: Test auto-revocation"
+    ],
+
+    "phase_3": [
+      "☐ UI-001: Create agent-tokens.tsx",
+      "☐ UI-002: Implement token list view",
+      "☐ UI-003: Implement Generate button",
+      "☐ UI-004: Implement generation logic",
+      "☐ UI-005: Implement Revoke button",
+      "☐ UI-006: Add copy-to-clipboard",
+      "☐ UI-007: Add warning modal",
+      "☐ UI-008: Add Settings menu link"
+    ],
+
+    "phase_4": [
+      "☐ TEST-001 through TEST-010: All tests",
+      "☐ SEC-001: Audit bcrypt token storage",
+      "☐ SEC-002: Verify user_id validation",
+      "☐ SEC-003: Verify RLS policies",
+      "☐ SEC-004: Test rate limiting with columns",
+      "☐ SEC-005: Review error messages",
+      "☐ SEC-006: Verify crypto.getRandomValues()",
+      "☐ SEC-007: Verify bcrypt hashing (10+ rounds)",
+      "☐ SEC-008: Test auto-revocation",
+      "☐ SEC-009: Test concurrent rate limit",
+      "☐ SEC-010: Audit token logging",
+      "☐ SEC-011: Test XSS prevention",
+      "☐ SEC-012: Test optimistic locking"
+    ],
+
+    "phase_5": [
+      "☐ DOC-001: Document auth flow",
+      "☐ DOC-002: Create usage guide",
+      "☐ DOC-003: Document all 4 endpoints",
+      "☐ DOC-004: Document discovery flow",
+      "☐ DOC-005: Add JSDoc comments",
+      "☐ DOC-006: Document token storage",
+      "☐ DOC-007: Document rate limiting",
+      "☐ DOC-008: Document conflict resolution"
+    ]
+  },
+
+  "implementation_notes": {
+    "estimated_total_effort": "5-6 hours (increased from 3-4 due to added endpoints, bcrypt hashing, optimistic locking, enhanced security)",
+    "difficulty_level": "Medium (6/10)",
+
+    "critical_dependencies": [
+      "Supabase Edge Functions available",
+      "bcrypt library available in Deno runtime (use https://deno.land/x/bcrypt)",
+      "User has access to Supabase dashboard for viewing tokens"
+    ],
+
+    "known_limitations": [
+      "Agent can READ and UPDATE existing notes (cannot CREATE new notes)",
+      "Rate limit: 100 requests/hour per token",
+      "Content limit: 10KB per update",
+      "Tokens expire after 90 days",
+      "Agent discovery: User must provide note_id in task instructions (agent cannot auto-discover which note to update)"
+    ],
+
+    "agent_discovery_flow": {
+      "description": "How agent knows which note to read/update",
+      "approach": "User explicitly specifies note_id in task instructions",
+      "example": "User writes: 'Claude, update note abc-123 with task status' → Agent extracts note_id from instruction → Calls GET /agent-read-note?note_id=abc-123 → Updates content → Calls POST /agent-update-note with note_id",
+      "future_enhancement": "Agent could query notes by title/tag to auto-discover (requires new search endpoint)"
+    },
+
+    "future_enhancements": [
+      "Agent can CREATE new notes (not just read/update)",
+      "Agent can search notes by title/tag to auto-discover note_id",
+      "Webhook notifications when agent writes (push to user's device)",
+      "Agent read-only tokens (separate from read-write tokens)",
+      "Multi-note batch updates in single request (reduce API calls)",
+      "Agent can attach metadata to writes (e.g., commit hash, task ID)",
+      "Periodic cleanup job to delete expired tokens: WHERE expires_at < NOW() - INTERVAL '30 days' (keep 30-day audit trail for revoked/expired tokens)"
+    ]
+  }
+}
