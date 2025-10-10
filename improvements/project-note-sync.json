@@ -1,0 +1,566 @@
+{
+  "feature": "Project Note Sync - Automatic Note to GitHub File Sync",
+  "version": "1.0",
+  "dateCreated": "2025-10-10",
+  "status": "planned",
+  "priority": "medium",
+
+  "executiveSummary": {
+    "goal": "Enable automatic bidirectional sync between notes in the app and markdown files in the project repository",
+    "currentState": "Notes exist only in Supabase database, no integration with project files",
+    "approach": "Database trigger → Edge Function → GitHub API commits when note changes",
+    "primaryDirection": "App → Project (edit on phone, auto-updates repo)",
+    "benefits": [
+      "Edit notes on any device (phone, tablet) and see changes in project",
+      "Keep documentation in sync with codebase automatically",
+      "Version control for notes via Git history",
+      "Use notes as living documentation that stays updated",
+      "No manual export/import workflow needed"
+    ]
+  },
+
+  "useCases": {
+    "documentation": {
+      "scenario": "Maintain project README or docs in Noted app",
+      "flow": "Edit README on phone → Auto-commits to docs/README.md → GitHub updates",
+      "benefit": "Update docs anywhere, always in sync with repo"
+    },
+    "changelog": {
+      "scenario": "Keep CHANGELOG.md synced with app notes",
+      "flow": "Add feature notes in app → Auto-updates CHANGELOG.md in project",
+      "benefit": "Real-time changelog maintained from mobile"
+    },
+    "planning": {
+      "scenario": "Project planning docs synced to /improvements folder",
+      "flow": "Draft feature spec on phone → Syncs to improvements/feature-name.json",
+      "benefit": "Seamless planning workflow across devices"
+    }
+  },
+
+  "technicalArchitecture": {
+    "overview": "Database trigger → Edge Function → GitHub API → Commit to repo",
+
+    "components": [
+      {
+        "name": "Database Trigger",
+        "purpose": "Detect note updates and trigger sync",
+        "technology": "PostgreSQL trigger on notes table",
+        "location": "supabase/migrations/20251010000001_project_note_sync.sql"
+      },
+      {
+        "name": "Sync Edge Function",
+        "purpose": "Handle GitHub API communication and commit logic",
+        "technology": "Deno Edge Function",
+        "location": "supabase/functions/sync-note-to-github/index.ts"
+      },
+      {
+        "name": "Sync Configuration Table",
+        "purpose": "Store note-to-file mappings and sync settings",
+        "technology": "PostgreSQL table",
+        "schema": "note_sync_config (note_id, file_path, repo, branch, enabled)"
+      },
+      {
+        "name": "UI Controls",
+        "purpose": "Enable/disable sync and configure file path",
+        "technology": "React Native modal",
+        "location": "components/sync/sync-config-modal.tsx"
+      }
+    ],
+
+    "flow": {
+      "step1": "User edits note in app (marks note as 'synced' with file path)",
+      "step2": "Note UPDATE triggers database function",
+      "step3": "Database function calls Edge Function via HTTP",
+      "step4": "Edge Function authenticates with GitHub (PAT token)",
+      "step5": "Edge Function fetches current file SHA",
+      "step6": "Edge Function creates commit with updated content",
+      "step7": "GitHub API returns commit hash",
+      "step8": "Edge Function logs sync status to database"
+    },
+
+    "githubApiIntegration": {
+      "authentication": "GitHub Personal Access Token (stored in Supabase secrets)",
+      "apiEndpoint": "PUT /repos/{owner}/{repo}/contents/{path}",
+      "requiredScopes": ["repo (Full control of private repositories)"],
+      "rateLimit": "5,000 requests/hour (authenticated)"
+    }
+  },
+
+  "databaseSchema": {
+    "newTable": {
+      "name": "note_sync_config",
+      "purpose": "Map notes to project files and track sync settings",
+      "columns": [
+        {
+          "name": "id",
+          "type": "UUID PRIMARY KEY",
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "note_id",
+          "type": "UUID UNIQUE REFERENCES notes(id) ON DELETE CASCADE",
+          "description": "Note being synced (one-to-one mapping)"
+        },
+        {
+          "name": "user_id",
+          "type": "UUID REFERENCES auth.users(id) ON DELETE CASCADE",
+          "description": "Owner of the note"
+        },
+        {
+          "name": "file_path",
+          "type": "TEXT NOT NULL",
+          "description": "Relative path in repo (e.g., 'docs/README.md')",
+          "constraint": "CHECK (file_path ~ '^[a-zA-Z0-9/_.-]+$')"
+        },
+        {
+          "name": "repo_owner",
+          "type": "TEXT NOT NULL",
+          "description": "GitHub username/org (e.g., 'srwlli')"
+        },
+        {
+          "name": "repo_name",
+          "type": "TEXT NOT NULL",
+          "description": "Repository name (e.g., 'noted')"
+        },
+        {
+          "name": "branch",
+          "type": "TEXT NOT NULL DEFAULT 'main'",
+          "description": "Target branch for commits"
+        },
+        {
+          "name": "enabled",
+          "type": "BOOLEAN DEFAULT true",
+          "description": "Sync enabled/disabled flag"
+        },
+        {
+          "name": "last_synced_at",
+          "type": "TIMESTAMP WITH TIME ZONE",
+          "description": "Last successful sync timestamp"
+        },
+        {
+          "name": "last_sync_error",
+          "type": "TEXT",
+          "description": "Last error message (if sync failed)"
+        },
+        {
+          "name": "created_at",
+          "type": "TIMESTAMP WITH TIME ZONE DEFAULT NOW()"
+        },
+        {
+          "name": "updated_at",
+          "type": "TIMESTAMP WITH TIME ZONE DEFAULT NOW()"
+        }
+      ],
+      "indexes": [
+        "CREATE UNIQUE INDEX idx_sync_config_note ON note_sync_config(note_id)",
+        "CREATE INDEX idx_sync_config_user ON note_sync_config(user_id)",
+        "CREATE INDEX idx_sync_config_enabled ON note_sync_config(enabled) WHERE enabled = true"
+      ]
+    },
+
+    "trigger": {
+      "name": "trigger_sync_note_to_github",
+      "event": "AFTER UPDATE ON notes",
+      "condition": "FOR EACH ROW WHEN (OLD.content IS DISTINCT FROM NEW.content OR OLD.title IS DISTINCT FROM NEW.title)",
+      "action": "Call Edge Function via pg_net extension",
+      "sql": "CREATE TRIGGER trigger_sync_note_to_github\n  AFTER UPDATE ON notes\n  FOR EACH ROW\n  WHEN (OLD.content IS DISTINCT FROM NEW.content OR OLD.title IS DISTINCT FROM NEW.title)\n  EXECUTE FUNCTION sync_note_to_github();"
+    },
+
+    "triggerFunction": {
+      "name": "sync_note_to_github()",
+      "purpose": "Check if note is synced, then call Edge Function",
+      "returns": "TRIGGER",
+      "sql": "CREATE OR REPLACE FUNCTION sync_note_to_github()\nRETURNS TRIGGER AS $$\nDECLARE\n  sync_config RECORD;\n  edge_function_url TEXT;\nBEGIN\n  -- Check if note has sync config enabled\n  SELECT * INTO sync_config\n  FROM note_sync_config\n  WHERE note_id = NEW.id AND enabled = true;\n\n  -- If no sync config, skip\n  IF sync_config IS NULL THEN\n    RETURN NEW;\n  END IF;\n\n  -- Build Edge Function URL\n  edge_function_url := current_setting('app.edge_function_url') || '/sync-note-to-github';\n\n  -- Call Edge Function asynchronously (requires pg_net extension)\n  PERFORM net.http_post(\n    url := edge_function_url,\n    headers := jsonb_build_object(\n      'Content-Type', 'application/json',\n      'Authorization', 'Bearer ' || current_setting('app.service_role_key')\n    ),\n    body := jsonb_build_object(\n      'noteId', NEW.id,\n      'noteTitle', NEW.title,\n      'noteContent', NEW.content,\n      'filePath', sync_config.file_path,\n      'repoOwner', sync_config.repo_owner,\n      'repoName', sync_config.repo_name,\n      'branch', sync_config.branch\n    )\n  );\n\n  RETURN NEW;\nEND;\n$$ LANGUAGE plpgsql;"
+    }
+  },
+
+  "edgeFunctionSpecification": {
+    "name": "sync-note-to-github",
+    "location": "supabase/functions/sync-note-to-github/index.ts",
+    "purpose": "Commit note changes to GitHub repository",
+    "authentication": "Service role (called by database trigger)",
+    "githubToken": "Stored in Supabase secrets as GITHUB_PAT",
+
+    "requestBody": {
+      "noteId": "UUID of the note",
+      "noteTitle": "Title of the note (for commit message)",
+      "noteContent": "Markdown content to write to file",
+      "filePath": "Relative path in repo (e.g., 'docs/README.md')",
+      "repoOwner": "GitHub username/org",
+      "repoName": "Repository name",
+      "branch": "Target branch (default: 'main')"
+    },
+
+    "githubApiFlow": {
+      "step1": "GET /repos/{owner}/{repo}/contents/{path} - Fetch current file SHA",
+      "step2": "PUT /repos/{owner}/{repo}/contents/{path} - Update file with new content",
+      "commitMessage": "Update {file_path} from Noted app\\n\\nNote: {note_title}\\nSynced at: {timestamp}",
+      "encoding": "base64 (GitHub API requirement)"
+    },
+
+    "errorHandling": {
+      "githubDown": "Log error to note_sync_config.last_sync_error, retry later",
+      "invalidToken": "Return 401, disable sync, notify user",
+      "fileNotFound": "Create new file (first sync)",
+      "branchNotFound": "Return 404, log error, notify user",
+      "conflictError": "Return 409, log conflict, require manual resolution"
+    },
+
+    "codeOutline": "import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';\nimport { createClient } from 'https://esm.sh/@supabase/supabase-js@2';\n\nserve(async (req) => {\n  // 1. Parse request body\n  const { noteId, noteTitle, noteContent, filePath, repoOwner, repoName, branch } = await req.json();\n\n  // 2. Get GitHub token from secrets\n  const githubToken = Deno.env.get('GITHUB_PAT');\n  if (!githubToken) {\n    return new Response(JSON.stringify({ error: 'GitHub token not configured' }), { status: 500 });\n  }\n\n  // 3. Fetch current file SHA (required for update)\n  const fileUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${filePath}`;\n  const fileResponse = await fetch(fileUrl, {\n    headers: {\n      'Authorization': `Bearer ${githubToken}`,\n      'Accept': 'application/vnd.github.v3+json'\n    }\n  });\n\n  let fileSha = null;\n  if (fileResponse.ok) {\n    const fileData = await fileResponse.json();\n    fileSha = fileData.sha;\n  }\n  // If 404, file doesn't exist yet (first sync)\n\n  // 4. Encode content to base64\n  const contentBase64 = btoa(unescape(encodeURIComponent(noteContent)));\n\n  // 5. Create commit message\n  const commitMessage = `Update ${filePath} from Noted app\\n\\nNote: ${noteTitle}\\nSynced at: ${new Date().toISOString()}`;\n\n  // 6. Update file via GitHub API\n  const updateResponse = await fetch(fileUrl, {\n    method: 'PUT',\n    headers: {\n      'Authorization': `Bearer ${githubToken}`,\n      'Accept': 'application/vnd.github.v3+json',\n      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      message: commitMessage,\n      content: contentBase64,\n      sha: fileSha, // null for new file, required for update\n      branch: branch\n    })\n  });\n\n  if (!updateResponse.ok) {\n    const error = await updateResponse.json();\n    console.error('GitHub API error:', error);\n\n    // Update sync config with error\n    const supabase = createClient(\n      Deno.env.get('SUPABASE_URL')!,\n      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!\n    );\n    await supabase.from('note_sync_config')\n      .update({ last_sync_error: error.message })\n      .eq('note_id', noteId);\n\n    return new Response(JSON.stringify({ success: false, error: error.message }), { status: updateResponse.status });\n  }\n\n  // 7. Success - update sync timestamp\n  const supabase = createClient(\n    Deno.env.get('SUPABASE_URL')!,\n    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!\n  );\n  await supabase.from('note_sync_config')\n    .update({\n      last_synced_at: new Date().toISOString(),\n      last_sync_error: null\n    })\n    .eq('note_id', noteId);\n\n  const commitData = await updateResponse.json();\n  return new Response(JSON.stringify({\n    success: true,\n    commitSha: commitData.commit.sha,\n    commitUrl: commitData.commit.html_url\n  }), { status: 200 });\n});"
+  },
+
+  "userInterface": {
+    "syncConfigModal": {
+      "component": "components/sync/sync-config-modal.tsx",
+      "trigger": "NoteActionsModal → 'Sync to Project' action",
+      "fields": [
+        {
+          "name": "enabled",
+          "type": "Toggle",
+          "label": "Enable project sync",
+          "description": "Automatically sync this note to GitHub"
+        },
+        {
+          "name": "filePath",
+          "type": "TextInput",
+          "label": "File path",
+          "placeholder": "docs/README.md",
+          "validation": "Must be valid file path (alphanumeric, /, -, _, .)"
+        },
+        {
+          "name": "repoOwner",
+          "type": "TextInput",
+          "label": "GitHub username/org",
+          "placeholder": "srwlli",
+          "defaultValue": "Current user's GitHub username (if connected)"
+        },
+        {
+          "name": "repoName",
+          "type": "TextInput",
+          "label": "Repository",
+          "placeholder": "noted",
+          "defaultValue": "Auto-detect from git remote (if available)"
+        },
+        {
+          "name": "branch",
+          "type": "TextInput",
+          "label": "Branch",
+          "placeholder": "main",
+          "defaultValue": "main"
+        }
+      ],
+      "actions": [
+        {
+          "label": "Test Sync",
+          "purpose": "Verify GitHub token and file path before saving",
+          "feedback": "Shows success/error toast"
+        },
+        {
+          "label": "Save",
+          "purpose": "Save config and enable sync",
+          "effect": "Creates note_sync_config row, future edits auto-sync"
+        }
+      ]
+    },
+
+    "syncStatusIndicator": {
+      "location": "Note editor header (next to title)",
+      "states": [
+        {
+          "state": "synced",
+          "icon": "cloud-done",
+          "color": "green",
+          "tooltip": "Synced to {file_path} at {timestamp}"
+        },
+        {
+          "state": "syncing",
+          "icon": "cloud-sync",
+          "color": "blue",
+          "tooltip": "Syncing to GitHub..."
+        },
+        {
+          "state": "error",
+          "icon": "cloud-off",
+          "color": "red",
+          "tooltip": "Sync failed: {error_message}\\nTap to retry"
+        },
+        {
+          "state": "disabled",
+          "icon": "cloud-outline",
+          "color": "gray",
+          "tooltip": "Sync not configured"
+        }
+      ]
+    },
+
+    "noteActionsIntegration": {
+      "actionCard": {
+        "title": "Sync to Project",
+        "icon": "sync",
+        "description": "Auto-sync note to GitHub file",
+        "behavior": "Opens SyncConfigModal"
+      },
+      "location": "NoteActionsModal (alongside Publish, Export, etc.)"
+    }
+  },
+
+  "securityConsiderations": {
+    "githubToken": {
+      "storage": "Supabase secrets (never exposed to client)",
+      "scope": "Repo access only (no admin, no delete)",
+      "rotation": "User should rotate token every 90 days (reminder toast)",
+      "revocation": "If token revoked, sync auto-disables and notifies user"
+    },
+    "rowLevelSecurity": {
+      "note_sync_config": [
+        "Users can only view/edit their own sync configs",
+        "Service role can manage all rows (for Edge Function)",
+        "Policy: auth.uid() = user_id"
+      ]
+    },
+    "validation": {
+      "filePath": "Regex validation prevents path traversal (../)",
+      "repoOwner": "Alphanumeric + hyphens only",
+      "repoName": "Alphanumeric + hyphens + underscores only",
+      "branch": "Valid Git branch name (no spaces, special chars)"
+    },
+    "rateLimit": {
+      "githubApi": "5,000 requests/hour (authenticated)",
+      "clientLimit": "Max 10 synced notes per user (prevent abuse)",
+      "edgeFunctionTimeout": "30 seconds (prevent hanging requests)"
+    }
+  },
+
+  "errorHandlingAndRetry": {
+    "transientErrors": {
+      "networkTimeout": "Retry with exponential backoff (1s, 2s, 4s)",
+      "github503": "Retry up to 3 times, then log error",
+      "rateLimitHit": "Wait until rate limit reset, then retry"
+    },
+    "permanentErrors": {
+      "invalidToken": "Disable sync, show error banner in UI",
+      "fileDeleted": "Show warning, ask user to update file path",
+      "branchDeleted": "Disable sync, notify user to update branch"
+    },
+    "conflictResolution": {
+      "scenario": "File was manually edited in GitHub (SHA mismatch)",
+      "detection": "GitHub API returns 409 Conflict",
+      "resolution": "Show modal: 'GitHub file changed manually. Overwrite or cancel sync?'"
+    },
+    "userNotifications": {
+      "success": "Toast: 'Synced to {file_path}' (dismissible)",
+      "error": "Toast: 'Sync failed: {error}' (persistent, with 'Retry' action)",
+      "disabled": "Banner: 'GitHub token expired. Update in Settings to re-enable sync.'"
+    }
+  },
+
+  "implementationPhases": {
+    "phase1_database": {
+      "duration": "1 hour",
+      "tasks": [
+        {
+          "task": "Create migration file",
+          "file": "supabase/migrations/20251010000001_project_note_sync.sql",
+          "details": "Create note_sync_config table with all columns, indexes, RLS policies"
+        },
+        {
+          "task": "Create trigger function",
+          "details": "sync_note_to_github() function that calls Edge Function via pg_net"
+        },
+        {
+          "task": "Create trigger",
+          "details": "AFTER UPDATE trigger on notes table (content or title change)"
+        },
+        {
+          "task": "Enable pg_net extension",
+          "details": "Required for trigger → Edge Function HTTP calls"
+        },
+        {
+          "task": "Apply migration",
+          "command": "npx supabase db push"
+        }
+      ]
+    },
+
+    "phase2_edgeFunction": {
+      "duration": "1.5 hours",
+      "tasks": [
+        {
+          "task": "Create Edge Function",
+          "file": "supabase/functions/sync-note-to-github/index.ts",
+          "details": "Implement GitHub API integration with error handling"
+        },
+        {
+          "task": "Add GitHub token to secrets",
+          "command": "npx supabase secrets set GITHUB_PAT=ghp_...",
+          "details": "User must generate PAT with 'repo' scope from GitHub settings"
+        },
+        {
+          "task": "Configure pg_net settings",
+          "details": "Set app.edge_function_url and app.service_role_key in postgres config"
+        },
+        {
+          "task": "Deploy Edge Function",
+          "command": "npx supabase functions deploy sync-note-to-github"
+        },
+        {
+          "task": "Test with curl",
+          "details": "Send test payload to Edge Function, verify GitHub commit created"
+        }
+      ]
+    },
+
+    "phase3_userInterface": {
+      "duration": "1.5 hours",
+      "tasks": [
+        {
+          "task": "Create SyncConfigModal component",
+          "file": "components/sync/sync-config-modal.tsx",
+          "details": "Form with file path, repo, branch fields + validation"
+        },
+        {
+          "task": "Add 'Sync to Project' action card",
+          "file": "components/note-actions-modal.tsx",
+          "details": "New action that opens SyncConfigModal"
+        },
+        {
+          "task": "Create sync status indicator",
+          "file": "components/sync/sync-status-badge.tsx",
+          "details": "Badge showing synced/syncing/error state"
+        },
+        {
+          "task": "Add status badge to editor header",
+          "files": ["app/note-editor/[id].tsx", "app/note-editor/new.tsx"],
+          "details": "Show sync status next to note title"
+        },
+        {
+          "task": "Implement 'Test Sync' function",
+          "details": "Call Edge Function with dry-run flag to verify config"
+        }
+      ]
+    },
+
+    "phase4_testing": {
+      "duration": "1 hour",
+      "tasks": [
+        {
+          "task": "Test first sync (file creation)",
+          "details": "Configure sync for new file, verify GitHub file created"
+        },
+        {
+          "task": "Test update sync",
+          "details": "Edit note content, verify GitHub file updated with new commit"
+        },
+        {
+          "task": "Test error scenarios",
+          "details": "Invalid token, deleted branch, file conflicts"
+        },
+        {
+          "task": "Test sync disable/enable",
+          "details": "Toggle sync off → edit note → no commit; toggle on → edit → commit"
+        },
+        {
+          "task": "Test multiple synced notes",
+          "details": "Ensure each note syncs to correct file independently"
+        },
+        {
+          "task": "Test status indicator updates",
+          "details": "Verify badge shows correct state (synced/syncing/error)"
+        }
+      ]
+    }
+  },
+
+  "futureEnhancements": {
+    "bidirectionalSync": {
+      "description": "GitHub → App sync (detect file changes and update note)",
+      "approach": "GitHub webhook → Edge Function → update notes table",
+      "complexity": "High (requires webhook endpoint, conflict resolution)"
+    },
+    "bulkSync": {
+      "description": "Sync entire folder of notes to /docs directory",
+      "approach": "One sync config per folder, auto-maps notes to files",
+      "complexity": "Medium"
+    },
+    "branchStrategies": {
+      "description": "Sync to feature branch instead of main",
+      "approach": "Allow branch selection per sync config",
+      "complexity": "Low (already supported in schema)"
+    },
+    "conflictResolution": {
+      "description": "Smart merge when both app and GitHub file changed",
+      "approach": "Three-way merge with diff UI",
+      "complexity": "High (requires diff library, merge logic)"
+    },
+    "syncHistory": {
+      "description": "Show log of all syncs with commit links",
+      "approach": "Store sync events in sync_history table",
+      "complexity": "Low"
+    }
+  },
+
+  "userExperienceFlow": {
+    "setup": {
+      "step1": "User opens note they want to sync (e.g., project README)",
+      "step2": "Taps (...) → Actions Modal → 'Sync to Project'",
+      "step3": "Sync Config Modal opens",
+      "step4": "User enters: File path (docs/README.md), Repo (noted), Branch (main)",
+      "step5": "User taps 'Test Sync' → Green checkmark appears (validation success)",
+      "step6": "User taps 'Save' → Sync enabled",
+      "step7": "Badge appears in editor header: '☁️ Synced' (green)"
+    },
+    "editing": {
+      "step1": "User edits note content on phone",
+      "step2": "Badge changes to '☁️ Syncing...' (blue, spinning)",
+      "step3": "2-3 seconds later: Badge changes to '☁️ Synced' (green)",
+      "step4": "User opens GitHub → sees new commit with note title",
+      "step5": "Commit message: 'Update docs/README.md from Noted app'"
+    },
+    "error": {
+      "step1": "Sync fails (e.g., GitHub token expired)",
+      "step2": "Badge shows '☁️ Error' (red)",
+      "step3": "User taps badge → Error modal with details",
+      "step4": "Modal shows: 'GitHub token expired. Update in Settings.'",
+      "step5": "User goes to Settings → GitHub Integration → Refreshes token",
+      "step6": "Taps 'Retry' in error modal → Sync succeeds"
+    }
+  },
+
+  "estimatedEffort": {
+    "phase1_database": "1 hour",
+    "phase2_edgeFunction": "1.5 hours",
+    "phase3_userInterface": "1.5 hours",
+    "phase4_testing": "1 hour",
+    "total": "5 hours",
+    "difficulty": "Hard (7/10)",
+    "blockers": [
+      "Requires pg_net extension (check if available in Supabase tier)",
+      "GitHub PAT token setup (user must generate manually)",
+      "Base64 encoding complexity (Deno-specific implementation)"
+    ]
+  },
+
+  "deploymentChecklist": [
+    "[ ] Generate GitHub Personal Access Token with 'repo' scope",
+    "[ ] Add token to Supabase secrets: npx supabase secrets set GITHUB_PAT=...",
+    "[ ] Enable pg_net extension: CREATE EXTENSION IF NOT EXISTS pg_net",
+    "[ ] Configure postgres settings: app.edge_function_url, app.service_role_key",
+    "[ ] Apply database migration: npx supabase db push",
+    "[ ] Deploy Edge Function: npx supabase functions deploy sync-note-to-github",
+    "[ ] Test trigger: Update a synced note, verify GitHub commit",
+    "[ ] Test error handling: Invalid token, deleted file, network issues",
+    "[ ] Update user documentation with setup instructions",
+    "[ ] Add GitHub integration settings page"
+  ],
+
+  "notes": [
+    "Sync is one-way (app → GitHub) initially. Bidirectional sync is future enhancement.",
+    "Users can disable sync anytime by toggling 'enabled' field in config.",
+    "Each note can only sync to ONE file (one-to-one relationship).",
+    "Trigger only fires on content/title changes (not on metadata updates).",
+    "GitHub API requires base64 encoding for file content.",
+    "Commit messages include note title and timestamp for traceability.",
+    "Error states are persisted in database for debugging and user notifications.",
+    "pg_net extension required for trigger → HTTP calls (async, non-blocking)."
+  ]
+}
