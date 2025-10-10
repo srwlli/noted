@@ -3,7 +3,7 @@
 // Uses bcrypt for secure token hashing and atomic SQL for rate limiting
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import * as bcrypt from 'https://esm.sh/bcryptjs@2.4.3';
+import bcrypt from 'https://esm.sh/bcryptjs@2.4.3';
 
 export interface AgentToken {
   id: string;
@@ -354,7 +354,7 @@ export function generateSecureToken(): string {
 
   token += '_';
 
-  // Second part: 52 random chars (total length: 6 + 12 + 1 + 45 = 64)
+  // Second part: 45 random chars (57-12=45 iterations, total: 6+12+1+45=64)
   for (let i = 12; i < 57; i++) {
     token += chars[array[i] % chars.length];
   }
