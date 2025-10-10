@@ -8,6 +8,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Publish Notes to Public URLs** (2025-10-10)
+  - Publish private notes as publicly accessible web pages with shareable URLs
+  - Access via note (...) menu → Publish button in secondary actions row
+  - Two-state modal: Unpublished (publish controls) → Published (share controls)
+  - Unpublished state shows:
+    - Rate limit progress bar (X/50 publishes remaining today)
+    - URL preview with auto-generated slug from note title
+    - Info about public accessibility
+    - Primary "Publish Note" button
+  - Published state shows:
+    - Green "Published" status badge
+    - Full public URL with auto-generated slug (e.g., `your-app.com/p/my-great-idea`)
+    - Published date metadata (preserved on republish)
+    - "Copy URL" button (auto-copies on successful publish)
+    - "Share" button (native share sheet on mobile, Web Share API on web)
+    - "View Public Page" button (opens in-app browser)
+    - "Unpublish" button with confirmation dialog
+  - Public viewing at `/p/[slug]` route (no authentication required):
+    - Full markdown rendering with note title and metadata
+    - Published/updated dates display
+    - Share and Export HTML functionality
+    - Copy Link button for easy sharing
+    - 404 handling for unpublished/missing notes
+  - Slug generation from note title:
+    - Converts to URL-safe format (lowercase, hyphens, no special chars)
+    - Collision handling with 5 retries using random suffixes
+    - UUID fallback for maximum collision resistance
+    - Regex validation: starts with letter, only a-z/0-9/hyphens, 1-60 chars
+  - Rate limiting system:
+    - 50 publishes per day per user
+    - Resets daily at midnight UTC
+    - Counter incremented AFTER successful publish (fair usage)
+    - Visual progress bar (green if >10 remaining, amber if ≤10)
+    - Error message when limit reached with reset time
+  - Security features:
+    - Server-side note ownership validation (prevents unauthorized publishes)
+    - RLS policies for public viewing and authenticated publishing
+    - Input validation (empty notes, size limits up to 100,000 chars)
+    - Rate limiting enforced server-side via Edge Function
+  - Database schema:
+    - published_notes table: id, note_id, user_id, slug, published_at, updated_at
+    - publish_rate_limits table: user_id, last_publish_at, publish_count_today, reset_at
+    - 3 unique indexes on published_notes for fast slug/note_id lookups
+    - Partial index on publish_rate_limits for reset_at queries
+    - Trigger for auto-updating updated_at timestamp
+  - RLS policies:
+    - published_notes: SELECT for public (anon/authenticated), INSERT/UPDATE/DELETE for owners
+    - notes: SELECT for published notes by public (allows anonymous viewing)
+    - publish_rate_limits: SELECT for users, ALL for service_role (Edge Functions)
+  - Edge Function (publish-note):
+    - CORS headers on all 11 API responses for web compatibility
+    - JWT authentication with service_role client
+    - Note ownership verification before publish
+    - Rate limit check BEFORE publish, increment AFTER success
+    - Explicit INSERT/UPDATE to preserve original published_at timestamp
+    - 5-retry slug collision handling with UUID fallback
+    - Comprehensive error codes: UNAUTHORIZED, NOTE_NOT_FOUND, NOTE_EMPTY, NOTE_TOO_LARGE, RATE_LIMIT_EXCEEDED
+  - Client services (services/publish.ts):
+    - publishNote() - Calls Edge Function with error mapping
+    - unpublishNote() - Removes from published_notes table
+    - getPublishedNote() - Checks if note is published
+    - getPublicNoteBySlug() - Fetches note for public viewing
+    - getRateLimit() - Gets current rate limit status
+    - getPublishesRemaining() - Calculates remaining quota
+    - getUserPublishedNotes() - Lists all published notes for user
+    - HTTP status code mapping (400→NOTE_EMPTY, 401→UNAUTHORIZED, 429→RATE_LIMIT_EXCEEDED, etc.)
+  - Components:
+    - PublishModal (522 lines): Bottom sheet modal with two-state UI
+    - NoteActionsModal: Integrated Publish button in secondary actions
+    - app/p/[slug].tsx (375 lines): Public viewing route with markdown rendering
+  - User flow:
+    - Open note → Tap (...) → Publish → Preview rate limit → Publish Note
+    - Success → URL auto-copied → Modal updates to Published state
+    - Share via Copy URL / Share button / View Public Page
+    - Unpublish with confirmation dialog
+    - Republish preserves original published_at date
+  - Dependencies added: date-fns (date formatting), expo-web-browser (in-app browser)
+  - BASE_URL environment variable for public URL generation (set via Supabase secrets)
+  - Migration: 20251010000000_create_published_notes.sql (185 lines)
+  - Edge Function: supabase/functions/publish-note/index.ts (299 lines)
+  - Files created: services/publish.ts, components/publish-modal.tsx, app/p/[slug].tsx
+  - Files modified: components/note-actions-modal.tsx (Publish button integration)
+  - Confirmation dialog for unpublish action prevents accidental removal
+  - Alert dialog: "Unpublish note? The public link will stop working. You can publish again later."
+  - Production-ready with fixed migration (gen_random_uuid instead of uuid_generate_v4)
+
 - **AI Note Summarization** (2025-10-09)
   - Generate concise 100-character summaries of notes using Claude Haiku AI
   - Accessible via AI Actions modal (long press note → AI Actions → Summarize)
