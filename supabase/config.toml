@@ -1,0 +1,13 @@
+# Supabase Edge Functions Configuration
+
+[functions.agent-read-note]
+verify_jwt = false  # Uses custom agent token authentication
+
+[functions.agent-update-note]
+verify_jwt = false  # Uses custom agent token authentication
+
+[functions.agent-generate-token]
+# Keep JWT verification enabled - requires user JWT
+
+[functions.agent-revoke-token]
+# Keep JWT verification enabled - requires user JWT

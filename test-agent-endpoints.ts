@@ -30,7 +30,7 @@ function logTest(result: TestResult) {
   console.log('');
 }
 
-async function testGenerateToken(userJwt: string): Promise<string | null> {
+async function testGenerateToken(userJwt: string): Promise<{ token: string; tokenId: string } | null> {
   console.log('🧪 TEST 1: Generate Agent Token');
   console.log('=====================================\n');
 
@@ -46,18 +46,19 @@ async function testGenerateToken(userJwt: string): Promise<string | null> {
 
     const data = await response.json();
 
-    if (response.ok && data.token) {
+    if (response.ok && data.token && data.token_id) {
       logTest({
         test: 'Generate agent token',
         passed: true,
         status: response.status,
         data: {
           token_prefix: data.token_prefix,
+          token_id: data.token_id,
           expires_at: data.expires_at,
           warning: data.warning
         }
       });
-      return data.token;
+      return { token: data.token, tokenId: data.token_id };
     } else {
       logTest({
         test: 'Generate agent token',
@@ -486,15 +487,15 @@ async function runTests() {
   console.log(`   User JWT: ${USER_JWT.substring(0, 20)}...\n`);
 
   // Test 1: Generate token
-  const agentTokenNullable = await testGenerateToken(USER_JWT);
-  if (!agentTokenNullable) {
+  const tokenData = await testGenerateToken(USER_JWT);
+  if (!tokenData) {
     console.error('\n❌ Cannot continue tests without valid agent token');
     Deno.exit(1);
   }
 
-  // TypeScript doesn't recognize Deno.exit() as terminating, so we assert non-null
-  const agentToken: string = agentTokenNullable!; // Safe: we exit above if null
-  const tokenId = agentToken.split('_')[1]; // Extract token ID from prefix
+  // Extract token and token_id from response
+  const agentToken = tokenData.token;
+  const tokenId = tokenData.tokenId;
 
   // Test 2: Read note
   const note = await testReadNote(agentToken, NOTE_ID);
