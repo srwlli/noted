@@ -76,7 +76,7 @@ serve(async (req) => {
     console.log(`🔐 Generated token with prefix: ${tokenPrefix}`);
 
     // 4. Hash token with bcrypt (10 salt rounds)
-    const tokenHash = await hashToken(plainToken);
+    const tokenHash = hashToken(plainToken);
 
     // 5. Set expiry to 90 days from now
     const now = new Date();

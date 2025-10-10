@@ -3,7 +3,7 @@
 // Uses bcrypt for secure token hashing and atomic SQL for rate limiting
 
 import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import * as bcrypt from 'https://deno.land/x/bcrypt@v0.4.1/mod.ts';
+import * as bcrypt from 'https://esm.sh/bcryptjs@2.4.3';
 
 export interface AgentToken {
   id: string;
@@ -106,7 +106,7 @@ export async function validateAgentToken(
     let matchedToken: AgentToken | null = null;
 
     for (const token of tokens || []) {
-      const isMatch = await bcrypt.compare(plainToken, token.token_hash);
+      const isMatch = bcrypt.compareSync(plainToken, token.token_hash);
       if (isMatch) {
         matchedToken = token;
         break;
@@ -365,9 +365,8 @@ export function generateSecureToken(): string {
 /**
  * Hashes a token using bcrypt with 10 salt rounds
  */
-export async function hashToken(plainToken: string): Promise<string> {
-  const salt = await bcrypt.genSalt(10);
-  return await bcrypt.hash(plainToken, salt);
+export function hashToken(plainToken: string): string {
+  return bcrypt.hashSync(plainToken, 10);
 }
 
 /**
