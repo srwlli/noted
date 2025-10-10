@@ -5,9 +5,11 @@ import { SharedPageLayout } from '@/components/shared-page-layout';
 import { ConfirmationModal } from '@/components/confirmation-modal';
 import { ThemePickerModal } from '@/components/theme-picker-modal';
 import { ApiKeysModal } from '@/components/api-keys-modal';
+import { GenerateAgentTokenModal } from '@/components/generate-agent-token-modal';
 import { ThemeSettingsCard } from '@/components/settings-cards/theme-settings-card';
 import { ProfileSettingsCard } from '@/components/settings-cards/profile-settings-card';
 import { AISettingsCard } from '@/components/settings-cards/ai-settings-card';
+import { AgentTokensSettingsCard } from '@/components/settings-cards/agent-tokens-settings-card';
 import { AccountSettingsCard } from '@/components/settings-cards/account-settings-card';
 import { DevSettingsCard } from '@/components/settings-cards/dev-settings-card';
 import { router } from 'expo-router';
@@ -20,8 +22,10 @@ export default function SettingsScreen() {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [showThemePicker, setShowThemePicker] = useState(false);
   const [showApiKeysModal, setShowApiKeysModal] = useState(false);
+  const [showGenerateTokenModal, setShowGenerateTokenModal] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [aiRefreshTrigger, setAiRefreshTrigger] = useState(0);
+  const [agentTokensRefreshTrigger, setAgentTokensRefreshTrigger] = useState(0);
 
   const handleCardToggle = (cardId: string) => {
     if (expandedCard === cardId) {
@@ -58,6 +62,10 @@ export default function SettingsScreen() {
     setAiRefreshTrigger(prev => prev + 1);
   };
 
+  const handleTokenGenerated = () => {
+    setAgentTokensRefreshTrigger(prev => prev + 1);
+  };
+
   return (
     <SharedPageLayout scrollable={true}>
       <ThemeSettingsCard
@@ -74,6 +82,12 @@ export default function SettingsScreen() {
         onToggle={() => handleCardToggle('ai')}
         onOpenApiKeys={() => setShowApiKeysModal(true)}
         refreshTrigger={aiRefreshTrigger}
+      />
+      <AgentTokensSettingsCard
+        isExpanded={expandedCard === 'agent-tokens'}
+        onToggle={() => handleCardToggle('agent-tokens')}
+        onOpenGenerateToken={() => setShowGenerateTokenModal(true)}
+        refreshTrigger={agentTokensRefreshTrigger}
       />
       <DevSettingsCard
         isExpanded={expandedCard === 'testing'}
@@ -108,6 +122,12 @@ export default function SettingsScreen() {
         visible={showApiKeysModal}
         onClose={() => setShowApiKeysModal(false)}
         onKeysUpdated={handleApiKeysUpdated}
+      />
+
+      <GenerateAgentTokenModal
+        visible={showGenerateTokenModal}
+        onClose={() => setShowGenerateTokenModal(false)}
+        onTokenGenerated={handleTokenGenerated}
       />
     </SharedPageLayout>
   );
