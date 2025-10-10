@@ -8,6 +8,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Agent Communication** (2025-10-10)
+  - Enables AI agents (like Claude Code) to read and write notes via secure token authentication
+  - Generate 64-character tokens in Settings → Agent Communication section
+  - Token format: `agent_[12_random_chars]_[52_random_chars]` (shown once with copy protection)
+  - 4 Edge Functions for agent operations:
+    - agent-generate-token: Creates tokens for users (requires user JWT)
+    - agent-read-note: Allows agents to read note content (requires agent token)
+    - agent-update-note: Allows agents to write/append to notes (requires agent token)
+    - agent-revoke-token: Allows users to revoke tokens (requires user JWT)
+  - Security features:
+    - Bcrypt hashing (10 salt rounds) for token storage
+    - 90-day automatic token expiry
+    - Rate limiting: 100 requests per hour per token
+    - Auto-revoke after 10 failed authentication attempts
+    - XSS content validation (10 KiB size limit)
+    - Optimistic locking for append mode (prevents concurrent write conflicts)
+    - Ownership verification (agents can only access owner's notes)
+    - Token shown only once with Cache-Control: no-store header
+    - Audit logging with SHA-256 content hashes
+  - Token Management UI:
+    - AgentTokensSettingsCard: View all tokens with status badges (active, expired, revoked)
+    - Token list shows: name, prefix, last used time, request count, expiry date
+    - Copy token prefix to clipboard functionality
+    - Revoke button for active tokens (idempotent)
+    - GenerateAgentTokenModal: Generate new tokens with safety warnings
+    - Optional token naming (e.g., "Claude Code - Desktop")
+    - Modal won't close without copying token (safety feature)
+    - Shows .env file usage example
+  - Database schema:
+    - agent_tokens table: id, user_id, token_hash, token_prefix, name, timestamps, rate limiting columns
+    - agent_write_log table: token_id, note_id, content_hash, content_length, operation_type, timestamp
+    - RLS policies for security (users view own tokens, service role manages all)
+    - Indexes for performance (hash lookup, expiry queries, audit log queries)
+  - API features:
+    - Replace mode: Overwrites entire note content
+    - Append mode: Adds to end with \n\n separator, requires expected_version for optimistic locking
+    - Version conflict detection (409 error with current_version in response)
+    - Comprehensive error codes (INVALID_TOKEN, TOKEN_EXPIRED, RATE_LIMIT_EXCEEDED, VERSION_CONFLICT, etc.)
+    - Retry-After header for rate limit responses (429)
+  - Documentation:
+    - API documentation: docs/AGENT-COMMUNICATION-API.md (600+ lines)
+    - User guide: docs/AGENT-COMMUNICATION-USER-GUIDE.md (460+ lines)
+    - .env.example with token usage instructions
+  - Use cases:
+    - Claude Code integration for note-taking during coding sessions
+    - Automated task summaries from calendars
+    - AI research assistants compiling findings
+    - Meeting transcription and note generation
+  - Files created:
+    - supabase/migrations/20251010000003_agent_communication.sql
+    - supabase/functions/_shared/agent-auth.ts (shared authentication helpers)
+    - supabase/functions/agent-generate-token/index.ts
+    - supabase/functions/agent-read-note/index.ts
+    - supabase/functions/agent-update-note/index.ts
+    - supabase/functions/agent-revoke-token/index.ts
+    - components/generate-agent-token-modal.tsx
+    - components/settings-cards/agent-tokens-settings-card.tsx
+    - docs/AGENT-COMMUNICATION-API.md
+    - docs/AGENT-COMMUNICATION-USER-GUIDE.md
+  - Files modified: app/(tabs)/settings.tsx (added Agent Communication card)
+  - Base URL: https://ikovzegiuzjkubymwvjz.supabase.co/functions/v1
+  - Production-ready with comprehensive error handling and user-friendly messages
+
 - **Publish Notes to Public URLs** (2025-10-10)
   - Publish private notes as publicly accessible web pages with shareable URLs
   - Access via note (...) menu → Publish button in secondary actions row
