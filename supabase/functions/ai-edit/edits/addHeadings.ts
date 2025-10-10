@@ -7,7 +7,7 @@
  * Temperature: 0.3 (requires some creativity for heading names)
  */
 
-import type { EditResult } from './types';
+import type { EditResult } from '../types.ts';
 
 /**
  * Enhanced prompt with few-shot examples and context preservation rules

@@ -8,7 +8,7 @@
  * Temperature: 0.2 for concise (focused), 0.5 for expand (creative)
  */
 
-import type { EditResult } from './types';
+import type { EditResult } from '../types.ts';
 
 /**
  * Build prompt for making content more concise

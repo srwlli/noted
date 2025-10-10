@@ -11,7 +11,7 @@
  * Temperature: 0.1 (highly deterministic formatting rules)
  */
 
-import type { EditResult } from './types';
+import type { EditResult } from '../types.ts';
 
 /**
  * Enhanced prompt with few-shot examples and context preservation rules

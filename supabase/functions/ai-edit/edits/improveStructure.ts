@@ -7,7 +7,7 @@
  * Temperature: 0.4 (moderate creativity for reorganization)
  */
 
-import type { EditResult } from './types';
+import type { EditResult } from '../types.ts';
 
 /**
  * Enhanced prompt with context preservation rules
