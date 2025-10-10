@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noted - Improvements Index</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #6366f1;
+            --accent-hover: #818cf8;
+            --border: #333333;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 0;
+            margin: 0;
+        }
+
+        header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            background: rgba(26, 26, 26, 0.95);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .search-container {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            padding: 0 1rem;
+        }
+
+        .stat {
+            background: var(--bg-card);
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+            display: block;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem 4rem;
+        }
+
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .section-count {
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            word-break: break-word;
+        }
+
+        .card-path {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-family: 'Courier New', monospace;
+            margin-bottom: 1rem;
+        }
+
+        .card-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-active { background: var(--success); color: white; }
+        .badge-archived { background: var(--text-secondary); color: white; }
+        .badge-ai { background: var(--info); color: white; }
+        .badge-theme { background: var(--warning); color: white; }
+        .badge-business { background: var(--danger); color: white; }
+
+        .collapsible-toggle {
+            background: var(--bg-card);
+            color: var(--accent);
+            border: 1px solid var(--border);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: auto;
+            transition: all 0.2s ease;
+        }
+
+        .collapsible-toggle:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .section-content {
+            max-height: 3000px;
+            overflow: hidden;
+            transition: max-height 0.5s ease;
+        }
+
+        .section-content.collapsed {
+            max-height: 0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border);
+            background: var(--bg-secondary);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats {
+                gap: 1rem;
+            }
+
+            .stat {
+                padding: 0.75rem 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>📝 Noted Improvements</h1>
+        <p>Complete index of all improvement plans and implementations</p>
+    </header>
+
+    <div class="search-container">
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search improvements by name or folder...">
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <span class="stat-number" id="totalCount">61</span>
+            <span class="stat-label">Total Plans</span>
+        </div>
+        <div class="stat">
+            <span class="stat-number" id="activeCount">8</span>
+            <span class="stat-label">Active</span>
+        </div>
+        <div class="stat">
+            <span class="stat-number" id="archivedCount">38</span>
+            <span class="stat-label">Archived</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Active Plans -->
+        <div class="section" data-section="active">
+            <div class="section-header">
+                <h2 class="section-title">🚀 Active Plans</h2>
+                <span class="section-count">8 plans</span>
+            </div>
+            <div class="section-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('action-modal.json', '_blank')">
+                        <h3 class="card-title">Action Modal</h3>
+                        <p class="card-path">improvements/action-modal.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('themed-html-export-plan.json', '_blank')">
+                        <h3 class="card-title">Themed HTML Export Plan</h3>
+                        <p class="card-path">improvements/themed-html-export-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('project-context.json', '_blank')">
+                        <h3 class="card-title">Project Context</h3>
+                        <p class="card-path">improvements/project-context.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('agent-communication-implementation-plan.json', '_blank')">
+                        <h3 class="card-title">Agent Communication Implementation</h3>
+                        <p class="card-path">improvements/agent-communication-implementation-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('chat-ui-with-live-sync.json', '_blank')">
+                        <h3 class="card-title">Chat UI with Live Sync</h3>
+                        <p class="card-path">improvements/chat-ui-with-live-sync.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Integrations -->
+        <div class="section" data-section="ai">
+            <div class="section-header">
+                <h2 class="section-title">🤖 AI Integrations</h2>
+                <span class="section-count">4 plans</span>
+            </div>
+            <div class="section-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('ai-integrations/ai-integration-plan.json', '_blank')">
+                        <h3 class="card-title">AI Integration Plan</h3>
+                        <p class="card-path">ai-integrations/ai-integration-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-ai">AI</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('ai-integrations/rag-ask-your-notes-implementation.json', '_blank')">
+                        <h3 class="card-title">RAG Ask Your Notes</h3>
+                        <p class="card-path">ai-integrations/rag-ask-your-notes-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-ai">AI</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('ai-integrations/ai-integrations-list.json', '_blank')">
+                        <h3 class="card-title">AI Integrations List</h3>
+                        <p class="card-path">ai-integrations/ai-integrations-list.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-ai">AI</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('ai-integrations/ide-agent-documentation-pipeline.json', '_blank')">
+                        <h3 class="card-title">IDE Agent Documentation Pipeline</h3>
+                        <p class="card-path">ai-integrations/ide-agent-documentation-pipeline.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-ai">AI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Sheet Card -->
+        <div class="section" data-section="bottom-sheet">
+            <div class="section-header">
+                <h2 class="section-title">📱 Bottom Sheet Card</h2>
+                <span class="section-count">4 plans</span>
+            </div>
+            <div class="section-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('bottom-sheet-card/plan-full/publish-action.json', '_blank')">
+                        <h3 class="card-title">Publish Action (Full)</h3>
+                        <p class="card-path">bottom-sheet-card/plan-full/publish-action.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('bottom-sheet-card/plan-mvp/export-action-mvp-plan-final.json', '_blank')">
+                        <h3 class="card-title">Export Action MVP</h3>
+                        <p class="card-path">bottom-sheet-card/plan-mvp/export-action-mvp-plan-final.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('bottom-sheet-card/plan-mvp/embed-action-plan-mvp.json', '_blank')">
+                        <h3 class="card-title">Embed Action MVP</h3>
+                        <p class="card-path">bottom-sheet-card/plan-mvp/embed-action-plan-mvp.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('bottom-sheet-card/plan-mvp/upload-action-mvp-plan.json', '_blank')">
+                        <h3 class="card-title">Upload Action MVP</h3>
+                        <p class="card-path">bottom-sheet-card/plan-mvp/upload-action-mvp-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Active</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Theme Component -->
+        <div class="section" data-section="theme">
+            <div class="section-header">
+                <h2 class="section-title">🎨 Theme Component</h2>
+                <span class="section-count">2 plans</span>
+            </div>
+            <div class="section-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('theme-component/theme-to-nextjs.json', '_blank')">
+                        <h3 class="card-title">Theme to Next.js</h3>
+                        <p class="card-path">theme-component/theme-to-nextjs.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-theme">Theme</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('theme-component/theme-multistack-guide.json', '_blank')">
+                        <h3 class="card-title">Theme Multi-Stack Guide</h3>
+                        <p class="card-path">theme-component/theme-multistack-guide.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-theme">Theme</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Working Changes -->
+        <div class="section" data-section="working">
+            <div class="section-header">
+                <h2 class="section-title">🔧 Working Changes</h2>
+                <span class="section-count">1 plan</span>
+            </div>
+            <div class="section-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('working-change/ai-summary-implementation.json', '_blank')">
+                        <h3 class="card-title">AI Summary Implementation</h3>
+                        <p class="card-path">working-change/ai-summary-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-ai">AI</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other Sections -->
+        <div class="section" data-section="other">
+            <div class="section-header">
+                <h2 class="section-title">📂 Other</h2>
+                <span class="section-count">4 plans</span>
+            </div>
+            <div class="section-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('business/website-plan.json', '_blank')">
+                        <h3 class="card-title">Website Plan</h3>
+                        <p class="card-path">business/website-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-business">Business</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('context/visual-user-feedback-inventory.json', '_blank')">
+                        <h3 class="card-title">Visual User Feedback Inventory</h3>
+                        <p class="card-path">context/visual-user-feedback-inventory.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Context</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('refactor/code-refactor.json', '_blank')">
+                        <h3 class="card-title">Code Refactor</h3>
+                        <p class="card-path">refactor/code-refactor.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Refactor</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('review/review.json', '_blank')">
+                        <h3 class="card-title">Review</h3>
+                        <p class="card-path">review/review.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-active">Review</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Archived Plans -->
+        <div class="section" data-section="archived">
+            <div class="section-header">
+                <h2 class="section-title">📦 Archived Plans</h2>
+                <span class="section-count">38 plans</span>
+                <button class="collapsible-toggle" onclick="toggleSection('archived')">Show All</button>
+            </div>
+            <div class="section-content collapsed" id="archived-content">
+                <div class="cards-grid">
+                    <div class="card" onclick="window.open('archived/typescript-errors.json', '_blank')">
+                        <h3 class="card-title">TypeScript Errors</h3>
+                        <p class="card-path">archived/typescript-errors.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/thememodal-workingplan.json', '_blank')">
+                        <h3 class="card-title">Theme Modal Working Plan</h3>
+                        <p class="card-path">archived/thememodal-workingplan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/theme-update.json', '_blank')">
+                        <h3 class="card-title">Theme Update</h3>
+                        <p class="card-path">archived/theme-update.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/collapsible-workingplan.json', '_blank')">
+                        <h3 class="card-title">Collapsible Working Plan</h3>
+                        <p class="card-path">archived/collapsible-workingplan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/selectedSurface-addition.json', '_blank')">
+                        <h3 class="card-title">Selected Surface Addition</h3>
+                        <p class="card-path">archived/selectedSurface-addition.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/new-themes-expansion.json', '_blank')">
+                        <h3 class="card-title">New Themes Expansion</h3>
+                        <p class="card-path">archived/new-themes-expansion.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/folders.json', '_blank')">
+                        <h3 class="card-title">Folders</h3>
+                        <p class="card-path">archived/folders.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/memoryleak-fix.json', '_blank')">
+                        <h3 class="card-title">Memory Leak Fix</h3>
+                        <p class="card-path">archived/memoryleak-fix.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/folder-supabase-context.json', '_blank')">
+                        <h3 class="card-title">Folder Supabase Context</h3>
+                        <p class="card-path">archived/folder-supabase-context.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/infopage.json', '_blank')">
+                        <h3 class="card-title">Info Page</h3>
+                        <p class="card-path">archived/infopage.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/download-card.json', '_blank')">
+                        <h3 class="card-title">Download Card</h3>
+                        <p class="card-path">archived/download-card.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/card-component-implementation.json', '_blank')">
+                        <h3 class="card-title">Card Component Implementation</h3>
+                        <p class="card-path">archived/card-component-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/settingpage-refactor.json', '_blank')">
+                        <h3 class="card-title">Settings Page Refactor</h3>
+                        <p class="card-path">archived/settingpage-refactor.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/ide-integration-basic.json', '_blank')">
+                        <h3 class="card-title">IDE Integration Basic</h3>
+                        <p class="card-path">archived/ide-integration-basic.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/signup-flow.json', '_blank')">
+                        <h3 class="card-title">Signup Flow</h3>
+                        <p class="card-path">archived/signup-flow.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/landing-page-review.json', '_blank')">
+                        <h3 class="card-title">Landing Page Review</h3>
+                        <p class="card-path">archived/landing-page-review.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/remove-unused-landing.json', '_blank')">
+                        <h3 class="card-title">Remove Unused Landing</h3>
+                        <p class="card-path">archived/remove-unused-landing.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/theme-safety.json', '_blank')">
+                        <h3 class="card-title">Theme Safety</h3>
+                        <p class="card-path">archived/theme-safety.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/rich-text-editor.json', '_blank')">
+                        <h3 class="card-title">Rich Text Editor</h3>
+                        <p class="card-path">archived/rich-text-editor.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/rich-text-working.json', '_blank')">
+                        <h3 class="card-title">Rich Text Working</h3>
+                        <p class="card-path">archived/rich-text-working.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/text-focus.json', '_blank')">
+                        <h3 class="card-title">Text Focus</h3>
+                        <p class="card-path">archived/text-focus.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/undo-redo.json', '_blank')">
+                        <h3 class="card-title">Undo/Redo</h3>
+                        <p class="card-path">archived/undo-redo.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/ai-title-generation.json', '_blank')">
+                        <h3 class="card-title">AI Title Generation</h3>
+                        <p class="card-path">archived/ai-title-generation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/action-card-implementation.json', '_blank')">
+                        <h3 class="card-title">Action Card Implementation</h3>
+                        <p class="card-path">archived/action-card-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/header-color-change.json', '_blank')">
+                        <h3 class="card-title">Header Color Change</h3>
+                        <p class="card-path">archived/header-color-change.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/header-final.json', '_blank')">
+                        <h3 class="card-title">Header Final</h3>
+                        <p class="card-path">archived/header-final.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/test-note-removal.json', '_blank')">
+                        <h3 class="card-title">Test Note Removal</h3>
+                        <p class="card-path">archived/test-note-removal.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/dashboard-implementation.json', '_blank')">
+                        <h3 class="card-title">Dashboard Implementation</h3>
+                        <p class="card-path">archived/dashboard-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/folder-state-fix.json', '_blank')">
+                        <h3 class="card-title">Folder State Fix</h3>
+                        <p class="card-path">archived/folder-state-fix.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/folders-route.json', '_blank')">
+                        <h3 class="card-title">Folders Route</h3>
+                        <p class="card-path">archived/folders-route.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/image-upload-implementation.json', '_blank')">
+                        <h3 class="card-title">Image Upload Implementation</h3>
+                        <p class="card-path">archived/image-upload-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/agent-note.json', '_blank')">
+                        <h3 class="card-title">Agent Note</h3>
+                        <p class="card-path">archived/agent-note.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/ai-byok-implementation-plan.json', '_blank')">
+                        <h3 class="card-title">AI BYOK Implementation</h3>
+                        <p class="card-path">archived/ai-byok-implementation-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/ai-integration-modal.json', '_blank')">
+                        <h3 class="card-title">AI Integration Modal</h3>
+                        <p class="card-path">archived/ai-integration-modal.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/share-creation.json', '_blank')">
+                        <h3 class="card-title">Share Creation</h3>
+                        <p class="card-path">archived/share-creation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/state-management-review-v1.json', '_blank')">
+                        <h3 class="card-title">State Management Review v1</h3>
+                        <p class="card-path">archived/state-management-review-v1.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/copy-button-function.json', '_blank')">
+                        <h3 class="card-title">Copy Button Function</h3>
+                        <p class="card-path">archived/copy-button-function.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/ai-edits-implementation.json', '_blank')">
+                        <h3 class="card-title">AI Edits Implementation</h3>
+                        <p class="card-path">archived/ai-edits-implementation.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/publish-action-mvp.json', '_blank')">
+                        <h3 class="card-title">Publish Action MVP</h3>
+                        <p class="card-path">archived/publish-action-mvp.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/project-note-sync.json', '_blank')">
+                        <h3 class="card-title">Project Note Sync</h3>
+                        <p class="card-path">archived/project-note-sync.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                    <div class="card" onclick="window.open('archived/project-note-sync-implementation-plan.json', '_blank')">
+                        <h3 class="card-title">Project Note Sync Implementation</h3>
+                        <p class="card-path">archived/project-note-sync-implementation-plan.json</p>
+                        <div class="card-badges">
+                            <span class="badge badge-archived">Archived</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>Generated for Noted Project • Last Updated: 2025-10-10</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Total: 61 improvement plans tracked</p>
+    </footer>
+
+    <script>
+        // Search functionality
+        const searchBox = document.getElementById('searchBox');
+        const sections = document.querySelectorAll('.section');
+        const cards = document.querySelectorAll('.card');
+
+        searchBox.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const path = card.querySelector('.card-path').textContent.toLowerCase();
+
+                if (title.includes(searchTerm) || path.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Hide empty sections
+            sections.forEach(section => {
+                const visibleCards = section.querySelectorAll('.card[style="display: block;"], .card:not([style*="display"])');
+                if (searchTerm && visibleCards.length === 0) {
+                    section.style.display = 'none';
+                } else {
+                    section.style.display = 'block';
+                }
+            });
+        });
+
+        // Toggle section
+        function toggleSection(sectionId) {
+            const content = document.getElementById(sectionId + '-content');
+            const button = event.target;
+
+            if (content.classList.contains('collapsed')) {
+                content.classList.remove('collapsed');
+                button.textContent = 'Hide';
+            } else {
+                content.classList.add('collapsed');
+                button.textContent = 'Show All';
+            }
+        }
+
+        // Update stats dynamically
+        function updateStats() {
+            const visibleCards = document.querySelectorAll('.card:not([style*="display: none"])');
+            document.getElementById('totalCount').textContent = visibleCards.length;
+        }
+    </script>
+</body>
+</html>
