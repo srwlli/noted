@@ -210,6 +210,15 @@ sequenceDiagram
 
 ### Step 1: Start a Session
 
+**For agents:** First, read the `.env` file to get the Supabase anon key (`EXPO_PUBLIC_SUPABASE_ANON_KEY`). You'll need this for all database queries.
+
+Example:
+```bash
+# Agent reads .env file
+Read tool: .env
+# Extract: EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+```
+
 Open Claude Code terminal and provide context:
 
 ```bash
@@ -295,9 +304,11 @@ Traditional AI interactions lose context when the session ends. Agent memory is 
 
 Check your active tokens:
 
+**For agents:** Read the anon key from `.env` file (`EXPO_PUBLIC_SUPABASE_ANON_KEY`)
+
 ```bash
 curl "https://ikovzegiuzjkubymwvjz.supabase.co/rest/v1/agent_tokens?select=*&order=created_at.desc" \
-  -H "apikey: YOUR_ANON_KEY" \
+  -H "apikey: <read from .env EXPO_PUBLIC_SUPABASE_ANON_KEY>" \
   -H "Authorization: Bearer YOUR_JWT"
 ```
 
@@ -393,14 +404,16 @@ verify_jwt = false
 
 ### Environment Variables
 
-```bash
-# Supabase (in .env)
-EXPO_PUBLIC_SUPABASE_URL=https://ikovzegiuzjkubymwvjz.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
+**For agents:** All these values are stored in the `.env` file at the project root. Read this file to get the anon key.
 
-# Deno Edge Functions (in Supabase dashboard)
+```bash
+# Supabase (in .env file)
+EXPO_PUBLIC_SUPABASE_URL=https://ikovzegiuzjkubymwvjz.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=<64-char JWT token - read from .env>
+
+# Deno Edge Functions (in Supabase dashboard - not needed for basic operations)
 SUPABASE_URL=https://ikovzegiuzjkubymwvjz.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+SUPABASE_SERVICE_ROLE_KEY=<service role key - only needed for batch operations>
 ```
 
 ---
@@ -477,11 +490,12 @@ Success Rate: 100.0%
 ### For Future Agents
 
 1. **Read this document first**
-2. **Check git history:** `git log --oneline -20`
-3. **Query database state:** Use provided curl examples
-4. **Ask user for:**
+2. **Read `.env` file** to get the Supabase anon key (`EXPO_PUBLIC_SUPABASE_ANON_KEY`)
+3. **Check git history:** `git log --oneline -20`
+4. **Query database state:** Use provided curl examples (with anon key from .env)
+5. **Ask user for:**
    - Current JWT token
-   - Service role key (if needed)
+   - Service role key (if needed for batch operations)
    - Specific goals for the session
 
 ### For Users
