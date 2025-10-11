@@ -7,6 +7,7 @@ export interface Note {
   content: string;
   folder_id: string | null;
   is_favorite: boolean;
+  is_agent_chat?: boolean;
   created_at: string;
   updated_at: string;
   ai_summary?: string | null;
@@ -185,7 +186,7 @@ export const notesService = {
 
   // Update note with AI edits
   async updateNoteWithAIEdits(noteId: string, editedContent: string, appliedEdits: string[]): Promise<Note> {
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from('notes')
       .update({
         content: editedContent,
@@ -203,5 +204,60 @@ export const notesService = {
     }
 
     return data as Note;
+  },
+
+  // Check if agent chat note exists for current user
+  async getAgentChatNote(): Promise<Note | null> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_agent_chat', true)
+      .single();
+
+    if (error) {
+      // Return null if not found (expected for first-time users)
+      if (error.code === 'PGRST116') return null;
+      console.error('Error fetching agent chat note:', error);
+      return null;
+    }
+
+    return data as Note;
+  },
+
+  // Create agent chat note for current user
+  async createAgentChatNote(): Promise<Note> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        title: '🤖 Agent Chat',
+        content: 'Hi! I\'m your AI assistant. Type a message below and I\'ll respond!\n\nYou can ask me questions, brainstorm ideas, or get help with writing.',
+        user_id: user.id,
+        is_agent_chat: true,
+        is_favorite: false,
+        folder_id: null
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating agent chat note:', error);
+      throw new Error(`Failed to create agent chat note: ${error.message}`);
+    }
+
+    return data as Note;
+  },
+
+  // Ensure agent chat note exists (get or create)
+  async ensureAgentChatNote(): Promise<Note> {
+    const existing = await this.getAgentChatNote();
+    if (existing) return existing;
+    return await this.createAgentChatNote();
   }
 };

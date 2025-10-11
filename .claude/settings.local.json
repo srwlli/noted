@@ -22,7 +22,13 @@
       "WebSearch",
       "Read(//c/Users/willh/Desktop/projects - current-location/build-library/noted-modules/**)",
       "Read(//c/Users/willh/.mcp-servers/docs-mcp/context/**)",
-      "Bash(deno check:*)"
+      "Bash(deno check:*)",
+      "Bash(curl:*)",
+      "Bash(export:*)",
+      "Bash(export NOTE_ID=\"4ca4b5ee-a981-434b-ac29-8d2293e077cd\")",
+      "Bash(deno run:*)",
+      "Bash(for f in \"C:\\Users\\willh\\Desktop\\projects - current-location\\noted\\improvements\"/{ai-integrations,bottom-sheet-card/plan-mvp,working-change}/*.json)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

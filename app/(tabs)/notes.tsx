@@ -33,9 +33,18 @@ export default function NotesScreen() {
 
     const loadData = async () => {
       try {
+        // Ensure agent chat note exists
+        await notesService.ensureAgentChatNote();
+
         const data = await notesService.getNotesByFolder(selectedFolderId);
         if (!cancelled) {
-          setNotes(data);
+          // Sort: Agent chat notes first, then by created_at descending
+          const sortedNotes = data.sort((a, b) => {
+            if (a.is_agent_chat && !b.is_agent_chat) return -1;
+            if (!a.is_agent_chat && b.is_agent_chat) return 1;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          });
+          setNotes(sortedNotes);
         }
       } catch (err) {
         if (!cancelled) {
@@ -80,7 +89,13 @@ export default function NotesScreen() {
     try {
       setError(null);
       const data = await notesService.getNotesByFolder(selectedFolderId);
-      setNotes(data);
+      // Sort: Agent chat notes first, then by created_at descending
+      const sortedNotes = data.sort((a, b) => {
+        if (a.is_agent_chat && !b.is_agent_chat) return -1;
+        if (!a.is_agent_chat && b.is_agent_chat) return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      setNotes(sortedNotes);
     } catch (err) {
       console.error('Failed to load notes:', err);
       setError('Failed to load notes');
@@ -109,6 +124,17 @@ export default function NotesScreen() {
 
   const confirmDeleteNote = async () => {
     if (!deleteNote) return;
+
+    // Prevent deletion of agent chat note
+    if (deleteNote.is_agent_chat) {
+      Alert.alert(
+        'Cannot Delete',
+        'The Agent Chat note cannot be deleted. It provides access to your AI assistant.',
+        [{ text: 'OK' }]
+      );
+      setDeleteNote(null);
+      return;
+    }
 
     try {
       await notesService.deleteNote(deleteNote.id);

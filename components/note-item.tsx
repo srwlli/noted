@@ -117,6 +117,11 @@ export const NoteItem = memo(({ note, onEdit, onDelete, onMoveToFolder, onFavori
               <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
                 {note.title}
               </Text>
+              {note.is_agent_chat && (
+                <View style={[styles.agentBadge, { backgroundColor: colors.tint + '20', borderColor: colors.tint }]}>
+                  <MaterialIcons name="smart-toy" size={14} color={colors.tint} />
+                </View>
+              )}
             </TouchableOpacity>
             <View style={styles.actions}>
               <Menu
@@ -247,5 +252,14 @@ const styles = StyleSheet.create({
   divider: {
     borderBottomWidth: 1,
     marginVertical: 4,
+  },
+  agentBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });
